@@ -19,7 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GameBoy.h" />
+    <ClInclude Include="cores\ARM7TDMI.hpp" />
+    <ClInclude Include="DS.hpp" />
+    <ClInclude Include="GameBoy.hpp" />
+    <ClInclude Include="GBA.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameBoy.cpp" />

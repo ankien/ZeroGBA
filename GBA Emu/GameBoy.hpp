@@ -23,5 +23,4 @@ struct GameBoy {
     }
 
     bool load(std::string);
-    void interpretCycle();
 };

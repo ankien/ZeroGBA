@@ -1,6 +1,7 @@
 #include <iostream>
 #include <filesystem>
-#include "GameBoy.h"
+#include "GameBoy.hpp"
+#include "GBA.hpp"
 
 int main(int argc, char *argv[]) {
     if(argc < 3) {
@@ -16,6 +17,8 @@ int main(int argc, char *argv[]) {
             std::cerr << "Error loading ROM.\n";
             exit(1);
         }
+
+
     } else if(filename == ".gba") {
     
     } else if(filename == ".nds") {

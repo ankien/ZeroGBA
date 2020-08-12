@@ -9,13 +9,14 @@ void GameBoy::interpretCycle() {
 
 }
 
-bool GameBoy::load(std::string fileName) {
+bool GameBoy::load(std::string fileName) { // need to handle different memory banks
     std::fstream fileStream(fileName, std::ios::binary | std::ios::in);
     if(!fileStream.is_open()) return false;
 
     char byte;
-    for(uint16_t i = ; fileStream.get(byte); i++) {
-
+    for(uint16_t i = 0; fileStream.get(byte); i++) {
+        if(i > 0x7FFF) return false;
+        memory[i] = byte;
     }
     return true;
 }
