@@ -14,7 +14,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GameBoy.cpp">
+    <ClCompile Include="cores\ARM7TDMI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GBA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -22,13 +25,13 @@
     <ClInclude Include="GBA.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GameBoy.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="DS.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cores\ARM7TDMI.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\GBA\PPU.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

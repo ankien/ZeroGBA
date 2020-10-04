@@ -21,11 +21,12 @@
   <ItemGroup>
     <ClInclude Include="cores\ARM7TDMI.hpp" />
     <ClInclude Include="DS.hpp" />
-    <ClInclude Include="GameBoy.hpp" />
     <ClInclude Include="GBA.hpp" />
+    <ClInclude Include="hardware\GBA\PPU.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GameBoy.cpp" />
+    <ClCompile Include="cores\ARM7TDMI.cpp" />
+    <ClCompile Include="GBA.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

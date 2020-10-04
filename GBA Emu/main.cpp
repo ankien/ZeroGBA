@@ -1,6 +1,6 @@
 #include <iostream>
 #include <filesystem>
-#include "GameBoy.hpp"
+#include <cctype>
 #include "GBA.hpp"
 
 int main(int argc, char *argv[]) {
@@ -10,21 +10,24 @@ int main(int argc, char *argv[]) {
     }
     
     // Emulation loops
-    std::string filename = std::filesystem::path(argv[3]).extension().string();
-    if(filename == ".gb") {
-        GameBoy gb;
-        if(!gb.load(argv[1])) {
-            std::cerr << "Error loading ROM.\n";
-            exit(1);
+    std::string fileExtension = std::filesystem::path(argv[2]).extension().string();
+    std::transform(fileExtension.begin(),fileExtension.end(),fileExtension.begin(),[](char c){return std::tolower(c);});
+    if(fileExtension == ".gba") {
+        // load game
+        GBA gba(argv[2]);
+
+        if(argv[1] == "-i") {
+
+        } else if(argv[1] == "-j") {
+
+        } else {
+            std::cout << "Invalid arguments\n";
         }
 
-
-    } else if(filename == ".gba") {
-    
-    } else if(filename == ".nds") {
+    } else if(fileExtension == ".nds") {
     
     } else {
-        std::cerr << "Incompatible filetype.\n";
+        std::cerr << "Incompatible filetype\n";
         exit(1);
     }
     return 0;
