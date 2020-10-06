@@ -35,8 +35,8 @@ struct ARM7TDMI {
     uint32_t spsr[5]; // fiq,svc,abt,irq,und
 
 
-    void interpretARMCycle();
-    void interpretTHUMBCycle();
+    void interpretARMCycle(uint8_t[]);
+    void interpretTHUMBCycle(uint8_t[]);
 
     /*ARM7TDMI(,) {
 

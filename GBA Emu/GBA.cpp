@@ -1,22 +1,14 @@
 #include "GBA.hpp"
 
-GBA::GBA() {
+GBA::GBA(std::string rom) {
+    romMemory = loadRom(rom);
     
 }
 
-bool GBA::loadRom(std::string rom) {
-    std::fstream fileStream(rom, std::ios::binary | std::ios::in);
-
-    if(!fileStream.is_open())
-        return false;
-
-    if(std::filesystem::file_size(rom) > 32000000)
-        return false;
-
-    rom.insert(rom.begin(),
-               std::istream_iterator<uint8_t>(fileStream),
-               std::istream_iterator<uint8_t>());
-    
-    fileStream.close();
-    return true;
+char* GBA::loadRom(std::string rom) {
+    std::ifstream fileStream(rom.c_str(), std::ifstream::in | std::ifstream::binary);
+    uint32_t romSizeInBytes = std::filesystem::file_size(rom);
+    char* romMemory = new char[romSizeInBytes];
+    fileStream.read(romMemory,romSizeInBytes);
+    return romMemory;
 }

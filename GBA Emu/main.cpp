@@ -1,4 +1,3 @@
-#include <iostream>
 #include <cctype>
 #include "GBA.hpp"
 
@@ -12,15 +11,15 @@ int main(int argc, char *argv[]) {
     std::string fileExtension = std::filesystem::path(argv[2]).extension().string();
     std::transform(fileExtension.begin(),fileExtension.end(),fileExtension.begin(),[](char c){return std::tolower(c);});
     if(fileExtension == ".gba") {
-        GBA gba;
-        if(gba.loadRom(argv[2]) == false) {
-            std::cerr << "Failure loading ROM\n";
+        GBA gba(argv[2]);
+        if(gba.romMemory == NULL) {
+            std::cout << "Error loading file\n";
             exit(1);
         }
 
         if(argv[1] == "-i") {
             while(true) {
-                //gba.arm7.interpretCycle();
+                //gba.arm7.interpretARMCycle(gba.romMemory);
             }
         } else if(argv[1] == "-j") {
             // no implementation yet
