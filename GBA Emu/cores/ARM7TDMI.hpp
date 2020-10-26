@@ -37,8 +37,4 @@ struct ARM7TDMI {
 
     void interpretARMCycle(uint8_t[]);
     void interpretTHUMBCycle(uint8_t[]);
-
-    /*ARM7TDMI(,) {
-
-    }*/
 };
