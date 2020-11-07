@@ -2,6 +2,9 @@
 
 GBA::GBA(std::string rom) {
     romMemory = loadRom(rom);
+
+    // This only works if struct only contains POD!
+    memset(&arm7,0,sizeof ARM7TDMI);
 }
 
 char* GBA::loadRom(std::string rom) {

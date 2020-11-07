@@ -6,6 +6,7 @@ struct ARM7TDMI {
     static const uint32_t CLOCK_RATE = 16780000;
     static const uint32_t DS_CLOCK_RATE = 33000000;
 
+    // might not end up using this
     struct {
         uint32_t DISPCNT:16, DISPSTAT:16, VCOUNT:16, BG0CNT:16, BG1CNT:16, BG3CNT:16, BG0HOFS:16, BG0VOFS:16, BG1HOFS:16,
                 BG1VOFS:16, BG2HOFS:16, BG2VOFS:16, BG3HOFS:16, BG3VOFS:16, BG2PA:16, BG2PB:16,
@@ -23,18 +24,27 @@ struct ARM7TDMI {
                 IE:16, IF:16, WAITCNT:16, IME:16, POSTFLG:8, HALTCNT:8;
     } IOmap;
 
+    enum exceptions { Reset, UndefinedInstruction, SoftwareInterrupt, PrefetchAbort, DataAbort,
+                      AddressExceeds26Bit, NormalInterrupt, FastInterrupt };
+
+    enum mode { User = 16, FIQ, IRQ, Supervisor, Abort = 23, Undefined = 27, System = 31 };
+
     /// Registers ///
-    /// CPSR & SPSR = program status registers
-    uint32_t reg[16]; // R0-15, 13-SP, 14-LR, 15-PC
-    uint32_t fiqreg[7]; // R8-14
-    uint32_t svcreg[2]; // R13-14
-    uint32_t abtreg[2]; // R13-14
-    uint32_t irqreg[2]; // R13-14
-    uint32_t undreg[2]; // R13-14
-    uint32_t cpsr; // flags: 31-sign, 30-zero, 29-carry, 28-overflow, 27-sticky overflow, 26-8-reserved, 
-    uint32_t spsr[5]; // fiq,svc,abt,irq,und
+    // CPSR & SPSR = program status registers
+    // registers are banked
+    uint32_t reg[8];   // R0-7
+    uint32_t r8[2]; // sys/user-fiq
+    uint32_t r9[2]; // sys/user-fiq
+    uint32_t r10[2]; // sys/user-fiq
+    uint32_t r11[2]; // sys/user-fiq
+    uint32_t r12[2]; // sys/user-fiq
+    uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und
+    uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und
+    uint32_t cpsr;
+    uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
-
+    void handleException(uint8_t, uint32_t, uint8_t);
     void interpretARMCycle(uint8_t[]);
     void interpretTHUMBCycle(uint8_t[]);
+    uint8_t getModeIndex(uint8_t);
 };
