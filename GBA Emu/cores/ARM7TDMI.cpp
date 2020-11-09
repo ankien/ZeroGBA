@@ -1,12 +1,31 @@
 #include "ARM7TDMI.hpp"
 
-void ARM7TDMI::interpretARMCycle(uint8_t romMemory[]) {
-    uint32_t opcode = romMemory[];
+void ARM7TDMI::fillARM(uint8_t romMemory[]) {
+    uint32_t opcode = romMemory[reg[15]];
 
+    uint16_t armIndex = ((opcode >> 16) & 0xFF0) | ((opcode >> 4) & 0xF);
+    for() {
+        
+        reg[15] += 4;
+    }
 }
 
-void ARM7TDMI::interpretTHUMBCycle(uint8_t romMemory[]) {
-    uint16_t opcode = ;
+void ARM7TDMI::fillTHUMB(uint8_t romMemory[]) {
+    uint16_t opcode = romMemory[reg[15]];
+    
+    uint8_t thumbIndex = opcode >> 8;
+    for() {
+        
+        reg[15] += 2;
+    }
+}
+
+void ARM7TDMI::interpretARMCycle() {
+    
+}
+
+void ARM7TDMI::interpretTHUMBCycle() {
+    
 
 }
 

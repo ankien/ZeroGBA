@@ -7,6 +7,10 @@ struct ARM7TDMI {
     static const uint32_t CLOCK_RATE = 16780000;
     static const uint32_t DS_CLOCK_RATE = 33000000;
 
+    // lookup tables, array size is the different number of instructions
+    void (*armTable[4096])();
+    void (*thumbTable[256])();
+
     // might not end up using this, these are the I/O registers in I/O Map
     struct {
         uint32_t DISPCNT:16, DISPSTAT:16, VCOUNT:16, BG0CNT:16, BG1CNT:16, BG3CNT:16, BG0HOFS:16, BG0VOFS:16, BG1HOFS:16,
@@ -33,7 +37,7 @@ struct ARM7TDMI {
     /// Registers ///
     // CPSR & SPSR = program status registers
     // registers are banked
-    uint32_t reg[8];   // R0-7
+    uint32_t reg[8]; // R0-7
     uint32_t r8[2]; // sys/user-fiq
     uint32_t r9[2]; // sys/user-fiq
     uint32_t r10[2]; // sys/user-fiq
@@ -45,7 +49,9 @@ struct ARM7TDMI {
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
     void handleException(uint8_t, uint32_t, uint8_t);
-    void interpretARMCycle(uint8_t[]);
-    void interpretTHUMBCycle(uint8_t[]);
+    void fillARM(uint8_t[]);
+    void fillTHUMB(uint8_t[]);
+    void interpretARMCycle();
+    void interpretTHUMBCycle();
     uint8_t getModeIndex(uint8_t);
 };
