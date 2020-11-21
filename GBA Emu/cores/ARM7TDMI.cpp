@@ -1,38 +1,59 @@
 #include "ARM7TDMI.hpp"
 
-void ARM7TDMI::fillARM(uint8_t romMemory[]) {
-    uint32_t opcode = romMemory[reg[15]];
+void ARM7TDMI::fillARM(uint8_t* romMemory) {
+    uint32_t instruction = romMemory[pc];
 
-    uint16_t armIndex = ((opcode >> 16) & 0xFF0) | ((opcode >> 4) & 0xF);
-    for() {
-        
-        reg[15] += 4;
+    uint16_t armIndex = fetchARMIndex(instruction);
+    for(int i = 0; i < 4096; i++) {
+
+        if(armIndex) {
+            
+        } else {
+            armTable[armIndex] = &emptyInstruction;
+        }
+
+        pc += 4;
     }
 }
 
-void ARM7TDMI::fillTHUMB(uint8_t romMemory[]) {
-    uint16_t opcode = romMemory[reg[15]];
+void ARM7TDMI::fillTHUMB(uint8_t* romMemory) {
+    uint16_t instruction = romMemory[pc];
     
-    uint8_t thumbIndex = opcode >> 8;
+    uint8_t thumbIndex = fetchTHUMBIndex(instruction);
     for() {
         
-        reg[15] += 2;
+        pc += 2;
     }
 }
 
-void ARM7TDMI::interpretARMCycle() {
-    
+// For unimplemented/unused instructions
+void emptyInstruction() {}
+
+// need to check if this is left or right shift depending on how instr is loaded...
+// Bits 27-20 + 7-4
+uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
+    return ((instruction >> 16) & 0xFF0) | ((instruction >> 4) & 0xF);
 }
 
-void ARM7TDMI::interpretTHUMBCycle() {
-    
+// Bits 8-15
+uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
+    return instruction >> 8;
+}
 
+void ARM7TDMI::interpretARMCycle(uint8_t* romMemory) {
+    uint16_t armIndex = fetchARMIndex(romMemory[pc]);
+    armTable[armIndex]();
+}
+
+void ARM7TDMI::interpretTHUMBCycle(uint8_t* romMemory) {
+    uint8_t thumbIndex = fetchTHUMBIndex(romMemory[pc]);
+    thumbTable[thumbIndex]();
 }
 
 // series of actions performed when entering an exception
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
     const uint8_t index = getModeIndex(newMode);
-    r14[index] = reg[15] + nn; // save old PC, always in ARM-style format
+    r14[index] = pc + nn; // save old PC, always in ARM-style format
     spsr[index] = cpsr;
     cpsr = ((cpsr & 0xFFFFFFC0) | (newMode));
     cpsr |= 0x80;
@@ -48,14 +69,14 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
             switch(exception) {
 
                 case Reset:
-                    reg[15] = 0x0;
+                    pc = 0x0;
 
                     break;
                 case AddressExceeds26Bit:
-                    reg[15] = 0x14;
+                    pc = 0x14;
                     break;
                 case SoftwareInterrupt:
-                    reg[15] = 0x8;
+                    pc = 0x8;
                     break;
             }
             break;
@@ -65,7 +86,7 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
             switch(exception) {
                 
                 case UndefinedInstruction:
-                    reg[15] = 0x4;
+                    pc = 0x4;
                     break;
             }
             break;
@@ -75,10 +96,10 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
             switch(exception) {
 
                 case DataAbort:
-                    reg[15] = 0x10;
+                    pc = 0x10;
                     break;
                 case PrefetchAbort:
-                    reg[15] = 0xC;
+                    pc = 0xC;
                     break;
             }
             break;
@@ -88,7 +109,7 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
             switch(exception) {
 
                 case NormalInterrupt:
-                    reg[15] = 0x18;
+                    pc = 0x18;
                     break;
             }
             break;
@@ -98,7 +119,7 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
             switch(exception) {
 
                 case FastInterrupt:
-                    reg[15] = 0x1C;
+                    pc = 0x1C;
                     break;
             }
             break;

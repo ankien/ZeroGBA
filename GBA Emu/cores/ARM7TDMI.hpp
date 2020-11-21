@@ -1,6 +1,7 @@
 #pragma once
 #include <string.h>
 #include <stdint.h>
+#include "ARM/Branch.hpp"
 
 struct ARM7TDMI {
     // cycles per second
@@ -45,13 +46,16 @@ struct ARM7TDMI {
     uint32_t r12[2]; // sys/user-fiq
     uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und
     uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und
+    uint32_t pc; // R15
     uint32_t cpsr;
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
     void handleException(uint8_t, uint32_t, uint8_t);
-    void fillARM(uint8_t[]);
-    void fillTHUMB(uint8_t[]);
-    void interpretARMCycle();
-    void interpretTHUMBCycle();
+    void fillARM(uint8_t*);
+    void fillTHUMB(uint8_t*);
+    uint16_t fetchARMIndex(uint32_t);
+    uint8_t fetchTHUMBIndex(uint16_t);
+    void interpretARMCycle(uint8_t*);
+    void interpretTHUMBCycle(uint8_t*);
     uint8_t getModeIndex(uint8_t);
 };

@@ -6,9 +6,9 @@
 #include "cores/ARM7TDMI.hpp"
 
 struct GBA {
-    ARM7TDMI arm7;
-    char* romMemory;
+    static ARM7TDMI arm7;
+    uint8_t* romMemory;
 
     GBA(std::string);
-    char* loadRom(std::string);
+    uint8_t* loadRom(std::string);
 };

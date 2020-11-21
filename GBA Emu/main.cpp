@@ -24,8 +24,11 @@ int main(int argc, char *argv[]) {
 
 
         if(argv[1] == "-i") {
+            
+            gba.arm7.fillARM(gba.romMemory);
+
             while(true) {
-                gba.arm7.interpretARMCycle(reinterpret_cast<uint8_t*>(gba.romMemory));
+                gba.arm7.interpretARMCycle(gba.romMemory);
 
                 // draw
 

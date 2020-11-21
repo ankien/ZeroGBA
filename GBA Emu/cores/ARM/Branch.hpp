@@ -1,1 +1,5 @@
-ddf
+void branch() {
+}
+
+void branchAndExchange() {
+}

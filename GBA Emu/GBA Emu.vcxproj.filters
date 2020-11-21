@@ -9,16 +9,31 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="Hardware">
+      <UniqueIdentifier>{cd56e99c-2070-464a-97a7-2650e70b0547}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hardware\GBA">
+      <UniqueIdentifier>{2e1f9618-4e91-4e24-9446-6d6de102fdec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Cores">
+      <UniqueIdentifier>{30be8d09-6832-4b80-949f-fa2ce1a2aea4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Cores\ARM">
+      <UniqueIdentifier>{a8bf0042-13ce-4c7f-bd5a-eef4c26a12ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Cores\THUMB">
+      <UniqueIdentifier>{773e51e5-859e-462e-b815-763069bcf2af}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cores\ARM7TDMI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GBA.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cores\ARM7TDMI.cpp">
+      <Filter>Cores</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -28,11 +43,14 @@
     <ClInclude Include="DS.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cores\ARM7TDMI.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hardware\GBA\PPU.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Hardware\GBA</Filter>
+    </ClInclude>
+    <ClInclude Include="cores\ARM7TDMI.hpp">
+      <Filter>Cores</Filter>
+    </ClInclude>
+    <ClInclude Include="cores\ARM\Branch.hpp">
+      <Filter>Cores\ARM</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
