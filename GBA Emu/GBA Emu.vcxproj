@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cores\ARM7TDMI.hpp" />
-    <ClInclude Include="cores\ARM\Branch.hpp" />
     <ClInclude Include="DS.hpp" />
     <ClInclude Include="GBA.hpp" />
     <ClInclude Include="hardware\GBA\PPU.hpp" />

@@ -1,33 +1,29 @@
 #include "ARM7TDMI.hpp"
 
 void ARM7TDMI::fillARM(uint8_t* romMemory) {
-    uint32_t instruction = romMemory[pc];
-
-    uint16_t armIndex = fetchARMIndex(instruction);
+    
     for(int i = 0; i < 4096; i++) {
+    uint32_t instruction = (romMemory[pc+3] << 24) | romMemory[pc];
+    uint16_t armIndex = fetchARMIndex(instruction);
 
-        if(armIndex) {
-            
+        if((armIndex & 0b111000000000) == 0b101000000000) {
+            armTable[armIndex] = &ARM7TDMI::branch;
         } else {
-            armTable[armIndex] = &emptyInstruction;
+            armTable[armIndex] = &ARM7TDMI::emptyInstruction;
         }
 
-        pc += 4;
     }
 }
 
 void ARM7TDMI::fillTHUMB(uint8_t* romMemory) {
-    uint16_t instruction = romMemory[pc];
     
-    uint8_t thumbIndex = fetchTHUMBIndex(instruction);
-    for() {
-        
-        pc += 2;
+    /*
+    for(int i = 0; i < 256; i++) {
+        uint16_t instruction = romMemory[pc];
+        uint8_t thumbIndex = fetchTHUMBIndex(instruction);
     }
+    */
 }
-
-// For unimplemented/unused instructions
-void emptyInstruction() {}
 
 // need to check if this is left or right shift depending on how instr is loaded...
 // Bits 27-20 + 7-4
@@ -38,16 +34,6 @@ uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
 // Bits 8-15
 uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
-}
-
-void ARM7TDMI::interpretARMCycle(uint8_t* romMemory) {
-    uint16_t armIndex = fetchARMIndex(romMemory[pc]);
-    armTable[armIndex]();
-}
-
-void ARM7TDMI::interpretTHUMBCycle(uint8_t* romMemory) {
-    uint8_t thumbIndex = fetchTHUMBIndex(romMemory[pc]);
-    thumbTable[thumbIndex]();
 }
 
 // series of actions performed when entering an exception
@@ -144,4 +130,13 @@ uint8_t ARM7TDMI::getModeIndex(uint8_t mode) {
         case Undefined:
             return 5;
     }
+    return 255; // unknown i guess??
+}
+
+// For unimplemented instructions
+void ARM7TDMI::emptyInstruction(uint32_t instruction) {}
+
+/// Branch ///
+void ARM7TDMI::branch(uint32_t instruction) {
+    std::cout << "branch instruction decoded!\n";
 }

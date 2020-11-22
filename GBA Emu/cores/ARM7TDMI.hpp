@@ -1,7 +1,7 @@
 #pragma once
 #include <string.h>
 #include <stdint.h>
-#include "ARM/Branch.hpp"
+#include <iostream>
 
 struct ARM7TDMI {
     // cycles per second
@@ -9,8 +9,8 @@ struct ARM7TDMI {
     static const uint32_t DS_CLOCK_RATE = 33000000;
 
     // lookup tables, array size is the different number of instructions
-    void (*armTable[4096])();
-    void (*thumbTable[256])();
+    void (ARM7TDMI::*armTable[4096])(uint32_t);
+    void (ARM7TDMI::*thumbTable[256])(uint32_t);
 
     // might not end up using this, these are the I/O registers in I/O Map
     struct {
@@ -55,7 +55,11 @@ struct ARM7TDMI {
     void fillTHUMB(uint8_t*);
     uint16_t fetchARMIndex(uint32_t);
     uint8_t fetchTHUMBIndex(uint16_t);
-    void interpretARMCycle(uint8_t*);
-    void interpretTHUMBCycle(uint8_t*);
     uint8_t getModeIndex(uint8_t);
+
+    // For unimplemented instructions
+    void emptyInstruction(uint32_t);
+
+    /// Branch ///
+    void branch(uint32_t);
 };
