@@ -3,7 +3,10 @@
 void ARM7TDMI::fillARM(uint8_t* romMemory) {
     
     for(int i = 0; i < 4096; i++) {
-    uint32_t instruction = (romMemory[pc+3] << 24) | romMemory[pc];
+    uint32_t instruction = (romMemory[pc+3] << 24) |
+                           (romMemory[pc+2] << 16) | 
+                           (romMemory[pc+1] << 8)  |
+                            romMemory[pc];;
     uint16_t armIndex = fetchARMIndex(instruction);
 
         if((armIndex & 0b111000000000) == 0b101000000000) {
@@ -19,7 +22,8 @@ void ARM7TDMI::fillTHUMB(uint8_t* romMemory) {
     
     /*
     for(int i = 0; i < 256; i++) {
-        uint16_t instruction = romMemory[pc];
+        uint16_t instruction = (romMemory[pc+1] << 8) |
+                                romMemory[pc];
         uint8_t thumbIndex = fetchTHUMBIndex(instruction);
     }
     */
@@ -40,15 +44,16 @@ uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
     const uint8_t index = getModeIndex(newMode);
     r14[index] = pc + nn; // save old PC, always in ARM-style format
-    spsr[index] = cpsr;
-    cpsr = ((cpsr & 0xFFFFFFC0) | (newMode));
-    cpsr |= 0x80;
-
-    if((cpsr & 0x11) || (exception == Reset))
-        cpsr |= 0x4;
+    spsr[index] = getCPSR();
+    cpsr.state = 0;
+    cpsr.mode = newMode;
+    cpsr.irqDisable = 1;
+    
+    if((cpsr.mode == Reset) || (cpsr.mode == FIQ))
+        cpsr.fiqDisable = 1;
 
     // Might need to implement a return based on mode
-    switch(cpsr & 0x1F) {
+    switch(cpsr.mode) {
 
         case Supervisor:
 
@@ -133,10 +138,42 @@ uint8_t ARM7TDMI::getModeIndex(uint8_t mode) {
     return 255; // unknown i guess??
 }
 
+uint32_t ARM7TDMI::getCPSR() {
+    return cpsr.mode |
+           (cpsr.state << 5) |
+           (cpsr.fiqDisable << 6) |
+           (cpsr.irqDisable << 7) |
+           (cpsr.reserved << 8) |
+           (cpsr.stickyOverflow << 27) |
+           (cpsr.overflowFlag << 28) |
+           (cpsr.carryFlag << 29) |
+           (cpsr.zeroFlag << 30) |
+           (cpsr.signFlag << 31);
+}
+
+void ARM7TDMI::setCPSR(uint32_t num) {
+    cpsr.mode = (num & 0x1F);
+    cpsr.state = (num & 0x20) >> 5;
+    cpsr.fiqDisable = (num & 0x40) >> 6;
+    cpsr.irqDisable = (num & 0x80) >> 7;
+    cpsr.reserved = (num & 0x7FFFF00) >> 8;
+    cpsr.stickyOverflow = (num & 0x8000000) >> 27;
+    cpsr.overflowFlag = (num & 0x10000000) >> 28;
+    cpsr.carryFlag = (num & 0x20000000) >> 29;
+    cpsr.zeroFlag = (num & 0x40000000) >> 30;
+    cpsr.signFlag = (num & 0x80000000) >> 31;
+}
+
 // For unimplemented instructions
 void ARM7TDMI::emptyInstruction(uint32_t instruction) {}
 
 /// Branch ///
 void ARM7TDMI::branch(uint32_t instruction) {
     std::cout << "branch instruction decoded!\n";
+}
+
+void ARM7TDMI::branchExchange(uint32_t) {
+}
+
+void ARM7TDMI::softwareInterrupt(uint32_t) {
 }

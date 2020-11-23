@@ -6,13 +6,17 @@ GBA::GBA(std::string rom) {
 }
 
 void GBA::interpretARMCycle(uint8_t* romMemory) {
-    uint32_t instruction = (romMemory[arm7.pc+3] << 24) | romMemory[arm7.pc];
+    uint32_t instruction = (romMemory[arm7.pc+3] << 24) |
+                           (romMemory[arm7.pc+2] << 16) | 
+                           (romMemory[arm7.pc+1] << 8)  |
+                            romMemory[arm7.pc];
     uint16_t armIndex = arm7.fetchARMIndex(instruction);
     (arm7.*(arm7.armTable[armIndex]))(instruction);
 }
 
 void GBA::interpretTHUMBCycle(uint8_t* romMemory) {
-    uint16_t instruction = romMemory[arm7.pc];
+    uint16_t instruction = (romMemory[arm7.pc+1] << 8) |
+                            romMemory[arm7.pc];
     uint8_t thumbIndex = arm7.fetchTHUMBIndex(instruction);
     (arm7.*(arm7.thumbTable[thumbIndex]))(instruction);
 }
