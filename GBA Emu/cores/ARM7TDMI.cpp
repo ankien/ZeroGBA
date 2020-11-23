@@ -3,16 +3,11 @@
 void ARM7TDMI::fillARM(uint8_t* romMemory) {
     
     for(int i = 0; i < 4096; i++) {
-    uint32_t instruction = (romMemory[pc+3] << 24) |
-                           (romMemory[pc+2] << 16) | 
-                           (romMemory[pc+1] << 8)  |
-                            romMemory[pc];;
-    uint16_t armIndex = fetchARMIndex(instruction);
 
-        if((armIndex & 0b111000000000) == 0b101000000000) {
-            armTable[armIndex] = &ARM7TDMI::branch;
+        if((i & 0b111000000000) == 0b101000000000) {
+            armTable[i] = &ARM7TDMI::branch;
         } else {
-            armTable[armIndex] = &ARM7TDMI::emptyInstruction;
+            armTable[i] = &ARM7TDMI::emptyInstruction;
         }
 
     }
@@ -20,13 +15,11 @@ void ARM7TDMI::fillARM(uint8_t* romMemory) {
 
 void ARM7TDMI::fillTHUMB(uint8_t* romMemory) {
     
-    /*
     for(int i = 0; i < 256; i++) {
-        uint16_t instruction = (romMemory[pc+1] << 8) |
-                                romMemory[pc];
-        uint8_t thumbIndex = fetchTHUMBIndex(instruction);
+
+        
+
     }
-    */
 }
 
 // need to check if this is left or right shift depending on how instr is loaded...
@@ -169,7 +162,10 @@ void ARM7TDMI::emptyInstruction(uint32_t instruction) {}
 
 /// Branch ///
 void ARM7TDMI::branch(uint32_t instruction) {
-    std::cout << "branch instruction decoded!\n";
+    uint32_t offset = instruction & 0xFFFFFF;
+    if(instruction & 0x1000000)
+        r14[cpsr.mode] = pc + 4;
+    pc += 8 + (offset * 4);
 }
 
 void ARM7TDMI::branchExchange(uint32_t) {

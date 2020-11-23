@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
         if(strcmp(argv[1],"-i") == 0) {
             
             gba.arm7.fillARM(gba.romMemory);
-            // fill thumb too?
+            gba.arm7.fillTHUMB(gba.romMemory);
 
             while(true) {
                 gba.interpretARMCycle(gba.romMemory);
