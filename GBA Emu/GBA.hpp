@@ -6,12 +6,12 @@
 #include "cores/ARM7TDMI.hpp"
 
 struct GBA {
-    ARM7TDMI arm7;
+    ARM7TDMI arm7tdmi;
     uint8_t* romMemory;
 
     GBA(std::string);
 
-    void interpretARMCycle(uint8_t*);
-    void interpretTHUMBCycle(uint8_t*);
+    void interpretARM(uint8_t*);
+    void interpretTHUMB(uint8_t*);
     uint8_t* loadRom(std::string);
 };

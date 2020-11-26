@@ -26,11 +26,11 @@ int main(int argc, char *argv[]) {
 
         if(strcmp(argv[1],"-i") == 0) {
             
-            gba.arm7.fillARM(gba.romMemory);
-            gba.arm7.fillTHUMB(gba.romMemory);
+            gba.arm7tdmi.fillARM(gba.romMemory);
+            gba.arm7tdmi.fillTHUMB(gba.romMemory);
 
             while(true) {
-                gba.interpretARMCycle(gba.romMemory);
+                gba.interpretARM(gba.romMemory);
 
                 // draw
 

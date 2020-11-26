@@ -2,23 +2,24 @@
 
 GBA::GBA(std::string rom) {
     romMemory = loadRom(rom);
-    arm7 = {};
+    arm7tdmi = {};
 }
 
-void GBA::interpretARMCycle(uint8_t* romMemory) {
-    uint32_t instruction = (romMemory[arm7.pc+3] << 24) |
-                           (romMemory[arm7.pc+2] << 16) | 
-                           (romMemory[arm7.pc+1] << 8)  |
-                            romMemory[arm7.pc];
-    uint16_t armIndex = arm7.fetchARMIndex(instruction);
-    (arm7.*(arm7.armTable[armIndex]))(instruction);
+// each instruction has multiple cycles, there's a pipeline too?
+void GBA::interpretARM(uint8_t* romMemory) {
+    uint32_t instruction = (romMemory[arm7tdmi.pc+3] << 24) |
+                           (romMemory[arm7tdmi.pc+2] << 16) | 
+                           (romMemory[arm7tdmi.pc+1] << 8)  |
+                            romMemory[arm7tdmi.pc];
+    uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
+    (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
 }
 
-void GBA::interpretTHUMBCycle(uint8_t* romMemory) {
-    uint16_t instruction = (romMemory[arm7.pc+1] << 8) |
-                            romMemory[arm7.pc];
-    uint8_t thumbIndex = arm7.fetchTHUMBIndex(instruction);
-    (arm7.*(arm7.thumbTable[thumbIndex]))(instruction);
+void GBA::interpretTHUMB(uint8_t* romMemory) {
+    uint16_t instruction = (romMemory[arm7tdmi.pc+1] << 8) |
+                            romMemory[arm7tdmi.pc];
+    uint8_t thumbIndex = arm7tdmi.fetchTHUMBIndex(instruction);
+    (arm7tdmi.*(arm7tdmi.thumbTable[thumbIndex]))(instruction);
 }
 
 uint8_t* GBA::loadRom(std::string rom) {

@@ -6,6 +6,12 @@ void ARM7TDMI::fillARM(uint8_t* romMemory) {
 
         if((i & 0b111000000000) == 0b101000000000) {
             armTable[i] = &ARM7TDMI::branch;
+        } else if(i & 0b111111111111 == 0b000100100001) {
+            armTable[i] = &ARM7TDMI::branchExchange;
+        } else if(i & 0b111100000000 == 0b111100000000) {
+            armTable[i] = &ARM7TDMI::softwareInterrupt;
+        } else if(i &) {
+            
         } else {
             armTable[i] = &ARM7TDMI::emptyInstruction;
         }
@@ -33,7 +39,7 @@ uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
-// series of actions performed when entering an exception
+/* series of actions performed when entering an exception
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
     const uint8_t index = getModeIndex(newMode);
     r14[index] = pc + nn; // save old PC, always in ARM-style format
@@ -111,24 +117,136 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
 
 
 }
+*/
 
-uint8_t ARM7TDMI::getModeIndex(uint8_t mode) {
+uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
+    uint8_t index = 0;
     switch(mode) {
         case System:
         case User:
-            return 0;
+            break;
         case FIQ:
-            return 1;
+            index = 1;
+            break;
         case Supervisor:
-            return 2;
+            index = 2;
+            break;
         case Abort:
-            return 3;
+            index = 3;
+            break;
         case IRQ:
-            return 4;
+            index = 4;
+            break;
         case Undefined:
-            return 5;
+            index = 5;
     }
-    return 255; // unknown i guess??
+
+    switch(reg) {
+        case 0:
+            return this->reg[0];
+        case 1:
+            return this->reg[1];
+        case 2:
+            return this->reg[2];
+        case 3:
+            return this->reg[3];
+        case 4:
+            return this->reg[4];
+        case 5:
+            return this->reg[5];
+        case 6:
+            return this->reg[6];
+        case 7:
+            return this->reg[7];
+        case 8:
+            return this->r8[index];
+        case 9:
+            return this->r9[index];
+        case 10:
+            return this->r10[index];
+        case 11:
+            return this->r11[index];
+        case 12:
+            return this->r12[index];
+        case 13:
+            return this->r13[index];
+        case 14:
+            return this->r14[index];
+        case 15:
+            return pc;
+    }
+}
+
+void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
+    uint8_t index = 0;
+    switch(mode) {
+        case System:
+        case User:
+            break;
+        case FIQ:
+            index = 1;
+            break;
+        case Supervisor:
+            index = 2;
+            break;
+        case Abort:
+            index = 3;
+            break;
+        case IRQ:
+            index = 4;
+            break;
+        case Undefined:
+            index = 5;
+    }
+
+    switch(reg) {
+        case 0:
+            this->reg[0] = arg;
+            break;
+        case 1:
+            this->reg[1] = arg;
+            break;
+        case 2:
+            this->reg[2] = arg;
+            break;
+        case 3:
+            this->reg[3] = arg;
+            break;
+        case 4:
+            this->reg[4] = arg;
+            break;
+        case 5:
+            this->reg[5] = arg;
+            break;
+        case 6:
+            this->reg[6] = arg;
+            break;
+        case 7:
+            this->reg[7] = arg;
+            break;
+        case 8:
+            r8[index] = arg;
+            break;
+        case 9:
+            r9[index] = arg;
+            break;
+        case 10:
+            r10[index] = arg;
+            break;
+        case 11:
+            r11[index] = arg;
+            break;
+        case 12:
+            r12[index] = arg;
+            break;
+        case 13:
+            r13[index] = arg;
+            break;
+        case 14:
+            r14[index] = arg;
+        case 15:
+            pc = arg;
+    }
 }
 
 uint32_t ARM7TDMI::getCPSR() {
@@ -167,9 +285,13 @@ void ARM7TDMI::branch(uint32_t instruction) {
         r14[cpsr.mode] = pc + 4;
     pc += 8 + (offset * 4);
 }
-
-void ARM7TDMI::branchExchange(uint32_t) {
+void ARM7TDMI::branchExchange(uint32_t instruction) {
+    uint8_t rn = instruction & 0xF;
+    if(rn == 0)
+        cpsr.state = 1;
+    pc = getModeArrayIndex(cpsr.mode,rn);
 }
-
-void ARM7TDMI::softwareInterrupt(uint32_t) {
+// Need to implement exception handling!
+void ARM7TDMI::softwareInterrupt(uint32_t instruction) {
+    
 }

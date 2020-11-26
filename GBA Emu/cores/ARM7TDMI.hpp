@@ -30,25 +30,26 @@ struct ARM7TDMI {
     uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und
     uint32_t pc; // R15
     struct {
-        uint32_t mode : 5,
-                 state : 1,
-                 fiqDisable : 1,
-                 irqDisable : 1,
+        uint32_t mode : 5, // see enum modes
+                 state : 1, // 0 = ARM, 1 = THUMB
+                 fiqDisable : 1, // 0 = enable, 1 = disable
+                 irqDisable : 1, // 0 = enable, 1 = disable
                  reserved : 19,
-                 stickyOverflow: 1,
-                 overflowFlag: 1,
-                 carryFlag : 1,
-                 zeroFlag : 1,
-                 signFlag : 1;
+                 stickyOverflow: 1, // 1 = sticky overflow, ARMv5TE and up only
+                 overflowFlag: 1, // 0 = no overflow, 1 = overflow 
+                 carryFlag : 1, // 0 = borrow/no carry, 1 = carry/no borrow
+                 zeroFlag : 1, // 0 = not zero, 1 = zero
+                 signFlag : 1; // 0 = not signed, 1 = signed
     } cpsr;
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
-    void handleException(uint8_t, uint32_t, uint8_t);
+    // void handleException(uint8_t, uint32_t, uint8_t);
     void fillARM(uint8_t*);
     void fillTHUMB(uint8_t*);
     uint16_t fetchARMIndex(uint32_t);
     uint8_t fetchTHUMBIndex(uint16_t);
-    uint8_t getModeIndex(uint8_t);
+    uint32_t getModeArrayIndex(uint8_t, uint8_t);
+    void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
     uint32_t getCPSR();
     void setCPSR(uint32_t);
 
