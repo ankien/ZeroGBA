@@ -43,7 +43,7 @@ struct ARM7TDMI {
     } cpsr;
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
-    // void handleException(uint8_t, uint32_t, uint8_t);
+    void handleException(uint8_t, uint32_t, uint8_t);
     void fillARM(uint8_t*);
     void fillTHUMB(uint8_t*);
     uint16_t fetchARMIndex(uint32_t);
@@ -52,14 +52,18 @@ struct ARM7TDMI {
     void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
     uint32_t getCPSR();
     void setCPSR(uint32_t);
+    uint32_t shift(uint32_t, uint8_t, uint8_t);
 
     // For unimplemented/undefined instructions
     void emptyInstruction(uint32_t);
 
-    /// Branch ///
+    /// ARM:Branch ///
     void branch(uint32_t);
     void branchExchange(uint32_t);
     void softwareInterrupt(uint32_t);
 
-    /// Data Processing ///
+    /// ARM:Data Processing ///
+    void dataProcessing(uint32_t);
+
+    /// ARM:Multiply and Multiply-Accumulate ///
 };

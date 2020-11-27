@@ -103,6 +103,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>C:\devlibs\glew-2.1.0\include\GL;C:\devlibs\SDL2\include;C:\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\include;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\include\GL</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -119,6 +120,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>C:\devlibs\glew-2.1.0\include\GL;C:\devlibs\SDL2\include;C:\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\include;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\include\GL</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

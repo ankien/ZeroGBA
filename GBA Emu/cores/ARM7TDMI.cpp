@@ -10,8 +10,10 @@ void ARM7TDMI::fillARM(uint8_t* romMemory) {
             armTable[i] = &ARM7TDMI::branchExchange;
         } else if(i & 0b111100000000 == 0b111100000000) {
             armTable[i] = &ARM7TDMI::softwareInterrupt;
-        } else if(i &) {
+        } else if() { 
             
+        } else if(i & 0b110000000000 == 0b000000000000) {
+            armTable[i] = &ARM7TDMI::dataProcessing;
         } else {
             armTable[i] = &ARM7TDMI::emptyInstruction;
         }
@@ -28,7 +30,6 @@ void ARM7TDMI::fillTHUMB(uint8_t* romMemory) {
     }
 }
 
-// need to check if this is left or right shift depending on how instr is loaded...
 // Bits 27-20 + 7-4
 uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
     return ((instruction >> 16) & 0xFF0) | ((instruction >> 4) & 0xF);
@@ -39,11 +40,10 @@ uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
-/* series of actions performed when entering an exception
+
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
-    const uint8_t index = getModeIndex(newMode);
-    r14[index] = pc + nn; // save old PC, always in ARM-style format
-    spsr[index] = getCPSR();
+    setModeArrayIndex(newMode,14,pc+nn);
+    setModeArrayIndex(newMode,'S',getCPSR());
     cpsr.state = 0;
     cpsr.mode = newMode;
     cpsr.irqDisable = 1;
@@ -59,8 +59,8 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
             switch(exception) {
 
                 case Reset:
+                    // need to change this once i get memory working, too lazy for the others though ;-)
                     pc = 0x0;
-
                     break;
                 case AddressExceeds26Bit:
                     pc = 0x14;
@@ -117,7 +117,6 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
 
 
 }
-*/
 
 uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
     uint8_t index = 0;
@@ -174,6 +173,8 @@ uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
             return this->r14[index];
         case 15:
             return pc;
+        case 'S':
+            return spsr[index];
     }
 }
 
@@ -244,8 +245,12 @@ void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
             break;
         case 14:
             r14[index] = arg;
+            break;
         case 15:
             pc = arg;
+            break;
+        case 'S':
+            spsr[index] = arg;
     }
 }
 
@@ -275,10 +280,23 @@ void ARM7TDMI::setCPSR(uint32_t num) {
     cpsr.signFlag = (num & 0x80000000) >> 31;
 }
 
-// For unimplemented instructions
+uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType) {
+    switch(shiftType) {
+        case 0b00: // lsl
+            break;
+        case 0b01: // lsr
+            break;
+        case 0b10: // asr
+            break;
+        case 0b11: // ror
+            break;
+    }
+}
+
+// For unimplemented instructions of either state
 void ARM7TDMI::emptyInstruction(uint32_t instruction) {}
 
-/// Branch ///
+/// ARM:Branch ///
 void ARM7TDMI::branch(uint32_t instruction) {
     uint32_t offset = instruction & 0xFFFFFF;
     if(instruction & 0x1000000)
@@ -294,4 +312,44 @@ void ARM7TDMI::branchExchange(uint32_t instruction) {
 // Need to implement exception handling!
 void ARM7TDMI::softwareInterrupt(uint32_t instruction) {
     
+}
+
+/// ARM:Data Processing ///
+void ARM7TDMI::dataProcessing(uint32_t instruction) {
+    uint8_t imm = instruction & 0x2000000;
+    uint8_t s = instruction & 0x100000;
+    uint8_t opcode = (instruction & 0x1E00000) >> 21;
+    uint8_t rn = (instruction & 0xF0000) >> 16;
+    uint8_t rd = (instruction & 0xF000) >> 12;
+    uint8_t op2;
+
+    switch(imm) {
+
+        case 0: // register is second operand
+
+            uint8_t r = instruction & 0x10; // if r == 1, pc+=12, else pc+=8
+            switch(r) {
+                case 16:
+                    
+                    break;
+                default:
+                    
+                    break;
+            }
+            break;
+
+        case 0x2000000: // immediate is second operand
+            rotate();
+            break;
+    }
+
+    // when writing to R15
+    if((s) && (rd == 15)) {
+        setCPSR(spsr[getModeArrayIndex(cpsr.mode,'S')]);
+        s = 0;
+    }    
+
+    switch(opcode) {
+        
+    }
 }
