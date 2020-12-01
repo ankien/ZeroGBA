@@ -6,13 +6,13 @@ void ARM7TDMI::fillARM(uint8_t* romMemory) {
 
         if((i & 0b111000000000) == 0b101000000000) {
             armTable[i] = &ARM7TDMI::ARMbranch;
-        } else if(i & 0b111111111111 == 0b000100100001) {
+        } else if((i & 0b111111111111) == 0b000100100001) {
             armTable[i] = &ARM7TDMI::ARMbranchExchange;
-        } else if(i & 0b111100000000 == 0b111100000000) {
+        } else if((i & 0b111100000000) == 0b111100000000) {
             armTable[i] = &ARM7TDMI::ARMsoftwareInterrupt;
-        } else if() { 
-            
-        } else if(i & 0b110000000000 == 0b000000000000) {
+        } else if((i & 0b111000001111) == 0b000000001001) { 
+            armTable[i] = &ARM7TDMI::ARMmultiplyAndMultiplyAccumulate;
+        } else if((i & 0b110000000000) == 0b000000000000) {
             armTable[i] = &ARM7TDMI::ARMdataProcessing;
         } else {
             armTable[i] = &ARM7TDMI::emptyInstruction;
@@ -30,11 +30,11 @@ void ARM7TDMI::fillTHUMB(uint8_t* romMemory) {
 }
 
 // Bits 27-20 + 7-4
-uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
+inline uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
     return ((instruction >> 16) & 0xFF0) | ((instruction >> 4) & 0xF);
 }
 // Bits 8-15
-uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
+inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
@@ -116,7 +116,7 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
 
 }
 
-uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
+inline uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
     uint8_t index = 0;
     switch(mode) {
         case System:
@@ -175,7 +175,7 @@ uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
             return spsr[index];
     }
 }
-void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
+inline void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
     uint8_t index = 0;
     switch(mode) {
         case System:
@@ -251,7 +251,7 @@ void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
     }
 }
 
-uint32_t ARM7TDMI::getCPSR() {
+inline uint32_t ARM7TDMI::getCPSR() {
     return mode |
            (state << 5) |
            (fiqDisable << 6) |
@@ -263,7 +263,7 @@ uint32_t ARM7TDMI::getCPSR() {
            (zeroFlag << 30) |
            (signFlag << 31);
 }
-void ARM7TDMI::setCPSR(uint32_t num) {
+inline void ARM7TDMI::setCPSR(uint32_t num) {
     mode = (num & 0x1F);
     state = (num & 0x20) >> 5;
     fiqDisable = (num & 0x40) >> 6;
@@ -277,7 +277,7 @@ void ARM7TDMI::setCPSR(uint32_t num) {
 }
 
 template <typename INT>
-INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
+inline INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
     switch(shiftType) {
         case 0b00: // lsl
             return value << shiftAmount; 
@@ -296,16 +296,22 @@ INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
             break;
     }
 }
+inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
+    (arg == 0) ?  zeroFlag = 1 : zeroFlag = 0;
+    (arg | 0x80000000) ? signFlag = 1 : signFlag = 0;
+}
 
 // For unimplemented instructions of either state
 void ARM7TDMI::emptyInstruction(uint32_t instruction) {}
 
 /// ARM:Branch ///
 void ARM7TDMI::ARMbranch(uint32_t instruction) {
-    uint32_t offset = instruction & 0xFFFFFF;
+    int32_t signedOffset = instruction & 0xFFFFFF;
+    if(signedOffset & 0x800000)
+        signedOffset |= 0xFF000000;
     if(instruction & 0x1000000)
         r14[mode] = pc + 4;
-    pc += 8 + (offset * 4);
+    pc += 8 + (signedOffset * 4);
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     uint8_t rn = instruction & 0xF;
@@ -381,46 +387,94 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         s = 0;
     }    
 
-    // do i need to do something with the C flag???
-    uint32_t op1 = getModeArrayIndex(mode,rn);
-    switch(opcode) {
+    rn = getModeArrayIndex(mode,rn);
+    uint32_t result;
+    switch(opcode) { // could optimize this since we don't need the actual opcode value
         case 0x0: // AND
-            setModeArrayIndex(mode,rd,op1 & op2);
-            if(s) {
-                ;
-                (op1 == 0) ?  zeroFlag = 1 : zeroFlag = 0;
-                ;
-            }
+            result = rn & op2;
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x1: // EOR
+            result = rn ^ op2;
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x2: // SUB
+            result = rn - op2;
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x3: // RSB
+            result = op2 - rn;
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x4: // ADD
+            result = rn + op2;
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x5: // ADC
+            result = rn + op2 + (carryFlag << 31);
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x6: // SBC
+            result = rn - op2 + (carryFlag << 31) - 1;
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x7: // RSC
+            result = rn + op2 + (carryFlag << 31);
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0x8: // TST
+            result = rn & op2;
+            if(rd != 15)
+                setModeArrayIndex(mode,rd,result);
             break;
         case 0x9: // TEQ
+            result = rn ^ op2;
+            if(rd != 15)
+                setModeArrayIndex(mode,rd,result);
             break;
         case 0xA: // CMP
+            result = rn - op2;
+            if(rd != 15)
+                setModeArrayIndex(mode,rd,result);
             break;
         case 0xB: // CMN
+            result = rn + op2;
+            if(rd != 15)
+                setModeArrayIndex(mode,rd,result);
             break;
         case 0xC: // ORR
+            result = rn | op2;
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0xD: // MOV
+            setModeArrayIndex(mode,rd,op2);
             break;
         case 0xE: // BIC
+            result = rn & (~op2);
+            setModeArrayIndex(mode,rd,result);
             break;
         case 0xF: // MVN
+            setModeArrayIndex(mode,rd,~op2);
             break;
     }
+
+    if(s)
+        setZeroAndSign(result);
+}
+
+/// ARM:Multiply and Multiply-Accumulate ///
+void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
+    uint8_t opcode = (instruction & 0x1E00000) >> 21;
+    uint8_t s = (instruction & 0x100000) >> 20;
+    uint8_t rd = (instruction & 0xF0000) >> 16;
+    uint8_t rn = (instruction & 0xF000) >> 12;
+    uint8_t rs = (instruction & 0xF00) >> 8;
+
+    switch(opcode) {
+        case 0b0000: // MUL
+            
+            break;
+    }
+
+    pc+=4;
 }

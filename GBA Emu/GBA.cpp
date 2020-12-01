@@ -7,14 +7,17 @@ GBA::GBA(std::string rom) {
 
 // each instruction has multiple cycles, there's a pipeline too?
 void GBA::interpretARM(uint8_t* romMemory) {
-    uint32_t instruction = (romMemory[arm7tdmi.pc+3] << 24) |
-                           (romMemory[arm7tdmi.pc+2] << 16) | 
-                           (romMemory[arm7tdmi.pc+1] << 8)  |
-                            romMemory[arm7tdmi.pc];
-    uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
-    (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
+    if() { // if cond field matches flags or somthin'
+        uint32_t instruction = (romMemory[arm7tdmi.pc+3] << 24) |
+                               (romMemory[arm7tdmi.pc+2] << 16) | 
+                               (romMemory[arm7tdmi.pc+1] << 8)  |
+                                romMemory[arm7tdmi.pc];
+        uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
+        (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
+    }
 }
 
+// do thumb instructions have cond? don't think so
 void GBA::interpretTHUMB(uint8_t* romMemory) {
     uint16_t instruction = (romMemory[arm7tdmi.pc+1] << 8) |
                             romMemory[arm7tdmi.pc];
