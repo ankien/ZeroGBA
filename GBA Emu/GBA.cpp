@@ -5,13 +5,13 @@ GBA::GBA(std::string rom) {
     arm7tdmi = {};
 }
 
-// each instruction has multiple cycles, there's a pipeline too?
+// each instruction has multiple cycles, there's a pipeline, DMA, and timers too? oh boy
 void GBA::interpretARM(uint8_t* romMemory) {
-    if() { // if cond field matches flags or somthin'
-        uint32_t instruction = (romMemory[arm7tdmi.pc+3] << 24) |
-                               (romMemory[arm7tdmi.pc+2] << 16) | 
-                               (romMemory[arm7tdmi.pc+1] << 8)  |
-                                romMemory[arm7tdmi.pc];
+    uint32_t instruction = (romMemory[arm7tdmi.pc+3] << 24) |
+                           (romMemory[arm7tdmi.pc+2] << 16) | 
+                           (romMemory[arm7tdmi.pc+1] << 8)  |
+                            romMemory[arm7tdmi.pc];
+    if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
         (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
     }

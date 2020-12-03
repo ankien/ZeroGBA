@@ -10,6 +10,8 @@ void ARM7TDMI::fillARM(uint8_t* romMemory) {
             armTable[i] = &ARM7TDMI::ARMbranchExchange;
         } else if((i & 0b111100000000) == 0b111100000000) {
             armTable[i] = &ARM7TDMI::ARMsoftwareInterrupt;
+        } else if((i & 0b110110010000) == 0b000100000000) { 
+            armTable[i] = &ARM7TDMI::ARMpsrTransfer;
         } else if((i & 0b111000001111) == 0b000000001001) { 
             armTable[i] = &ARM7TDMI::ARMmultiplyAndMultiplyAccumulate;
         } else if((i & 0b110000000000) == 0b000000000000) {
@@ -110,7 +112,6 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
                     pc = 0x1C;
                     break;
             }
-            break;
     }
 
 
@@ -275,25 +276,84 @@ inline void ARM7TDMI::setCPSR(uint32_t num) {
     zeroFlag = (num & 0x40000000) >> 30;
     signFlag = (num & 0x80000000) >> 31;
 }
+inline bool ARM7TDMI::checkCond(uint32_t cond) {
+    switch(cond) {
+        case 0x00000000:
+            if(zeroFlag)
+                return 1;
+            break;
+        case 0x10000000:
+            if(!zeroFlag)
+                return 1;
+            break;
+        case 0x20000000:
+            if(carryFlag)
+                return 1;
+            break;
+        case 0x30000000:
+            if(!carryFlag)
+                return 1;
+            break;
+        case 0x40000000:
+            if(signFlag)
+                return 1;
+            break;
+        case 0x50000000:
+            if(!signFlag)
+                return 1;
+            break;
+        case 0x60000000:
+            if(overflowFlag)
+                return 1;
+            break;
+        case 0x70000000:
+            if(!overflowFlag)
+                return 1;
+            break;
+        case 0x80000000:
+            if(carryFlag && (!zeroFlag))
+                return 1;
+            break;
+        case 0x90000000:
+            if((!carryFlag) && zeroFlag)
+                return 1;
+            break;
+        case 0xA0000000:
+            if(signFlag == overflowFlag)
+                return 1;
+            break;
+        case 0xB0000000:
+            if(signFlag != overflowFlag)
+                return 1;
+            break;
+        case 0xC0000000:
+            if((!zeroFlag) && (signFlag == overflowFlag))
+                return 1;
+            break;
+        case 0xD0000000:
+            if(zeroFlag || (signFlag != overflowFlag))
+                return 1;
+            break;
+        case 0xE0000000:
+            return 1;
+    }
+    return 0;
+}
 
 template <typename INT>
 inline INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
     switch(shiftType) {
         case 0b00: // lsl
             return value << shiftAmount; 
-            break;
         case 0b01: // lsr
             return value >> shiftAmount;
-            break;
         case 0b10: // asr
             uint8_t dupeBit = (sizeof(value) * 8) - 1;
             if(value & (1 << dupeBit))
                 return (value >> shiftAmount) | (0xFFFFFFFF << shiftAmount);
             return value >> shiftAmount;
-            break;
         case 0b11: // ror
             return std::rotr(value,shiftAmount);
-            break;
     }
 }
 inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
@@ -329,7 +389,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint8_t I = instruction & 0x2000000;
     uint8_t s = instruction & 0x100000;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
-    uint8_t rn = (instruction & 0xF0000) >> 16;
+    uint32_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
 
@@ -369,7 +429,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     else
                         op2 = shift(getModeArrayIndex(mode,Rm),Is,shiftType);
                     pc+=8;
-                    break;
             }
             break;
 
@@ -455,7 +514,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             break;
         case 0xF: // MVN
             setModeArrayIndex(mode,rd,~op2);
-            break;
     }
 
     if(s)
@@ -466,15 +524,56 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
 void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
     uint8_t s = (instruction & 0x100000) >> 20;
-    uint8_t rd = (instruction & 0xF0000) >> 16;
-    uint8_t rn = (instruction & 0xF000) >> 12;
-    uint8_t rs = (instruction & 0xF00) >> 8;
+    uint32_t rd = (instruction & 0xF0000) >> 16;
+    uint32_t rn = (instruction & 0xF000) >> 12;
+    uint32_t rs = (instruction & 0xF00) >> 8;
+    uint32_t rm = instruction & 0xF;
 
+    rd = getModeArrayIndex(mode,rd); // hi
+    rn = getModeArrayIndex(mode,rn); // lo
+    rs = getModeArrayIndex(mode,rs);
+    rm = getModeArrayIndex(mode,rm);
+    uint64_t result;
     switch(opcode) {
         case 0b0000: // MUL
-            
+            result = rm * rs;
+            setModeArrayIndex(mode,rd,result);
+            break;
+        case 0b0001: // MLA
+            result = (rm * rs) + rn;
+            setModeArrayIndex(mode,rd,result);
+            break;
+        case 0b0100: // UMULL
+            result = rm * rs;
+            setModeArrayIndex(mode,rd,result >> 32);
+            setModeArrayIndex(mode,rn,result);
+            break;
+        case 0b0101: // UMLAL
+            result = (rm * rs) + ((rd << 32) | rn);
+            setModeArrayIndex(mode,rd,result >> 32);
+            setModeArrayIndex(mode,rn,result);
+            break;
+        case 0b0110: // SMULL
+            result = reinterpret_cast<int32_t &>(rm) * reinterpret_cast<int32_t &>(rs);
+            setModeArrayIndex(mode,rd,result >> 32);
+            setModeArrayIndex(mode,rn,result);
+            break;
+        case 0b0111: // SMLAL
+            int64_t hiLo = ((rd << 32) | rn);
+            result = (reinterpret_cast<int32_t &>(rm) * reinterpret_cast<int32_t &>(rs)) + hiLo;
+            setModeArrayIndex(mode,rd,result >> 32);
+            setModeArrayIndex(mode,rn,result);
             break;
     }
 
+    if(s)
+        setZeroAndSign(result);
+
     pc+=4;
 }
+
+/// ARM:PSR Transfer ///
+void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
+    
+}
+

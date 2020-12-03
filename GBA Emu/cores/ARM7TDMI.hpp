@@ -52,6 +52,7 @@ struct ARM7TDMI {
     inline void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
     inline uint32_t getCPSR();
     inline void setCPSR(uint32_t);
+    inline bool checkCond(uint32_t);
     template <typename INT>
     inline INT shift(INT, uint8_t, uint8_t);
     inline void setZeroAndSign(uint32_t);
@@ -69,4 +70,9 @@ struct ARM7TDMI {
 
     /// ARM:Multiply and Multiply-Accumulate ///
     void ARMmultiplyAndMultiplyAccumulate(uint32_t);
+
+    /// ARM:PSR Transfer ///
+    void ARMpsrTransfer(uint32_t);
+
+    /// 
 };
