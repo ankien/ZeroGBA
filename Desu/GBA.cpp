@@ -5,7 +5,8 @@ GBA::GBA(std::string rom) {
     arm7tdmi = {};
 }
 
-// each instruction has multiple cycles, there's a pipeline, DMA, and timers too? oh boy
+// each instruction has multiple cycles, there's a pipeline, DMA channels, audio channels, PPU, and timers too? oh boy
+// i think i can fake the pipeline and DMA
 void GBA::interpretARM(uint8_t* romMemory) {
     uint32_t instruction = (romMemory[arm7tdmi.pc+3] << 24) |
                            (romMemory[arm7tdmi.pc+2] << 16) | 
@@ -28,6 +29,8 @@ void GBA::interpretTHUMB(uint8_t* romMemory) {
 uint8_t* GBA::loadRom(std::string rom) {
     std::ifstream fileStream(rom.c_str(), std::ifstream::in | std::ifstream::binary);
     uint32_t romSizeInBytes = std::filesystem::file_size(rom);
+    if(romSizeInBytes > 8000000)
+        return 0;
     romMemory = new uint8_t[romSizeInBytes];
     fileStream.read(reinterpret_cast<char*>(romMemory),romSizeInBytes);
     return romMemory;

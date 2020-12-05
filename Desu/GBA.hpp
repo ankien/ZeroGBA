@@ -5,7 +5,7 @@
 //#include <SDL.h>
 #include "cores/ARM7TDMI.hpp"
 
-struct GBA {
+struct GBA { // the "data bus" for our GBA
     ARM7TDMI arm7tdmi;
     uint8_t* romMemory;
 

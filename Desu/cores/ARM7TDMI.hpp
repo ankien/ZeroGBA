@@ -60,19 +60,17 @@ struct ARM7TDMI {
     // For unimplemented/undefined instructions
     void emptyInstruction(uint32_t);
 
-    /// ARM:Branch ///
     void ARMbranch(uint32_t);
     void ARMbranchExchange(uint32_t);
     void ARMsoftwareInterrupt(uint32_t);
 
-    /// ARM:Data Processing ///
     void ARMdataProcessing(uint32_t);
 
-    /// ARM:Multiply and Multiply-Accumulate ///
     void ARMmultiplyAndMultiplyAccumulate(uint32_t);
 
-    /// ARM:PSR Transfer ///
     void ARMpsrTransfer(uint32_t);
 
-    /// 
+    void ARMsingleDataTransfer(uint32_t);
+
+    
 };

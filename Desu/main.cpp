@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
         
         // load GBA game
         GBA gba(argv[2]);
-        if(gba.romMemory == NULL) {
+        if(gba.romMemory == 0) {
             std::cout << "Error loading file\n";
             exit(1);
         }
