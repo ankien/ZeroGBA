@@ -1,9 +1,14 @@
 #include "ARM7TDMI.hpp"
 
-void ARM7TDMI::fillARM(uint8_t* romMemory) {
-    
-    for(int i = 0; i < 4096; i++) {
+ARM7TDMI::ARM7TDMI(uint8_t* systemMemory) {
+    this->systemMemory = systemMemory;
+}
 
+void ARM7TDMI::fillARM() {
+    
+    for(uint16_t i = 0; i < 4096; i++) {
+
+        // least precise at the bottom of the chain
         if((i & 0b111000000000) == 0b101000000000)
             armTable[i] = &ARM7TDMI::ARMbranch;
         else if((i & 0b111111111111) == 0b000100100001)
@@ -14,8 +19,22 @@ void ARM7TDMI::fillARM(uint8_t* romMemory) {
             armTable[i] = &ARM7TDMI::ARMsingleDataTransfer;
         else if((i & 0b110110010000) == 0b000100000000) 
             armTable[i] = &ARM7TDMI::ARMpsrTransfer;
-        else if((i & 0b111000001111) == 0b000000001001)
+        else if((i & 0b111100001111) == 0b000000001001)
             armTable[i] = &ARM7TDMI::ARMmultiplyAndMultiplyAccumulate;
+        else if((i & 0b111110111111) == 0b000100001001)
+            armTable[i] = &ARM7TDMI::ARMswap;
+        else if((i & 0b111000011111) == 0b000000001011)
+            armTable[i] = &ARM7TDMI::ARMhdsDataSTRH;
+        else if((i & 0b111000011111) == 0b000000001101)
+            armTable[i] = &ARM7TDMI::ARMhdsDataLDRD;
+        else if((i & 0b111000011111) == 0b000000001111)
+            armTable[i] = &ARM7TDMI::ARMhdsDataSTRD;
+        else if((i & 0b111000011111) == 0b000000011001)
+            armTable[i] = &ARM7TDMI::ARMhdsDataLDRH;
+        else if((i & 0b111000011111) == 0b000000011011)
+            armTable[i] = &ARM7TDMI::ARMhdsDataLDRSB;
+        else if((i & 0b111000011111) == 0b000000011111)
+            armTable[i] = &ARM7TDMI::ARMhdsDataLDRSH;
         else if((i & 0b110000000000) == 0b000000000000)
             armTable[i] = &ARM7TDMI::ARMdataProcessing;
         else
@@ -23,9 +42,9 @@ void ARM7TDMI::fillARM(uint8_t* romMemory) {
 
     }
 }
-void ARM7TDMI::fillTHUMB(uint8_t* romMemory) {
+void ARM7TDMI::fillTHUMB() {
     
-    for(int i = 0; i < 256; i++) {
+    for(uint8_t i = 0; i < 256; i++) {
 
         
 
@@ -41,6 +60,32 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
+inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
+    systemMemory[address] = value;
+    systemMemory[address + 1] = (value & 0xFF00) >> 8;
+}
+inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
+    systemMemory[address] = value;
+    systemMemory[address + 1] = (value & 0xFF00) >> 8;
+    systemMemory[address + 2] = (value & 0xFF0000) >> 16;
+    systemMemory[address + 3] = (value & 0xFF000000) >> 24;
+}
+inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
+    return systemMemory[address] |
+           systemMemory[address + 1] << 8;
+}
+inline uint32_t ARM7TDMI::readWord(uint32_t address) {
+    return systemMemory[address] |
+           systemMemory[address + 1] << 8 |
+           systemMemory[address + 2] << 16 |
+           systemMemory[address + 3] << 24;
+}
+// Memory alignment stuff
+inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
+    uint32_t word = readWord(address);
+    uint8_t rorAmount = (address & 3) << 3;
+    return shift(word,rorAmount,3);
+}
 
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
     setModeArrayIndex(newMode,14,pc+nn);
@@ -277,6 +322,7 @@ inline void ARM7TDMI::setCPSR(uint32_t num) {
     zeroFlag = (num & 0x40000000) >> 30;
     signFlag = (num & 0x80000000) >> 31;
 }
+
 inline bool ARM7TDMI::checkCond(uint32_t cond) {
     switch(cond) {
         case 0x00000000:
@@ -366,11 +412,11 @@ void ARM7TDMI::emptyInstruction(uint32_t instruction) {}
 
 void ARM7TDMI::ARMbranch(uint32_t instruction) {
     int32_t signedOffset = instruction & 0xFFFFFF;
-    if(signedOffset & 0x800000)
-        signedOffset |= 0xFF000000;
+    signedOffset <<= 8;
+    signedOffset >>= 6;
     if(instruction & 0x1000000)
         r14[mode] = pc + 4;
-    pc += 8 + (signedOffset * 4);
+    pc += 8 + signedOffset;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     uint8_t rn = instruction & 0xF;
@@ -384,8 +430,8 @@ void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
-    uint8_t I = instruction & 0x2000000;
-    uint8_t s = instruction & 0x100000;
+    uint32_t I = instruction & 0x2000000;
+    uint32_t s = instruction & 0x100000;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
     uint32_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
@@ -396,37 +442,43 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
 
         case 0: // register is second operand
             uint8_t shiftType = (instruction & 0x60) >> 5;
-            uint8_t r = instruction & 0x10; // if r == 1, pc+=12, else pc+=8
-            uint8_t Rm = instruction & 0xF;
+            uint8_t r = instruction & 0x10; // if rm or rn == 15, and r == 1, pc+=12, else pc+=8
+            uint8_t rm = instruction & 0xF;
             switch(r) {
                 case 16: // register operand w/ register shift
                     uint8_t Rs = (instruction & 0xF00) >> 8;
-                    op2 = shift(getModeArrayIndex(mode,Rm),(uint8_t)getModeArrayIndex(mode,Rs),shiftType);
-                    pc+=12;
+                    if((rn == 15) || (rm == 15))
+                        pc+=12;
+                    op2 = shift(getModeArrayIndex(mode,rm),(uint8_t)getModeArrayIndex(mode,Rs),shiftType);
+                    if((rn == 15) || (rm == 15))
+                        pc-=12;
                     break;
                 case 0: // register operand w/ immediate shift
                     uint8_t Is = (instruction & 0xF80) >> 7;
-                    if(Is == 0)
+                    if((rn == 15) || (rm == 15))
+                        pc+=8;
+                    if(Is == 0) // special behavior when shift amount is 0
                         switch(shiftType) {
                             case 0b00:
-                                op2 = getModeArrayIndex(mode,Rm);
+                                op2 = getModeArrayIndex(mode,rm);
                                 break;
                             case 0b01:
                                 op2 = 0;
-                                carryFlag = (getModeArrayIndex(mode,Rm) & 0x80000000) >> 31;
+                                carryFlag = (getModeArrayIndex(mode,rm) & 0x80000000) >> 31;
                                 break;
                             case 0b10:
-                                op2 = shift(getModeArrayIndex(mode,Rm),32,shiftType);
+                                op2 = shift(getModeArrayIndex(mode,rm),32,shiftType);
                                 carryFlag = op2 & 1;
                                 break;
                             case 0b11:
-                                op2 = shift(getModeArrayIndex(mode,Rm),1,0b11);
-                                op2 &= carryFlag << 31;
+                                op2 = shift(getModeArrayIndex(mode,rm),1,0b11);
+                                op2 |= carryFlag << 31;
                                 break;
                         }
                     else
-                        op2 = shift(getModeArrayIndex(mode,Rm),Is,shiftType);
-                    pc+=8;
+                        op2 = shift(getModeArrayIndex(mode,rm),Is,shiftType);
+                    if((rn == 15) || (rm == 15))
+                        pc-=8;
             }
             break;
 
@@ -458,26 +510,38 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         case 0x2: // SUB
             result = rn - op2;
             setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0x3: // RSB
             result = op2 - rn;
             setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0x4: // ADD
             result = rn + op2;
             setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0x5: // ADC
             result = rn + op2 + (carryFlag << 31);
             setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0x6: // SBC
             result = rn - op2 + (carryFlag << 31) - 1;
             setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0x7: // RSC
             result = rn + op2 + (carryFlag << 31);
             setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0x8: // TST
             result = rn & op2;
@@ -493,11 +557,15 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             result = rn - op2;
             if(rd != 15)
                 setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0xB: // CMN
             result = rn + op2;
             if(rd != 15)
                 setModeArrayIndex(mode,rd,result);
+            if(s)
+                carryFlag = (result & 0x80000000) >> 31;
             break;
         case 0xC: // ORR
             result = rn | op2;
@@ -516,8 +584,8 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
 
     if(s)
         setZeroAndSign(result);
+    pc+=4;
 }
-
 void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
     uint8_t s = (instruction & 0x100000) >> 20;
@@ -619,13 +687,56 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
 
     pc+=4;
 }
-
 void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
-    
+    uint32_t offset;
+    uint32_t p = instruction & 0x1000000;
+    uint32_t u = instruction & 0x800000;
+    uint32_t b = instruction & 0x400000;
+    uint8_t rn = 0xF0000 >> 16;
+    uint8_t rd = 0xF000 >> 12;
+    uint32_t address = getModeArrayIndex(mode,rn);
+
+    if(instruction & 0x2000000) { // register offset
+        uint8_t Is = (instruction & 0xF80) >> 7;
+        uint8_t shiftType = (instruction & 0x60) >> 5;
+        uint8_t rm = instruction & 0xF;
+        offset = shift(getModeArrayIndex(mode,rm),Is,shiftType);
+    } else // immediate offset
+        offset = instruction & 0xFFF;
+
+    if(p) {
+        if(u)
+            address += offset;
+        else
+            address -= offset;
+    }
+
     switch(instruction & 0x100000) {
-        case 0x100000: // LDR/PLD
+        case 0x100000: // LDR
+            if(b)
+                setModeArrayIndex(mode,rd,systemMemory[address]);
+            else
+                setModeArrayIndex(mode,rd,readWordRotate(address));
             break;
         case 0: // STR
-            
+            if(b)
+                systemMemory[address] = getModeArrayIndex(mode,rd);
+            else
+                storeValue(getModeArrayIndex(mode,rd),address);
     }
+
+    if(!p) {
+        if(u)
+            address += offset;
+        else
+            address -= offset;
+    }
+
+    if((instruction & 0x200000) || !p) // write-back address
+        setModeArrayIndex(mode,rn,address);
+
+    pc+=4;
+}
+void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
+    
 }

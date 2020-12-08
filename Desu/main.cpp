@@ -14,20 +14,16 @@ int main(int argc, char *argv[]) {
     
     // Emulation loops
     if(fileExtension == ".gba") {
-        
         // load GBA game
-        GBA gba(argv[2]);
-        if(gba.romMemory == 0) {
+        GBA gba;
+        if(!gba.loadRom(argv[2])) {
             std::cout << "Error loading file\n";
             exit(1);
         }
 
-
-
         if(strcmp(argv[1],"-i") == 0) {
-            
-            gba.arm7tdmi.fillARM(gba.romMemory);
-            gba.arm7tdmi.fillTHUMB(gba.romMemory);
+            gba.arm7tdmi->fillARM();
+            gba.arm7tdmi->fillTHUMB();
 
             while(true) {
                 gba.interpretARM(gba.romMemory);
@@ -35,6 +31,7 @@ int main(int argc, char *argv[]) {
                 // draw
 
             }
+
         } else if(strcmp(argv[1],"-j") == 0) {
             // no implementation yet
             exit(1);

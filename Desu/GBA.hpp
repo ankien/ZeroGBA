@@ -6,12 +6,12 @@
 #include "cores/ARM7TDMI.hpp"
 
 struct GBA { // the "data bus" for our GBA
-    ARM7TDMI arm7tdmi;
-    uint8_t* romMemory;
+    ARM7TDMI* arm7tdmi;
+    uint8_t* memoryMap; // 00000000h - FFFFFFFFh bytes
 
-    GBA(std::string);
+    GBA();
 
     void interpretARM(uint8_t*);
     void interpretTHUMB(uint8_t*);
-    uint8_t* loadRom(std::string);
+    bool loadRom(std::string);
 };

@@ -13,6 +13,8 @@ struct ARM7TDMI {
     void (ARM7TDMI::*armTable[4096])(uint32_t);
     void (ARM7TDMI::*thumbTable[256])(uint32_t);
 
+    uint8_t* systemMemory;
+
     enum exceptions { Reset, UndefinedInstruction, SoftwareInterrupt, PrefetchAbort, DataAbort,
                       AddressExceeds26Bit, NormalInterrupt, FastInterrupt };
 
@@ -43,11 +45,19 @@ struct ARM7TDMI {
             signFlag; // N, 1 : 0 = not signed, 1 = signed
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
+    ARM7TDMI(uint8_t*);
+
+    /// Helper functions ///
     void handleException(uint8_t, uint32_t, uint8_t);
-    void fillARM(uint8_t*);
-    void fillTHUMB(uint8_t*);
+    void fillARM();
+    void fillTHUMB();
     inline uint16_t fetchARMIndex(uint32_t);
     inline uint8_t fetchTHUMBIndex(uint16_t);
+    inline void storeValue(uint16_t,uint32_t);
+    inline void storeValue(uint32_t,uint32_t);
+    inline uint16_t readHalfWord(uint32_t);
+    inline uint32_t readWord(uint32_t);
+    inline uint32_t readWordRotate(uint32_t);
     inline uint32_t getModeArrayIndex(uint8_t, uint8_t);
     inline void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
     inline uint32_t getCPSR();
@@ -60,17 +70,25 @@ struct ARM7TDMI {
     // For unimplemented/undefined instructions
     void emptyInstruction(uint32_t);
 
+    /// ARM Instructions ///
     void ARMbranch(uint32_t);
     void ARMbranchExchange(uint32_t);
     void ARMsoftwareInterrupt(uint32_t);
 
     void ARMdataProcessing(uint32_t);
-
     void ARMmultiplyAndMultiplyAccumulate(uint32_t);
 
     void ARMpsrTransfer(uint32_t);
-
     void ARMsingleDataTransfer(uint32_t);
+    void ARMhdsDataSTRH(uint32_t);
+    void ARMhdsDataLDRD(uint32_t);
+    void ARMhdsDataSTRD(uint32_t);
+    void ARMhdsDataLDRH(uint32_t);
+    void ARMhdsDataLDRSB(uint32_t);
+    void ARMhdsDataLDRSH(uint32_t);
 
-    
+    void ARMswap(uint32_t);
+
+    /// THUMB Instructions ///
+
 };
