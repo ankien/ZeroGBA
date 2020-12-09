@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
             gba.arm7tdmi->fillTHUMB();
 
             while(true) {
-                gba.interpretARM(gba.romMemory);
+                gba.interpretARM(gba.memoryMap);
 
                 // draw
 

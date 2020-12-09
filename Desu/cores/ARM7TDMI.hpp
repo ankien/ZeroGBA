@@ -56,6 +56,7 @@ struct ARM7TDMI {
     inline void storeValue(uint16_t,uint32_t);
     inline void storeValue(uint32_t,uint32_t);
     inline uint16_t readHalfWord(uint32_t);
+    inline uint16_t readHalfWordRotate(uint32_t);
     inline uint32_t readWord(uint32_t);
     inline uint32_t readWordRotate(uint32_t);
     inline uint32_t getModeArrayIndex(uint8_t, uint8_t);
@@ -81,8 +82,6 @@ struct ARM7TDMI {
     void ARMpsrTransfer(uint32_t);
     void ARMsingleDataTransfer(uint32_t);
     void ARMhdsDataSTRH(uint32_t);
-    void ARMhdsDataLDRD(uint32_t);
-    void ARMhdsDataSTRD(uint32_t);
     void ARMhdsDataLDRH(uint32_t);
     void ARMhdsDataLDRSB(uint32_t);
     void ARMhdsDataLDRSH(uint32_t);
