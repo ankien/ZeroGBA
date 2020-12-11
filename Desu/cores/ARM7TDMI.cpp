@@ -5,16 +5,21 @@ ARM7TDMI::ARM7TDMI(uint8_t* systemMemory) {
 }
 
 void ARM7TDMI::fillARM() {
-    
+
     for(uint16_t i = 0; i < 4096; i++) {
 
-        // least precise at the bottom of the chain
+        // harder to distinguish opcodes at the bottom
+        // no coprocessor instructions on GBA
         if((i & 0b111000000000) == 0b101000000000)
             armTable[i] = &ARM7TDMI::ARMbranch;
+        else if((i & 0b111000000000) == 0b100000000000)
+            armTable[i] = &ARM7TDMI::ARMblockDataTransfer;
         else if((i & 0b111111111111) == 0b000100100001)
             armTable[i] = &ARM7TDMI::ARMbranchExchange;
         else if((i & 0b111100000000) == 0b111100000000)
             armTable[i] = &ARM7TDMI::ARMsoftwareInterrupt;
+        else if((i & 0b111000000001) == 0b011000000001)
+            armTable[i] = &ARM7TDMI::emptyInstruction; // undefined opcode
         else if((i & 0b110000000000) == 0b010000000000)
             armTable[i] = &ARM7TDMI::ARMsingleDataTransfer;
         else if((i & 0b110110010000) == 0b000100000000) 
@@ -34,7 +39,7 @@ void ARM7TDMI::fillARM() {
         else if((i & 0b110000000000) == 0b000000000000)
             armTable[i] = &ARM7TDMI::ARMdataProcessing;
         else
-            armTable[i] = &ARM7TDMI::emptyInstruction;
+            armTable[i] = &ARM7TDMI::emptyInstruction; // undecoded opcode
 
     }
 }
@@ -71,9 +76,9 @@ inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
            systemMemory[address + 1] << 8;
 }
 inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
-    uint16_t word = readHalfWord(address);
+    uint16_t halfWord = readHalfWord(address);
     uint8_t rorAmount = (address & 1) << 3;
-    return shift(word,rorAmount,3);
+    return shift(halfWord,rorAmount,3);
 }
 inline uint32_t ARM7TDMI::readWord(uint32_t address) {
     return systemMemory[address] |
@@ -99,7 +104,6 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
     if((mode == Reset) || (mode == FIQ))
         fiqDisable = 1;
 
-    // Might need to implement a return based on mode
     switch(mode) {
 
         case Supervisor:
@@ -107,7 +111,6 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
             switch(exception) {
 
                 case Reset:
-                    // need to change this once i get memory working, too lazy for the others though ;-)
                     pc = 0x0;
                     break;
                 case AddressExceeds26Bit:
@@ -427,19 +430,21 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     pc += 8 + signedOffset;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
-    uint8_t rn = instruction & 0xF;
-    if(rn == 0)
+    uint32_t rn = instruction & 0xF;
+    rn = getModeArrayIndex(mode,rn);
+    if(rn & 1) {
         state = 1;
-    pc = getModeArrayIndex(mode,rn);
+        rn--;
+    }
+    pc = rn;
 }
-// Need to implement exception handling!
 void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
-    
+    handleException(SoftwareInterrupt,4,Supervisor);
 }
 
 void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
-    uint32_t I = instruction & 0x2000000;
-    uint32_t s = instruction & 0x100000;
+    bool I = instruction & 0x2000000;
+    bool s = instruction & 0x100000;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
     uint32_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
@@ -602,7 +607,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
 }
 void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
-    uint8_t s = (instruction & 0x100000) >> 20;
+    bool s = instruction & 0x100000;
     uint64_t rd = (instruction & 0xF0000) >> 16;
     uint64_t rn = (instruction & 0xF000) >> 12;
     uint64_t rs = (instruction & 0xF00) >> 8;
@@ -652,9 +657,7 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
-    uint8_t psr = 0;
-    if(instruction & 0x400000)
-        psr = 1;
+    bool psr = instruction & 0x400000;
 
     switch(instruction & 0x200000) {
         case 0: // MRS
@@ -708,11 +711,11 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
 }
 void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
     uint32_t offset;
-    uint32_t p = instruction & 0x1000000;
-    uint32_t u = instruction & 0x800000;
-    uint32_t b = instruction & 0x400000;
-    uint8_t rn = 0xF0000 >> 16;
-    uint8_t rd = 0xF000 >> 12;
+    bool p = instruction & 0x1000000;
+    bool u = instruction & 0x800000;
+    bool b = instruction & 0x400000;
+    uint8_t rn = (instruction & 0xF0000) >> 16;
+    uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
 
     if(rn == 15)
@@ -779,8 +782,8 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
 }
 void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     uint32_t offset;
-    uint32_t p = instruction & 0x1000000;
-    uint32_t u = instruction & 0x800000;
+    bool p = instruction & 0x1000000;
+    bool u = instruction & 0x800000;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
@@ -828,8 +831,8 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
 }
 void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
     uint32_t offset;
-    uint32_t p = instruction & 0x1000000;
-    uint32_t u = instruction & 0x800000;
+    bool p = instruction & 0x1000000;
+    bool u = instruction & 0x800000;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
@@ -874,8 +877,8 @@ void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
 }
 void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
     uint32_t offset;
-    uint32_t p = instruction & 0x1000000;
-    uint32_t u = instruction & 0x800000;
+    bool p = instruction & 0x1000000;
+    bool u = instruction & 0x800000;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
@@ -920,8 +923,8 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
 }
 void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
     uint32_t offset;
-    uint32_t p = instruction & 0x1000000;
-    uint32_t u = instruction & 0x800000;
+    bool p = instruction & 0x1000000;
+    bool u = instruction & 0x800000;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
@@ -961,6 +964,115 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
 
     if((instruction & 0x200000) || !p) // write-back address
         setModeArrayIndex(mode,rn,address);
+
+    pc+=4;
+}
+void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
+    bool p = instruction & 0x1000000;
+    bool u = instruction & 0x800000;
+    bool s = instruction & 0x400000;
+    bool w = instruction & 0x200000;
+    bool l = instruction & 0x100000;
+    uint8_t rn = (instruction & 0xF0000) >> 16;
+    uint16_t rListBinary = instruction & 0xFFFF;
+    uint32_t address = getModeArrayIndex(mode,rn);
+    uint32_t offset = 0;
+    uint16_t rnInList = rListBinary & (1 << rn);
+    uint8_t oldMode = 0;
+    int8_t offset;
+    std::vector<uint8_t> rListVector;
+
+    /* todo: if rList is empty
+    if(!rList) {
+        rList = 0x8000;
+        
+    }
+    */
+
+    uint16_t bitPos = 1;
+    for(uint8_t i = 0; i < 16; i++) {
+        if(rListBinary & bitPos)
+            rListVector.emplace_back(i);
+        bitPos <<= 1;
+    }
+
+    if(u) {
+        offset = 4;
+        // if offset is positive do nothing
+    } else {
+        offset = -4;
+        // if offset is negative, reverse the list order
+        std::reverse(rListVector.begin(),rListVector.end());
+    }
+
+    if(s) { // If s bit is set and rn is in transfer list
+        if(rListBinary & rnInList) {
+            if(l)
+                setCPSR(getModeArrayIndex(mode,'S'));
+            else {
+                oldMode = mode;
+                mode = User;
+            }
+        }
+    }
+
+    if(l) { // LDM
+    
+        for(uint8_t num : rListVector) {
+            if(p)
+                address += offset;
+            setModeArrayIndex(mode,num,readWord(address));
+            if(!p)
+                address += offset;
+        }
+    } else { // STM
+        
+        for(uint8_t num : rListVector) {
+            
+            if(p)
+                address += offset;
+
+            if(num == 15)
+                storeValue(getModeArrayIndex(mode,num),address+12);
+            else
+                storeValue(getModeArrayIndex(mode,num),address);
+                
+            // if base register is not the first store you do, and wb bit is enabled, wb to base register(line 1055) and new base address
+            if((num == rn) && (rn != rListVector[0]) && w)
+            storeValue(address,address);
+            
+            if(!p)
+                address += offset;
+        }
+
+    }
+
+    if(oldMode) {
+        mode = oldMode;
+        w = 0;
+    }
+    
+    // if STM wb bit is set, write-back; if LDM wb bit is set and rn not in list, write-back
+    if(w && !(l && rnInList)) 
+        setModeArrayIndex(mode,rn,address);
+    
+    pc+=4;
+}
+void ARM7TDMI::ARMswap(uint32_t instruction) {
+    uint8_t rn = (instruction & 0xF0000) >> 16;
+    uint8_t rd = (instruction & 0xF000) >> 12;
+    uint8_t rm = instruction & 0xF;
+
+    // swap byte
+    if(instruction & 0x400000) {
+        uint32_t rnValue = getModeArrayIndex(mode,rn);
+        setModeArrayIndex(mode,rd,systemMemory[rnValue]);
+        systemMemory[rnValue] = getModeArrayIndex(mode,rm);
+    } else { // swap word
+        uint32_t rnValue = getModeArrayIndex(mode,rn);
+        setModeArrayIndex(mode,rd,readWordRotate(rnValue));
+        storeValue(getModeArrayIndex(mode,rm),rnValue);
+    }
 
     pc+=4;
 }

@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <bit>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 struct ARM7TDMI {
     // cycles per second
@@ -85,7 +87,7 @@ struct ARM7TDMI {
     void ARMhdsDataLDRH(uint32_t);
     void ARMhdsDataLDRSB(uint32_t);
     void ARMhdsDataLDRSH(uint32_t);
-
+    void ARMblockDataTransfer(uint32_t);
     void ARMswap(uint32_t);
 
     /// THUMB Instructions ///
