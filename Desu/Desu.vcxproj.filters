@@ -29,6 +29,15 @@
     <ClCompile Include="cores\ARM7TDMI.cpp">
       <Filter>Cores</Filter>
     </ClCompile>
+    <ClCompile Include="hardware\GBA\LCD.cpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\GBA\Keypad.cpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\GBA\TimersInterruptAndSystemControl.cpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GBA.hpp">
@@ -37,11 +46,17 @@
     <ClInclude Include="DS.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\GBA\PPU.hpp">
-      <Filter>Hardware\GBA</Filter>
-    </ClInclude>
     <ClInclude Include="cores\ARM7TDMI.hpp">
       <Filter>Cores</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\GBA\LCD.hpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\GBA\Keypad.hpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\GBA\TimersInterruptAndSystemControl.hpp">
+      <Filter>Hardware\GBA</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

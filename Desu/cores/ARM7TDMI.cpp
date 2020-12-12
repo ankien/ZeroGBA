@@ -1,6 +1,6 @@
 #include "ARM7TDMI.hpp"
 
-ARM7TDMI::ARM7TDMI(uint8_t* systemMemory) {
+ARM7TDMI::ARM7TDMI(GBA* systemMemory) {
     this->systemMemory = systemMemory;
 }
 
@@ -62,18 +62,18 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
 }
 
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
-    systemMemory[address] = value;
-    systemMemory[address + 1] = (value & 0xFF00) >> 8;
+    (*systemMemory)[address] = value;
+    (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
 }
 inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
-    systemMemory[address] = value;
-    systemMemory[address + 1] = (value & 0xFF00) >> 8;
-    systemMemory[address + 2] = (value & 0xFF0000) >> 16;
-    systemMemory[address + 3] = (value & 0xFF000000) >> 24;
+    (*systemMemory)[address] = value;
+    (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
+    (*systemMemory)[address + 2] = (value & 0xFF0000) >> 16;
+    (*systemMemory)[address + 3] = (value & 0xFF000000) >> 24;
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
-    return systemMemory[address] |
-           systemMemory[address + 1] << 8;
+    return (*systemMemory)[address] |
+           (*systemMemory)[address + 1] << 8;
 }
 inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
     uint16_t halfWord = readHalfWord(address);
@@ -81,10 +81,10 @@ inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
     return shift(halfWord,rorAmount,3);
 }
 inline uint32_t ARM7TDMI::readWord(uint32_t address) {
-    return systemMemory[address] |
-           systemMemory[address + 1] << 8 |
-           systemMemory[address + 2] << 16 |
-           systemMemory[address + 3] << 24;
+    return (*systemMemory)[address] |
+           (*systemMemory)[address + 1] << 8 |
+           (*systemMemory)[address + 2] << 16 |
+           (*systemMemory)[address + 3] << 24;
 }
 // Memory alignment stuff
 inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
@@ -750,10 +750,10 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     storeValue(getModeArrayIndex(mode,rd),address);
                     break;
                 default:
-                    systemMemory[address] = getModeArrayIndex(mode,rd);
+                    (*systemMemory)[address] = getModeArrayIndex(mode,rd);
             }
             if(rd == 15)
-                systemMemory[address] += 12;
+                (*systemMemory)[address] += 12;
             break;
         default: // LDR
             switch(b) {
@@ -761,7 +761,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     setModeArrayIndex(mode, rd, readWordRotate(address));
                     break;
                 default:
-                    setModeArrayIndex(mode, rd, systemMemory[address]);
+                    setModeArrayIndex(mode, rd, (*systemMemory)[address]);
             }
     }
 
@@ -812,7 +812,7 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     storeValue(static_cast<uint16_t>(getModeArrayIndex(mode,rd)),address);
 
     if(rd == 15)
-        systemMemory[address] += 12;
+        (*systemMemory)[address] += 12;
 
     if(!p) {
         switch(u) {
@@ -904,7 +904,7 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
         }
     }
 
-    setModeArrayIndex(mode,rd,static_cast<int>(reinterpret_cast<int8_t&>(systemMemory[address])));
+    setModeArrayIndex(mode,rd,static_cast<int>(reinterpret_cast<int8_t&>((*systemMemory)[address])));
 
     if(!p) {
         switch(u) {
@@ -1066,8 +1066,8 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
     // swap byte
     if(instruction & 0x400000) {
         uint32_t rnValue = getModeArrayIndex(mode,rn);
-        setModeArrayIndex(mode,rd,systemMemory[rnValue]);
-        systemMemory[rnValue] = getModeArrayIndex(mode,rm);
+        setModeArrayIndex(mode,rd,(*systemMemory)[rnValue]);
+        (*systemMemory)[rnValue] = getModeArrayIndex(mode,rm);
     } else { // swap word
         uint32_t rnValue = getModeArrayIndex(mode,rn);
         setModeArrayIndex(mode,rd,readWordRotate(rnValue));
