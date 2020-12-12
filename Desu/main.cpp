@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
     std::transform(fileExtension.begin(),fileExtension.end(),fileExtension.begin(),[](char c){return std::tolower(c);});
     
     // Emulation loops
+    // todo: implement argument parsing
     if(fileExtension == ".gba") {
         // load GBA game
         GBA gba;
@@ -26,10 +27,7 @@ int main(int argc, char *argv[]) {
             gba.arm7tdmi->fillTHUMB();
 
             while(true) {
-                gba.interpretARM(gba.memoryMap);
-
-                // draw
-
+                gba.interpretARM();
             }
 
         } else if(strcmp(argv[1],"-j") == 0) {

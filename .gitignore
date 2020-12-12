@@ -11,6 +11,7 @@
 *.sln.docstates
 *.gba
 *.sav
+*.pdf
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

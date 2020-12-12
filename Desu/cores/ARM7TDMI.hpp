@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include "../GBA.hpp"
 
 struct ARM7TDMI {
     // cycles per second
@@ -15,7 +16,7 @@ struct ARM7TDMI {
     void (ARM7TDMI::*armTable[4096])(uint32_t);
     void (ARM7TDMI::*thumbTable[256])(uint32_t);
 
-    uint8_t* systemMemory;
+    GBA* systemMemory;
 
     enum exceptions { Reset, UndefinedInstruction, SoftwareInterrupt, PrefetchAbort, DataAbort,
                       AddressExceeds26Bit, NormalInterrupt, FastInterrupt };
@@ -47,7 +48,7 @@ struct ARM7TDMI {
             signFlag; // N, 1 : 0 = not signed, 1 = signed
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
-    ARM7TDMI(uint8_t*);
+    ARM7TDMI(GBA*);
 
     /// Helper functions ///
     void handleException(uint8_t, uint32_t, uint8_t);
