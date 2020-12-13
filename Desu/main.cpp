@@ -2,48 +2,55 @@
 #include <string.h>
 #include "GBA.hpp"
 
-int main(int argc, char *argv[]) {
+struct {
+    uint8_t jit; // not implemented
+} options;
+
+bool parseArguments(uint64_t argc, char* argv[]) {
+    if(argc < 2)
+        return 0;
     
-    if(argc < 3) {
-        std::cerr << "Executable, code translation mode [-i,-j], and ROM must be given as arguments.\n";
-        exit(1);
+    for(uint64_t i = 0; i < argc; i++) {
+        if(strcmp(argv[i], "-j") == 0)
+            options.jit = 1;
+        else
+            return 0;
     }
-    
-    std::string fileExtension = std::filesystem::path(argv[2]).extension().string();
+
+    return 1;
+}
+
+void runProgram(char* fileName) {
+    std::string fileExtension = std::filesystem::path(fileName).extension().string();
     std::transform(fileExtension.begin(),fileExtension.end(),fileExtension.begin(),[](char c){return std::tolower(c);});
     
-    // Emulation loops
-    // todo: implement argument parsing
     if(fileExtension == ".gba") {
-        // load GBA game
+       // load GBA game
         GBA gba;
-        if(!gba.loadRom(argv[2])) {
-            std::cout << "Error loading file\n";
-            exit(1);
-        }
+        if(!gba.loadRom(fileName))
+            return;
 
-        if(strcmp(argv[1],"-i") == 0) {
+        if(options.jit) { // GBA JIT
+            // no implementation yet
+            return;
+        } else { // GBA interpreter
             gba.arm7tdmi->fillARM();
             gba.arm7tdmi->fillTHUMB();
 
             while(true) {
                 gba.interpretARM();
             }
-
-        } else if(strcmp(argv[1],"-j") == 0) {
-            // no implementation yet
-            exit(1);
-        } else {
-            std::cout << "Invalid arguments\n";
-            exit(1);
         }
 
     } else if(fileExtension == ".nds") {
         // no implementation yet
-        exit(1);
-    } else {
-        std::cerr << "Incompatible filetype\n";
-        exit(1);
+        return;
     }
+}
+
+int main(int argc, char* argv[]) {
+    if(parseArguments(argc,argv))
+        runProgram(argv[2]);
+    std::cout << "Error with arguments - format: [executable] [-options] [rom]\n";
     return 0;
 }
