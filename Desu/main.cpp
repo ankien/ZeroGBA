@@ -3,7 +3,7 @@
 #include "GBA.hpp"
 
 struct {
-    uint8_t jit; // not implemented
+    uint8_t jit : 1; // not implemented
 } options;
 
 bool parseArguments(uint64_t argc, char* argv[]) {
@@ -50,7 +50,7 @@ void runProgram(char* fileName) {
 
 int main(int argc, char* argv[]) {
     if(parseArguments(argc,argv))
-        runProgram(argv[2]);
+        runProgram(argv[(sizeof(argv) / sizeof(char*)) - 1]);
     std::cout << "Error with arguments - format: [executable] [-options] [rom]\n";
     return 0;
 }
