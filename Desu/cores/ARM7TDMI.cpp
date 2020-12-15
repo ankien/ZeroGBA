@@ -1,6 +1,6 @@
 #include "ARM7TDMI.hpp"
 
-ARM7TDMI::ARM7TDMI(GBA* systemMemory) {
+ARM7TDMI::ARM7TDMI(Memory* systemMemory) {
     this->systemMemory = systemMemory;
 }
 
@@ -45,55 +45,57 @@ void ARM7TDMI::fillARM() {
 }
 void ARM7TDMI::fillTHUMB() {
     
+    /*
     for(uint8_t i = 0; i < 256; i++) {
 
         
 
     }
+    */
 }
 
 // Bits 27-20 + 7-4
-inline uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
+uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
     return ((instruction >> 16) & 0xFF0) | ((instruction >> 4) & 0xF);
 }
 // Bits 8-15
-inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
+uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
-inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
+void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
     (*systemMemory)[address] = value;
     (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
 }
-inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
+void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
     (*systemMemory)[address] = value;
     (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
     (*systemMemory)[address + 2] = (value & 0xFF0000) >> 16;
     (*systemMemory)[address + 3] = (value & 0xFF000000) >> 24;
 }
-inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
+uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
     return (*systemMemory)[address] |
            (*systemMemory)[address + 1] << 8;
 }
-inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
+uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
     uint16_t halfWord = readHalfWord(address);
     uint8_t rorAmount = (address & 1) << 3;
     return shift(halfWord,rorAmount,3);
 }
-inline uint32_t ARM7TDMI::readWord(uint32_t address) {
+uint32_t ARM7TDMI::readWord(uint32_t address) {
     return (*systemMemory)[address] |
            (*systemMemory)[address + 1] << 8 |
            (*systemMemory)[address + 2] << 16 |
            (*systemMemory)[address + 3] << 24;
 }
 // Memory alignment stuff
-inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
+uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
     uint32_t word = readWord(address);
     uint8_t rorAmount = (address & 3) << 3;
     return shift(word,rorAmount,3);
 }
 
-// when would an exception be raised?
+// todo: implement exception stuff at 0x3007F00
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
     setModeArrayIndex(newMode,14,pc+nn);
     setModeArrayIndex(newMode,'S',getCPSR());
@@ -168,7 +170,7 @@ void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) 
 
 }
 
-inline uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
+uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
     uint8_t index = 0;
     switch(mode) {
         case System:
@@ -227,7 +229,7 @@ inline uint32_t ARM7TDMI::getModeArrayIndex(uint8_t mode, uint8_t reg) {
             return spsr[index];
     }
 }
-inline void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
+void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
     uint8_t index = 0;
     switch(mode) {
         case System:
@@ -303,7 +305,7 @@ inline void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg)
     }
 }
 
-inline uint32_t ARM7TDMI::getCPSR() {
+ uint32_t ARM7TDMI::getCPSR() {
     return mode |
            (state << 5) |
            (fiqDisable << 6) |
@@ -315,7 +317,7 @@ inline uint32_t ARM7TDMI::getCPSR() {
            (zeroFlag << 30) |
            (signFlag << 31);
 }
-inline void ARM7TDMI::setCPSR(uint32_t num) {
+void ARM7TDMI::setCPSR(uint32_t num) {
     mode = (num & 0x1F);
     state = (num & 0x20) >> 5;
     fiqDisable = (num & 0x40) >> 6;
@@ -328,7 +330,7 @@ inline void ARM7TDMI::setCPSR(uint32_t num) {
     signFlag = (num & 0x80000000) >> 31;
 }
 
-inline bool ARM7TDMI::checkCond(uint32_t cond) {
+bool ARM7TDMI::checkCond(uint32_t cond) {
     switch(cond) {
         case 0x00000000:
             if(zeroFlag)
@@ -393,22 +395,24 @@ inline bool ARM7TDMI::checkCond(uint32_t cond) {
 }
 
 template <typename INT>
-inline INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
+INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
     switch(shiftType) {
         case 0b00: // lsl
             return value << shiftAmount; 
         case 0b01: // lsr
             return value >> shiftAmount;
         case 0b10: // asr
+        {
             uint8_t dupeBit = (sizeof(value) * 8) - 1;
             if(value & (1 << dupeBit))
                 return (value >> shiftAmount) | (0xFFFFFFFF << shiftAmount);
             return value >> shiftAmount;
+        }
         case 0b11: // ror
             return std::rotr(value,shiftAmount);
     }
 }
-inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
+void ARM7TDMI::setZeroAndSign(uint32_t arg) {
     (arg == 0) ?  zeroFlag = 1 : zeroFlag = 0;
     (arg | 0x80000000) ? signFlag = 1 : signFlag = 0;
 }
@@ -454,11 +458,13 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     switch(I) {
 
         case 0: // register is second operand
+        {
             uint8_t shiftType = (instruction & 0x60) >> 5;
             uint8_t r = instruction & 0x10; // if rm or rn == 15, and r == 1, pc+=12, else pc+=8
             uint8_t rm = instruction & 0xF;
             switch(r) {
                 case 0: // register operand w/ immediate shift
+                {
                     uint8_t Is = (instruction & 0xF80) >> 7;
                     if((rn == 15) || (rm == 15))
                         pc+=8;
@@ -489,6 +495,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     if((rn == 15) || (rm == 15))
                         pc-=8;
                     break;
+                }
 
                 default: // register operand w/ register shift
                     uint8_t Rs = (instruction & 0xF00) >> 8;
@@ -500,6 +507,8 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                 
             }
             break;
+
+        }
 
         default: // immediate is second operand
             uint8_t Imm = instruction & 0xF;
@@ -661,6 +670,7 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
 
     switch(instruction & 0x200000) {
         case 0: // MRS
+        {
             uint8_t rd = (instruction & 0xF000) >> 12;
             switch(mode) {
                 case 16:
@@ -677,6 +687,7 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
                             setModeArrayIndex(mode,rd,getModeArrayIndex(mode,'S'));
                     }
             } break;
+        }
         default: // MSR
             uint32_t op;
             switch(instruction & 0x2000000) {
@@ -976,7 +987,6 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint16_t rListBinary = instruction & 0xFFFF;
     uint32_t address = getModeArrayIndex(mode,rn);
-    uint32_t offset = 0;
     uint16_t rnInList = rListBinary & (1 << rn);
     uint8_t oldMode = 0;
     int8_t offset;

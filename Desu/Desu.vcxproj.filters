@@ -5,10 +5,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Hardware">
       <UniqueIdentifier>{cd56e99c-2070-464a-97a7-2650e70b0547}</UniqueIdentifier>
     </Filter>
@@ -18,12 +14,19 @@
     <Filter Include="Cores">
       <UniqueIdentifier>{30be8d09-6832-4b80-949f-fa2ce1a2aea4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{26137989-6e5d-49d1-ab8b-1712ef042b8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Non-code">
+      <UniqueIdentifier>{9393d6c7-074c-4fa3-8152-c411450d0f87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GBA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cores\ARM7TDMI.cpp">
@@ -38,13 +41,19 @@
     <ClCompile Include="hardware\GBA\TimersInterruptAndSystemControl.cpp">
       <Filter>Hardware\GBA</Filter>
     </ClCompile>
+    <ClCompile Include="hardware\GBA\Memory.cpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClCompile>
+    <ClCompile Include="GBA.cpp">
+      <Filter>Systems</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GBA.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Systems</Filter>
     </ClInclude>
     <ClInclude Include="DS.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Systems</Filter>
     </ClInclude>
     <ClInclude Include="cores\ARM7TDMI.hpp">
       <Filter>Cores</Filter>
@@ -58,5 +67,16 @@
     <ClInclude Include="hardware\GBA\TimersInterruptAndSystemControl.hpp">
       <Filter>Hardware\GBA</Filter>
     </ClInclude>
+    <ClInclude Include="hardware\GBA\Memory.hpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\GBA.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\GBA.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

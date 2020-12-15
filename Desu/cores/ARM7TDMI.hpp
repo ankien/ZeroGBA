@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include "../GBA.hpp"
+#include "../hardware/GBA/Memory.hpp"
 
 struct ARM7TDMI {
     // cycles per second
@@ -16,7 +16,7 @@ struct ARM7TDMI {
     void (ARM7TDMI::*armTable[4096])(uint32_t);
     void (ARM7TDMI::*thumbTable[256])(uint32_t);
 
-    GBA* systemMemory;
+    Memory* systemMemory;
 
     enum exceptions { Reset, UndefinedInstruction, SoftwareInterrupt, PrefetchAbort, DataAbort,
                       AddressExceeds26Bit, NormalInterrupt, FastInterrupt };
@@ -34,7 +34,7 @@ struct ARM7TDMI {
     uint32_t r12[2]; // sys/user-fiq
     uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und
     uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und
-    uint32_t pc; // R15
+    uint32_t pc = 0x8000000; // R15
     // CPSR bitfield implementation
     uint8_t mode, // 5 : see enum modes
             state, // 1 : 0 = ARM, 1 = THUMB
@@ -48,28 +48,28 @@ struct ARM7TDMI {
             signFlag; // N, 1 : 0 = not signed, 1 = signed
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
-    ARM7TDMI(GBA*);
+    ARM7TDMI(Memory*);
 
     /// Helper functions ///
     void handleException(uint8_t, uint32_t, uint8_t);
     void fillARM();
     void fillTHUMB();
-    inline uint16_t fetchARMIndex(uint32_t);
-    inline uint8_t fetchTHUMBIndex(uint16_t);
-    inline void storeValue(uint16_t,uint32_t);
-    inline void storeValue(uint32_t,uint32_t);
-    inline uint16_t readHalfWord(uint32_t);
-    inline uint16_t readHalfWordRotate(uint32_t);
-    inline uint32_t readWord(uint32_t);
-    inline uint32_t readWordRotate(uint32_t);
-    inline uint32_t getModeArrayIndex(uint8_t, uint8_t);
-    inline void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
-    inline uint32_t getCPSR();
-    inline void setCPSR(uint32_t);
-    inline bool checkCond(uint32_t);
+    uint16_t fetchARMIndex(uint32_t);
+    uint8_t fetchTHUMBIndex(uint16_t);
+    void storeValue(uint16_t, uint32_t);
+    void storeValue(uint32_t, uint32_t);
+    uint16_t readHalfWord(uint32_t);
+    uint16_t readHalfWordRotate(uint32_t);
+    uint32_t readWord(uint32_t);
+    uint32_t readWordRotate(uint32_t);
+    uint32_t getModeArrayIndex(uint8_t, uint8_t);
+    void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
+    uint32_t getCPSR();
+    void setCPSR(uint32_t);
+    bool checkCond(uint32_t);
     template <typename INT>
-    inline INT shift(INT, uint8_t, uint8_t);
-    inline void setZeroAndSign(uint32_t);
+    INT shift(INT, uint8_t, uint8_t);
+    void setZeroAndSign(uint32_t);
 
     // For unimplemented/undefined instructions
     void emptyInstruction(uint32_t);

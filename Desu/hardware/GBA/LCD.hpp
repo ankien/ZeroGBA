@@ -1,15 +1,19 @@
 #pragma once
 #include <stdint.h>
 #include <SDL.h>
-#include "../../GBA.hpp"
+#include "Memory.hpp"
 
 struct LCD {
-    static const uint16_t 
+    static const uint8_t 
         WIDTH = 240,
         HEIGHT = 160,
         FPS = 60; // actually ~59.71 fps, but this is faster to calculate
 
-    GBA* systemMemory;
+    uint64_t secondsPassed;
+
+    // 280896 cycles per frame
+
+    Memory* systemMemory;
     
-    LCD(GBA*);
+    LCD(Memory*);
 };

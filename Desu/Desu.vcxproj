@@ -22,6 +22,7 @@
     <ClInclude Include="cores\ARM7TDMI.hpp" />
     <ClInclude Include="DS.hpp" />
     <ClInclude Include="GBA.hpp" />
+    <ClInclude Include="hardware\GBA\Memory.hpp" />
     <ClInclude Include="hardware\GBA\TimersInterruptAndSystemControl.hpp" />
     <ClInclude Include="hardware\GBA\Keypad.hpp" />
     <ClInclude Include="hardware\GBA\LCD.hpp" />
@@ -29,10 +30,15 @@
   <ItemGroup>
     <ClCompile Include="cores\ARM7TDMI.cpp" />
     <ClCompile Include="GBA.cpp" />
+    <ClCompile Include="hardware\GBA\Memory.cpp" />
     <ClCompile Include="hardware\GBA\TimersInterruptAndSystemControl.cpp" />
     <ClCompile Include="hardware\GBA\Keypad.cpp" />
     <ClCompile Include="hardware\GBA\LCD.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\GBA.frag" />
+    <None Include="shaders\GBA.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -109,6 +115,8 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>C:\devlibs\glew-2.1.0\include\GL;C:\devlibs\SDL2\include;C:\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\include;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\include\GL</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,6 +134,8 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>C:\devlibs\glew-2.1.0\include\GL;C:\devlibs\SDL2\include;C:\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\include;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\include\GL</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
