@@ -24,6 +24,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{c6e9e990-7cf3-4020-bd37-ae2a95d54ed1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -69,6 +72,9 @@
     </ClInclude>
     <ClInclude Include="hardware\GBA\GBAMemory.hpp">
       <Filter>Hardware\GBA</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\BitField.hpp">
+      <Filter>Helpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
