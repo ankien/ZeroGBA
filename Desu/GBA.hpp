@@ -4,10 +4,10 @@
 #include <glew.h>
 #include "hardware/GBA/LCD.hpp"
 #include "cores/ARM7TDMI.hpp"
-#include "hardware/GBA/Memory.hpp"
+#include "hardware/GBA/GBAMemory.hpp"
 
 struct GBA {
-    Memory* memory;
+    GBAMemory* memory;
     ARM7TDMI* arm7tdmi;
     LCD* lcd;
 

@@ -1,7 +1,7 @@
 #include "GBA.hpp"
 
 GBA::GBA() {
-    memory = new Memory();
+    memory = new GBAMemory();
     arm7tdmi = new ARM7TDMI(memory);
     lcd = new LCD(memory);
 

@@ -22,16 +22,16 @@
     <ClInclude Include="cores\ARM7TDMI.hpp" />
     <ClInclude Include="DS.hpp" />
     <ClInclude Include="GBA.hpp" />
-    <ClInclude Include="hardware\GBA\Memory.hpp" />
-    <ClInclude Include="hardware\GBA\TimersInterruptAndSystemControl.hpp" />
+    <ClInclude Include="hardware\GBA\GBAMemory.hpp" />
+    <ClInclude Include="hardware\GBA\Timer.hpp" />
     <ClInclude Include="hardware\GBA\Keypad.hpp" />
     <ClInclude Include="hardware\GBA\LCD.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cores\ARM7TDMI.cpp" />
     <ClCompile Include="GBA.cpp" />
-    <ClCompile Include="hardware\GBA\Memory.cpp" />
-    <ClCompile Include="hardware\GBA\TimersInterruptAndSystemControl.cpp" />
+    <ClCompile Include="hardware\GBA\GBAMemory.cpp" />
+    <ClCompile Include="hardware\GBA\Timer.cpp" />
     <ClCompile Include="hardware\GBA\Keypad.cpp" />
     <ClCompile Include="hardware\GBA\LCD.cpp" />
     <ClCompile Include="main.cpp" />

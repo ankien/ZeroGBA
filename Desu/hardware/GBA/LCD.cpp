@@ -1,5 +1,5 @@
 #include "LCD.hpp"
 
-LCD::LCD(Memory* systemMemory) {
+LCD::LCD(GBAMemory* systemMemory) {
     this->systemMemory = systemMemory;
 }

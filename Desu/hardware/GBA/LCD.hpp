@@ -1,19 +1,20 @@
 #pragma once
 #include <stdint.h>
 #include <SDL.h>
-#include "Memory.hpp"
+#include "GBAMemory.hpp"
 
 struct LCD {
     static const uint8_t 
-        WIDTH = 240,
-        HEIGHT = 160,
+        SCALE = 6,
+        WIDTH = 240 * SCALE,
+        HEIGHT = 160 * SCALE,
         FPS = 60; // actually ~59.71 fps, but this is faster to calculate
 
     uint64_t secondsPassed;
 
     // 280896 cycles per frame
 
-    Memory* systemMemory;
+    GBAMemory* systemMemory;
     
-    LCD(Memory*);
+    LCD(GBAMemory*);
 };

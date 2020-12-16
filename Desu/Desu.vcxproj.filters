@@ -38,14 +38,14 @@
     <ClCompile Include="hardware\GBA\Keypad.cpp">
       <Filter>Hardware\GBA</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\GBA\TimersInterruptAndSystemControl.cpp">
-      <Filter>Hardware\GBA</Filter>
-    </ClCompile>
-    <ClCompile Include="hardware\GBA\Memory.cpp">
-      <Filter>Hardware\GBA</Filter>
-    </ClCompile>
     <ClCompile Include="GBA.cpp">
       <Filter>Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\GBA\Timer.cpp">
+      <Filter>Hardware\GBA</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\GBA\GBAMemory.cpp">
+      <Filter>Hardware\GBA</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -64,10 +64,10 @@
     <ClInclude Include="hardware\GBA\Keypad.hpp">
       <Filter>Hardware\GBA</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\GBA\TimersInterruptAndSystemControl.hpp">
+    <ClInclude Include="hardware\GBA\Timer.hpp">
       <Filter>Hardware\GBA</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\GBA\Memory.hpp">
+    <ClInclude Include="hardware\GBA\GBAMemory.hpp">
       <Filter>Hardware\GBA</Filter>
     </ClInclude>
   </ItemGroup>
