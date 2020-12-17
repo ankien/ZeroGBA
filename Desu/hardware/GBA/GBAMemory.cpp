@@ -43,33 +43,59 @@ GBAMemory::GBAMemory() {
 }
 
 void GBAMemory::setMappedIO(uint16_t addr, uint8_t num) {
-    if(addr < 0x060) { // LCD
-        switch(addr) {
-            case 0x000:
-                dispcnt.bgMode = num & 0x7;
-                dispcnt.cgbMode = num & 0x8;
-                dispcnt.displayFrameSelect = num & 0x10;
-                dispcnt.hBlankIntervalFree = num & 0x20;
-                dispcnt.objCharacterVramMapping = num & 0x40;
-                dispcnt.forcedBlank = num & 0x80;
-                break;
-            case 0x001:
-                dispcnt.screenDisplayBG0 = num & 0x100;
-                dispcnt.screenDisplayBG1 = num & 
-                break;
-        }
-    } else if(addr < 0x0B0) { // Sound
-        
-    } else if(addr < 0x100) { // DMA
-        
-    } else if(addr < 0x120) { // Timer
-        
-    } else if(addr < 0x130) { // Keypad
-        
-    } else if(addr < 0x200) { // Serial
-        
-    } else if(addr < 0x805) { // Interrupt
-        
+    switch(addr) {
+        case 0x000: dispcnt &= 0xFF00 | num; break;
+        case 0x001: dispcnt &= 0x00FF | (num << 8); break;
+        case 0x002: greenSwap &= 0xFF00 | num; break;
+        case 0x003: greenSwap &= 0x00FF | (num << 8); break;
+        case 0x004: dispstat &= 0xFF00 | num; break;
+        case 0x005: dispstat &= 0x00FF | (num << 8); break;
+        case 0x006: vcount &= 0xFF00 | num; break;
+        case 0x007: vcount &= 0x00FF | (num << 8); break;
+        case 0x008: bgcnt[0] &= 0xFF00 | num; break;
+        case 0x009: bgcnt[0] &= 0x00FF | (num << 8); break;
+        case 0x00A: bgcnt[1] &= 0xFF00 | num; break;
+        case 0x00B: bgcnt[1] &= 0x00FF | (num << 8); break;
+        case 0x00C: bgcnt[2] &= 0xFF00 | num; break;
+        case 0x00D: bgcnt[2] &= 0x00FF | (num << 8); break;
+        case 0x00E: bgcnt[3] &= 0xFF00 | num; break;
+        case 0x00F: bgcnt[3] &= 0x00FF | (num << 8); break;
+        case 0x010: bghofs[0] &= 0xFF00 | num; break;
+        case 0x011: bghofs[0] &= 0x00FF | (num << 8); break;
+        case 0x012: bgvofs[0] &= 0xFF00 | num; break;
+        case 0x013: bgvofs[0] &= 0x00FF | (num << 8); break;
+        case 0x014: bghofs[1] &= 0xFF00 | num; break;
+        case 0x015: bghofs[1] &= 0x00FF | (num << 8); break;
+        case 0x016: bgvofs[1] &= 0xFF00 | num; break;
+        case 0x017: bgvofs[1] &= 0x00FF | (num << 8); break;
+        case 0x018: bghofs[2] &= 0xFF00 | num; break;
+        case 0x019: bghofs[2] &= 0x00FF | (num << 8); break;
+        case 0x01A: bgvofs[2] &= 0xFF00 | num; break;
+        case 0x01B: bgvofs[2] &= 0x00FF | (num << 8); break;
+        case 0x01C: bghofs[3] &= 0xFF00 | num; break;
+        case 0x01D: bghofs[3] &= 0x00FF | (num << 8); break;
+        case 0x01E: bgvofs[3] &= 0xFF00 | num; break;
+        case 0x01F: bgvofs[3] &= 0x00FF | (num << 8); break;
+        case 0x040: winh[0] &= 0xFF00 | num; break;
+        case 0x041: winh[0] &= 0x00FF | (num << 8); break;
+        case 0x042: winh[1] &= 0xFF00 | num; break;
+        case 0x043: winh[1] &= 0x00FF | (num << 8); break;
+        case 0x044: winv[0] &= 0xFF00 | num; break;
+        case 0x045: winv[0] &= 0x00FF | (num << 8); break;
+        case 0x046: winv[1] &= 0xFF00 | num; break;
+        case 0x047: winv[1] &= 0x00FF | (num << 8); break;
+        case 0x048: winin &= 0xFF00 | num; break;
+        case 0x049: winin &= 0x00FF | (num << 8); break;
+        case 0x04A: winout &= 0xFF00 | num; break;
+        case 0x04B: winout &= 0x00FF | (num << 8); break;
+        case 0x04C: mosaic &= 0xFF00 | num; break;
+        case 0x04D: mosaic &= 0x00FF | (num << 8); break;
+        case 0x050: bldcnt &= 0xFF00 | num; break;
+        case 0x051: bldcnt &= 0x00FF | (num << 8); break;
+        case 0x052: bldalpha &= 0xFF00 | num; break;
+        case 0x053: bldalpha &= 0x00FF | (num << 8); break;
+        case 0x054: bldy &= 0xFF00 | num; break;
+        case 0x055: bldy &= 0x00FF | (num << 8); break;
     }
 }
 

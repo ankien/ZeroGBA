@@ -337,6 +337,7 @@ void ARM7TDMI::emptyInstruction(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMbranch(uint32_t instruction) {
+    // Implementation dependent sign extend
     int32_t signedOffset = instruction & 0xFFFFFF;
     signedOffset <<= 8;
     signedOffset >>= 6;

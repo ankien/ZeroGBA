@@ -26,7 +26,6 @@
     <ClInclude Include="hardware\GBA\Timer.hpp" />
     <ClInclude Include="hardware\GBA\Keypad.hpp" />
     <ClInclude Include="hardware\GBA\LCD.hpp" />
-    <ClInclude Include="helpers\BitField.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cores\ARM7TDMI.cpp" />
