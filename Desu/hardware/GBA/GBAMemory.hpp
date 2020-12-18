@@ -21,12 +21,23 @@ struct GBAMemory {
     uint16_t greenSwap;
     uint16_t dispstat;
     uint16_t vcount;
-    uint16_t bgcnt[4];
-    uint16_t bghofs[4];
-    uint16_t bgvofs[4];
+    uint16_t bgcnt0;
+    uint16_t bgcnt1;
+    uint16_t bgcnt2;
+    uint16_t bgcnt3;
+    uint16_t bghofs0;
+    uint16_t bghofs1;
+    uint16_t bghofs2;
+    uint16_t bghofs3;
+    uint16_t bgvofs0;
+    uint16_t bgvofs1;
+    uint16_t bgvofs2;
+    uint16_t bgvofs3;
     // todo: rotation and scaling regs
-    uint16_t winh[2];
-    uint16_t winv[2];
+    uint16_t winh0;
+    uint16_t winh1;
+    uint16_t winv0;
+    uint16_t winv1;
     uint16_t winin;
     uint16_t winout;
     uint16_t mosaic;

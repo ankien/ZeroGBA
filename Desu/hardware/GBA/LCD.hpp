@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <SDL.h>
+#include <glew.h>
 #include "GBAMemory.hpp"
 
 struct LCD {
@@ -10,11 +11,13 @@ struct LCD {
         HEIGHT = 160 * SCALE,
         FPS = 60; // actually ~59.71 fps, but this is faster to calculate
 
-    uint64_t secondsPassed;
-
-    // 280896 cycles per frame
-
     GBAMemory* systemMemory;
+    SDL_Window* window;
     
-    LCD(GBAMemory*);
+    LCD(GBAMemory*,SDL_Window*);
+
+    // todo: put lines in hblank and draw in vblank
+    void draw();
+
+    void loadShaders();
 };

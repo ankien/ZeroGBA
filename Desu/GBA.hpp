@@ -1,6 +1,5 @@
 #pragma once
 #include <SDL.h>
-#include <glm.hpp>
 #include <glew.h>
 #include "hardware/GBA/LCD.hpp"
 #include "cores/ARM7TDMI.hpp"
