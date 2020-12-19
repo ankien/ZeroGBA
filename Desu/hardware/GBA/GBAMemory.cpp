@@ -2,6 +2,7 @@
 
 uint8_t& GBAMemory::operator[](uint32_t i) {
     // unmapped memory accesses will crash! this isn't supposed to happen in the first place but the GBA handles it fine
+    // see below comment
     switch(i >> 24) {
         case 0x00:
             return bios[i];
@@ -21,7 +22,7 @@ uint8_t& GBAMemory::operator[](uint32_t i) {
             return gamePak[i-0x8000000];
         case 0x0E:
             return gPakSram[i-0xE000000];
-        default: // unmapped memory access, will crash! todo: handle unpredictable behavior
+        default: // unmapped memory access, will crash! todo: handle GBA unpredictable behavior
             break;
     }
 }

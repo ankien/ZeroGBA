@@ -14,4 +14,9 @@ struct GBA {
 
     void interpretARM();
     void interpretTHUMB();
+    void doSharedProcesses();
 };
+
+inline void GBA::doSharedProcesses() {
+    
+}

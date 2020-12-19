@@ -3,25 +3,7 @@
 GBA::GBA() {
     memory = new GBAMemory();
     arm7tdmi = new ARM7TDMI(memory);
-
-    // SDL + OpenGL setup
-    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER);
-
-    SDL_GL_SetAttribute();
-
-    SDL_Window* window = SDL_CreateWindow(
-        "Placeholder Title", 
-        SDL_WINDOWPOS_CENTERED, 
-        SDL_WINDOWPOS_CENTERED, 
-        lcd->WIDTH, 
-        lcd->HEIGHT, 
-        SDL_WINDOW_OPENGL
-    );
-
-    SDL_GL_CreateContext(window);
-    glewInit();
-
-    lcd = new LCD(memory,window);
+    lcd = new LCD(memory);
 }
 
 // each instruction has multiple cycles, there's a pipeline, DMA channels, audio channels, PPU, and timers too? oh boy

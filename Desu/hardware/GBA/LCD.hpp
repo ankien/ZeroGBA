@@ -2,22 +2,27 @@
 #include <stdint.h>
 #include <SDL.h>
 #include <glew.h>
+#include <string>
 #include "GBAMemory.hpp"
 
 struct LCD {
-    static const uint8_t 
+    static const uint16_t 
         SCALE = 6,
-        WIDTH = 240 * SCALE,
-        HEIGHT = 160 * SCALE,
-        FPS = 60; // actually ~59.71 fps, but this is faster to calculate
+        WIDTH = 240,
+        HEIGHT = 160;
+
+    uint8_t fps;
+    uint8_t secondsElapsed = SDL_GetTicks() / 1000;
 
     GBAMemory* systemMemory;
     SDL_Window* window;
     
-    LCD(GBAMemory*,SDL_Window*);
+    LCD(GBAMemory*);
 
     // todo: put lines in hblank and draw in vblank
-    void draw();
+    
+    // draw a frame
+    void draw(uint8_t*);
 
     void loadShaders();
 };
