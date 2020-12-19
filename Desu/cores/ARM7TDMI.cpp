@@ -54,7 +54,6 @@ void ARM7TDMI::fillTHUMB() {
     */
 }
 
-// todo: implement exception stuff at 0x3007F00
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
     setModeArrayIndex(newMode,14,pc+nn);
     setModeArrayIndex(newMode,'S',getCPSR());

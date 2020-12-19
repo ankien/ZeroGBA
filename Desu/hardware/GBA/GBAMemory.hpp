@@ -54,10 +54,13 @@ struct GBAMemory {
     // for setting memory, only bytes can be set
     void setByte(uint32_t,uint8_t);
 
+    // todo: make this constructor accept args to
+    // turn it into a general memory class for more than one system
     GBAMemory();
 
     void setMappedIO(uint16_t,uint8_t);
 
+    // todo: create a saveRom function for different storage types (None, EEPROM-512/8, SRAM-32, Flash-64/128)
     bool loadRom(std::string);
 };
 

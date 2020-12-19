@@ -25,12 +25,12 @@ LCD::LCD(GBAMemory* systemMemory) {
     SDL_GL_CreateContext(window);
     glewInit();
 
-    // load shaders
+    // compile shaders
     
 }
 
-void LCD::draw(uint8_t* pixelBuffer) {
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5,WIDTH,HEIGHT,0,GL_RGBA,GL_UNSIGNED_SHORT_1_5_5_5_REV,pixelBuffer);
+void LCD::draw() {
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5,WIDTH,HEIGHT,0,GL_RGBA,GL_UNSIGNED_SHORT_1_5_5_5_REV,frameBuffer);
     glDrawArrays(GL_TRIANGLE_STRIP,0,4);
     SDL_GL_SwapWindow(window);
 
@@ -44,4 +44,56 @@ void LCD::draw(uint8_t* pixelBuffer) {
         fps = 0;
         secondsElapsed = currSecsPassed;
     }
+}
+
+std::string LCD::loadShader(const char* fileName) {
+    std::ifstream fileStream(fileName, std::ios::binary | std::ios::in);
+
+    std::string output;
+    std::string line;
+
+    while(fileStream.good()) {
+        std::getline(fileStream, line);
+        output.append(line + "\n");
+    }
+    return output;
+}
+uint32_t LCD::createShader(std::string source, uint32_t shaderType) {
+    uint32_t shader = glCreateShader(shaderType);
+
+    const char* shaderSourceStrings[1] = {source.c_str()};
+
+    glShaderSource(shader,1,shaderSourceStrings,NULL);
+    glCompileShader(shader);
+
+    return shader;
+}
+void LCD::compileShaders() {
+    program = glCreateProgram();
+
+    uint32_t vertexShader = createShader(loadShader("../../shaders/GBA.vert"),GL_VERTEX_SHADER);
+    uint32_t fragmentShader = createShader(loadShader("../../shaders/GBA.frag"),GL_FRAGMENT_SHADER);
+
+    glGenTextures(1,frameBuffer);
+
+    // bind textures
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,*frameBuffer);
+
+    // attach shaders to program
+    glAttachShader(program,vertexShader);
+    glAttachShader(program,fragmentShader);
+    glLinkProgram(program);
+
+    // set texture parameters of program
+    const int32_t abgr[4] = {1,GL_BLUE,GL_GREEN,GL_RED};
+    glTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_SWIZZLE_RGBA,abgr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glUseProgram(program);
+
+    // generate mesh/vertices
+    glGenVertexArrays(1,vertexArrayObject);
+    glBindVertexArray(*vertexArrayObject);
 }

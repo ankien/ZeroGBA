@@ -27,8 +27,6 @@ uint8_t& GBAMemory::operator[](uint32_t i) {
     }
 }
 
-// todo: make this constructor accept args to
-// turn it into a general memory class for more than one system
 GBAMemory::GBAMemory() {
     bios = new uint8_t[0x4000];
     wramOnBoard = new uint8_t[0x40000];
@@ -100,7 +98,6 @@ void GBAMemory::setMappedIO(uint16_t addr, uint8_t num) {
     }
 }
 
-// todo: create a saveRom function for different storage types (None, EEPROM-512/8, SRAM-32, Flash-64/128)
 bool GBAMemory::loadRom(std::string rom) {
     std::ifstream fileStream(rom.c_str(), std::ifstream::in | std::ifstream::binary);
     uint32_t romSizeInBytes = std::filesystem::file_size(rom);

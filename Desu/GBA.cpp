@@ -6,8 +6,8 @@ GBA::GBA() {
     lcd = new LCD(memory);
 }
 
-// each instruction has multiple cycles, there's a pipeline, DMA channels, audio channels, PPU, and timers too? oh boy
-// i think i can fake the pipeline and DMA
+// each instruction has multiple cycles, there's a pipeline, DMA channels, audio channels, PPU, and timers too?
+// i think i can fake the pipeline
 void GBA::interpretARM() {
     uint32_t instruction = ((*memory)[arm7tdmi->pc+3] << 24) |
                            ((*memory)[arm7tdmi->pc+2] << 16) | 

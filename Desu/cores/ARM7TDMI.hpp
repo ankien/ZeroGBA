@@ -53,6 +53,7 @@ struct ARM7TDMI {
     ARM7TDMI(GBAMemory*);
 
     /// Helper functions ///
+    // todo: implement exception stuff at 0x3007F00
     void handleException(uint8_t, uint32_t, uint8_t);
     void fillARM();
     void fillTHUMB();

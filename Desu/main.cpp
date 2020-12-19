@@ -2,6 +2,7 @@
 #include <string.h>
 #include <iostream>
 #include "GBA.hpp"
+
 #undef main // because SDL defines main for some reason
 
 struct {
