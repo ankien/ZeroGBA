@@ -42,7 +42,22 @@ void runProgram(char* fileName) {
             gba.arm7tdmi->fillTHUMB();
 
             while(true) {
-                gba.interpretARM();
+                while(gba.cyclesPassed < 280896) {
+                    if(gba.arm7tdmi->state)
+                        gba.interpretTHUMB();
+                    else
+                        gba.interpretARM();
+                }
+
+                if(gba.cyclesPassed > 280896)
+                    gba.cyclesPassed -= 280896;
+                else
+                    gba.cyclesPassed = 0;
+
+                // update framebuffer here? or parts of it in doProcesses?
+                gba.lcd->draw();
+
+                SDL_Delay((1000 / 6) - (SDL_GetTicks() / 1000 - gba.lcd->secondsElapsed)); // roughly 1s / 60fps - delay since start of last frame draw
             }
         }
 

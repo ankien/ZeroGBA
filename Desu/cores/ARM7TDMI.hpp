@@ -8,10 +8,8 @@
 #include "../hardware/GBA/GBAMemory.hpp"
 
 struct ARM7TDMI {
-    // todo: instruction timimg
     // cycles per second
-    static const uint32_t CLOCK_RATE = 16780000;
-    static const uint32_t DS_CLOCK_RATE = 33000000;
+    int32_t cycleTicks;
 
     // lookup tables, array size is the different number of instructions
     void (ARM7TDMI::*armTable[4096])(uint32_t);
@@ -36,7 +34,7 @@ struct ARM7TDMI {
     uint32_t r12[2]; // sys/user-fiq
     uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und
     uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und
-    uint32_t pc = 0x8000000; // R15
+    uint32_t pc; // R15
     // CPSR bitfield implementation
     uint8_t mode, // 5 : see enum modes
             state, // 1 : 0 = ARM, 1 = THUMB

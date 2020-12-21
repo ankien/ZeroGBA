@@ -13,6 +13,7 @@ struct LCD {
         HEIGHT = 160;
 
     uint8_t fps;
+    // seconds elapsed for last frame drawn
     uint8_t secondsElapsed = SDL_GetTicks() / 1000;
     GBAMemory* systemMemory;
 
@@ -24,7 +25,7 @@ struct LCD {
     
     LCD(GBAMemory*);
 
-    // todo: put lines in hblank and draw in vblank
+    
     
     // draw a frame
     void draw();

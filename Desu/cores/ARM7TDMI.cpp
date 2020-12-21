@@ -2,6 +2,13 @@
 
 ARM7TDMI::ARM7TDMI(GBAMemory* systemMemory) {
     this->systemMemory = systemMemory;
+
+    // skip the bios, todo: implement everything in order to load it correctly
+    pc = 0x8000000;
+    setModeArrayIndex(User,'S',0x03007F00);
+    setModeArrayIndex(IRQ,'S',0x03007FA0);
+    setModeArrayIndex(Supervisor,'S',0x3007FE0);
+    setModeArrayIndex(System,14,0x6000001F);
 }
 
 void ARM7TDMI::fillARM() {
@@ -328,6 +335,7 @@ bool ARM7TDMI::checkCond(uint32_t cond) {
 }
 
 void ARM7TDMI::emptyInstruction(uint32_t instruction) {
+    cycleTicks = 4;
     if(!state) {
         pc+=4;
         return;
@@ -336,6 +344,7 @@ void ARM7TDMI::emptyInstruction(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMbranch(uint32_t instruction) {
+    cycleTicks = 3;
     // Implementation dependent sign extend
     int32_t signedOffset = instruction & 0xFFFFFF;
     signedOffset <<= 8;
@@ -345,6 +354,7 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     pc += 8 + signedOffset;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
+    cycleTicks = 3;
     uint32_t rn = instruction & 0xF;
     rn = getModeArrayIndex(mode,rn);
     if(rn & 1) {
@@ -354,6 +364,7 @@ void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     pc = rn;
 }
 void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
+    cycleTicks = 3;
     handleException(SoftwareInterrupt,4,Supervisor);
 }
 
@@ -364,6 +375,10 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint32_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
+
+    cycleTicks = 1;
+    if(rd == 15)
+        cycleTicks += 2;
 
     // shifting
     switch(I) {
@@ -409,6 +424,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                 }
 
                 default: // register operand w/ register shift
+                    cycleTicks++;
                     uint8_t Rs = (instruction & 0xF00) >> 8;
                     if((rn == 15) || (rm == 15))
                         pc+=12;

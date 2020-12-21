@@ -37,8 +37,6 @@ GBAMemory::GBAMemory() {
     oam = new uint8_t[0x400];
     gamePak = new uint8_t[0x3000000];
     gPakSram = new uint8_t[0x10000];
-
-
 }
 
 void GBAMemory::setMappedIO(uint16_t addr, uint8_t num) {
