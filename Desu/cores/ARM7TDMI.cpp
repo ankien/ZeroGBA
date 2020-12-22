@@ -335,7 +335,8 @@ bool ARM7TDMI::checkCond(uint32_t cond) {
 }
 
 void ARM7TDMI::emptyInstruction(uint32_t instruction) {
-    cycleTicks = 4;
+    setSNCycles(32);
+    cycleTicks = (2*s) + 1 + n;
     if(!state) {
         pc+=4;
         return;
@@ -344,7 +345,8 @@ void ARM7TDMI::emptyInstruction(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMbranch(uint32_t instruction) {
-    cycleTicks = 3;
+    setSNCycles(32);
+    cycleTicks = (2*s) + n;
     // Implementation dependent sign extend
     int32_t signedOffset = instruction & 0xFFFFFF;
     signedOffset <<= 8;
@@ -354,7 +356,8 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     pc += 8 + signedOffset;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
-    cycleTicks = 3;
+    setSNCycles(32);
+    cycleTicks = (2*s) + n;
     uint32_t rn = instruction & 0xF;
     rn = getModeArrayIndex(mode,rn);
     if(rn & 1) {
@@ -364,7 +367,8 @@ void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     pc = rn;
 }
 void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
-    cycleTicks = 3;
+    setSNCycles(32);
+    cycleTicks = (2*s) + n;
     handleException(SoftwareInterrupt,4,Supervisor);
 }
 
@@ -376,9 +380,11 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
 
-    cycleTicks = 1;
+    setSNCycles(32);
     if(rd == 15)
-        cycleTicks += 2;
+        cycleTicks = (2*s) + n;
+    else
+        cycleTicks = 0;
 
     // shifting
     switch(I) {
@@ -542,6 +548,8 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
+    setSNCycles(32);
+    cycleTicks = s;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
     bool s = instruction & 0x100000;
     uint64_t rd = (instruction & 0xF0000) >> 16;
@@ -553,32 +561,49 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     rn = getModeArrayIndex(mode,rn); // lo
     rs = getModeArrayIndex(mode,rs);
     rm = getModeArrayIndex(mode,rm);
+
+    uint8_t m;
+    if(((rs >> 8) == 0xFFFFFF) || ((rs >> 8) == 0))
+        m = 1;
+    else if(((rs >> 16) == 0xFFFF) || ((rs >> 16) == 0))
+        m = 2;
+    else if(((rs >> 24) == 0xFF) || ((rs >> 24) == 0))
+        m = 3;
+    else
+        m = 4;
+
     uint64_t result;
     switch(opcode) {
         case 0b0000: // MUL
+            cycleTicks += m;
             result = rm * rs;
             setModeArrayIndex(mode,rd,result);
             break;
         case 0b0001: // MLA
+            cycleTicks += m + 1;
             result = (rm * rs) + rn;
             setModeArrayIndex(mode,rd,result);
             break;
         case 0b0100: // UMULL
+            cycleTicks += m + 1;
             result = rm * rs;
             setModeArrayIndex(mode,rd,result >> 32);
             setModeArrayIndex(mode,rn,result);
             break;
         case 0b0101: // UMLAL
+            cycleTicks += m + 2;
             result = (rm * rs) + ((rd << 32) | rn);
             setModeArrayIndex(mode,rd,result >> 32);
             setModeArrayIndex(mode,rn,result);
             break;
         case 0b0110: // SMULL
+            cycleTicks += m + 1;
             result = rm * rs;
             setModeArrayIndex(mode,rd,result >> 32);
             setModeArrayIndex(mode,rn,result);
             break;
         case 0b0111: // SMLAL
+            cycleTicks += m + 2;
             int64_t hiLo = ((rd << 32) | rn);
             result = (rm * rs) + hiLo;
             setModeArrayIndex(mode,rd,result >> 32);
@@ -593,6 +618,8 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
+    setSNCycles(32);
+    cycleTicks = s;
     bool psr = instruction & 0x400000;
 
     switch(instruction & 0x200000) {
@@ -647,7 +674,9 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
 
     pc+=4;
 }
+
 void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
+    setSNCycles(32);
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -683,6 +712,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
 
     switch(instruction & 0x100000) {
         case 0: // STR
+            cycleTicks = 2*n;
             switch(b) {
                 case 0:
                     storeValue(getModeArrayIndex(mode,rd),address);
@@ -694,6 +724,10 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                 (*systemMemory).setByte(address, (*systemMemory)[address]+12);
             break;
         default: // LDR
+            if(rd == 15)
+                cycleTicks = 2*(s+n) + 1;
+            else
+                cycleTicks = s + n + 1;
             switch(b) {
                 case 0:
                     setModeArrayIndex(mode, rd, readWordRotate(address));
@@ -719,6 +753,8 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
+    setSNCycles(32);
+    cycleTicks = 2*n;
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -767,13 +803,19 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
 
     pc+=4;
 }
-void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
+void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) { 
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
+    
+    setSNCycles(32);
+    if(rd == 15)
+        cycleTicks = 2*(s+n) + 1;
+    else
+        cycleTicks = s + n + 1;
 
     if(rn == 15)
         address += 8;
@@ -821,6 +863,12 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
 
+    setSNCycles(32);
+    if(rd == 15)
+        cycleTicks = 2*(s+n) + 1;
+    else
+        cycleTicks = s + n + 1;
+
     if(rn == 15)
         address += 8;
 
@@ -867,6 +915,12 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getModeArrayIndex(mode,rn);
 
+    setSNCycles(32);
+    if(rd == 15)
+        cycleTicks = 2*(s+n) + 1;
+    else
+        cycleTicks = s + n + 1;
+
     if(rn == 15)
         address += 8;
 
@@ -906,6 +960,7 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
+    setSNCycles(32);
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
     bool s = instruction & 0x400000;
@@ -955,6 +1010,11 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
 
     if(l) { // LDM
     
+        if(rn == 15)
+            cycleTicks = (rListVector.size() + 1) * s + n + 1;
+        else
+            cycleTicks = rListVector.size() * s + n + 1;
+
         for(uint8_t num : rListVector) {
             if(p)
                 address += offset;
@@ -963,6 +1023,8 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
                 address += offset;
         }
     } else { // STM
+
+        cycleTicks = (rListVector.size() - 1) * s + 2 * n;
         
         for(uint8_t num : rListVector) {
             
@@ -996,6 +1058,8 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMswap(uint32_t instruction) {
+    setSNCycles(32);
+    cycleTicks = s + 2*n + 1;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint8_t rm = instruction & 0xF;

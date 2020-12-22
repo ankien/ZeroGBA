@@ -19,6 +19,11 @@ uint8_t& GBAMemory::operator[](uint32_t i) {
         case 0x07:
             return oam[i-0x7000000];
         case 0x08:
+        case 0x09:
+        case 0x0A:
+        case 0x0B:
+        case 0x0C:
+        case 0x0D:
             return gamePak[i-0x8000000];
         case 0x0E:
             return gPakSram[i-0xE000000];

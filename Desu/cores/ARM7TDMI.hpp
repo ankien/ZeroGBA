@@ -8,8 +8,10 @@
 #include "../hardware/GBA/GBAMemory.hpp"
 
 struct ARM7TDMI {
-    // cycles per second
+    // cycles per instruction
     int32_t cycleTicks;
+    uint8_t s;
+    uint8_t n;
 
     // lookup tables, array size is the different number of instructions
     void (ARM7TDMI::*armTable[4096])(uint32_t);
@@ -57,12 +59,17 @@ struct ARM7TDMI {
     void fillTHUMB();
     uint16_t fetchARMIndex(uint32_t);
     uint8_t fetchTHUMBIndex(uint16_t);
+
+    // memory helper functions
+    void setSNCycles(uint8_t); // todo: implement waitstate cycles, currently using default listings on GBAtek
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
     uint16_t readHalfWord(uint32_t);
     uint16_t readHalfWordRotate(uint32_t);
     uint32_t readWord(uint32_t);
     uint32_t readWordRotate(uint32_t);
+
+    // more helpers
     uint32_t getModeArrayIndex(uint8_t, uint8_t);
     void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
     uint32_t getCPSR();
@@ -84,6 +91,7 @@ struct ARM7TDMI {
     void ARMmultiplyAndMultiplyAccumulate(uint32_t);
 
     void ARMpsrTransfer(uint32_t);
+
     void ARMsingleDataTransfer(uint32_t);
     void ARMhdsDataSTRH(uint32_t);
     void ARMhdsDataLDRH(uint32_t);
@@ -105,6 +113,32 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
+inline void ARM7TDMI::setSNCycles(uint8_t accessWidth) {
+    switch(pc >> 24) {
+        case 0x02:
+            if(accessWidth == 32)
+                s = 6, n = 6;
+            else
+                s = 3, n = 3;
+            break;
+        case 0x08:
+        case 0x09:
+        case 0x0A:
+        case 0x0B:
+        case 0x0C:
+        case 0x0D:
+            if(accessWidth == 32)
+                s = 8, n = 8;
+            else
+                s = 5, n = 5;
+            break;
+        case 0x0E:
+            s = 5, n = 5;
+            break;
+        default:
+            s = 1, n = 1;
+    }
+}
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
     (*systemMemory).setByte(address,value);
     (*systemMemory).setByte(address + 1, (value & 0xFF00) >> 8);

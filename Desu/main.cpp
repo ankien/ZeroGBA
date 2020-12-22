@@ -57,7 +57,7 @@ void runProgram(char* fileName) {
                 // update framebuffer here? or parts of it in doProcesses?
                 gba.lcd->draw();
 
-                SDL_Delay((1000 / 6) - (SDL_GetTicks() / 1000 - gba.lcd->secondsElapsed)); // roughly 1s / 60fps - delay since start of last frame draw
+                SDL_Delay(16 - (SDL_GetTicks() / 1000 - gba.lcd->secondsElapsed)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }
         }
 
