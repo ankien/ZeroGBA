@@ -47,6 +47,12 @@ void runProgram(char* fileName) {
                         gba.interpretTHUMB();
                     else
                         gba.interpretARM();
+
+                    if((gba.cyclesSinceHBlank >= 960) && (gba.cyclesPassed <= 197120)) { // scan and draw line from framebuffer
+                        gba.lcd->fetchScanline();
+                        gba.lcd->draw();
+                        gba.cyclesSinceHBlank -= 1232;
+                    }
                 }
 
                 if(gba.cyclesPassed > 280896)
@@ -54,8 +60,7 @@ void runProgram(char* fileName) {
                 else
                     gba.cyclesPassed = 0;
 
-                // update framebuffer here? or parts of it in doProcesses?
-                gba.lcd->draw();
+                gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system
 
                 SDL_Delay(16 - (SDL_GetTicks() / 1000 - gba.lcd->secondsElapsed)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }

@@ -25,14 +25,18 @@ LCD::LCD(GBAMemory* systemMemory) {
     SDL_GL_CreateContext(window);
     glewInit();
 
-    // initialize framebuffer?
-    // keywords: fifo, scheduler, tick, frame, cycles
-
+    // initialize framebuffer
+    frameBuffer = new uint32_t[38400];
+    memset(frameBuffer,0,38400);
 
     compileShaders();
 }
 
-
+void LCD::fetchScanline() {
+    if((*systemMemory).vcount < 160) {
+        
+    }
+}
 
 void LCD::draw() {
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5,WIDTH,HEIGHT,0,GL_RGBA,GL_UNSIGNED_SHORT_1_5_5_5_REV,frameBuffer);

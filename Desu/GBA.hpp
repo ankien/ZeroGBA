@@ -7,7 +7,11 @@
 #include "hardware/GBA/GBAMemory.hpp"
 
 struct GBA {
+    /// Cycle scheduler variables ///
     uint32_t cyclesPassed = 0;
+    int16_t cyclesSinceHBlank = 0;
+
+    /// Hardware ///
     GBAMemory* memory;
     ARM7TDMI* arm7tdmi;
     LCD* lcd;
@@ -16,12 +20,4 @@ struct GBA {
 
     void interpretARM();
     void interpretTHUMB();
-    // do cyclic tasks for both ARM and THUMB CPU ticks that aren't refreshing the display
-    // basically every other task not performed every intruction cycle
-    // todo: make an event scheduler?
-    void doProcesses();
 };
-
-inline void GBA::doProcesses() {
-    //if((cycles % something)== 0)
-}

@@ -20,14 +20,15 @@ struct LCD {
     /// SDL + OpenGL variables ///
     SDL_Window* window;
     uint32_t program;
-    uint32_t* frameBuffer;
+    uint32_t* frameBuffer; // 32-bit cuz glew is strict...
     uint32_t* vertexArrayObject;
     
     LCD(GBAMemory*);
 
-    
-    
-    // draw a frame
+    // not really a "fetch/getter", loads shit like BGs and OBJs
+    // into a single line of the framebuffer
+    void fetchScanline();
+
     void draw();
 
     std::string loadShader(const char*);

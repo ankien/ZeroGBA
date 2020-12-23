@@ -273,61 +273,33 @@ void ARM7TDMI::setModeArrayIndex(uint8_t mode, uint8_t reg, uint32_t arg) {
 bool ARM7TDMI::checkCond(uint32_t cond) {
     switch(cond) {
         case 0x00000000:
-            if(zeroFlag)
-                return 1;
-            break;
+            return zeroFlag;
         case 0x10000000:
-            if(!zeroFlag)
-                return 1;
-            break;
+            return !zeroFlag;
         case 0x20000000:
-            if(carryFlag)
-                return 1;
-            break;
+            return carryFlag;
         case 0x30000000:
-            if(!carryFlag)
-                return 1;
-            break;
+            return !carryFlag;
         case 0x40000000:
-            if(signFlag)
-                return 1;
-            break;
+            return signFlag;
         case 0x50000000:
-            if(!signFlag)
-                return 1;
-            break;
+            return !signFlag;
         case 0x60000000:
-            if(overflowFlag)
-                return 1;
-            break;
+            return overflowFlag;
         case 0x70000000:
-            if(!overflowFlag)
-                return 1;
-            break;
+            return !overflowFlag;
         case 0x80000000:
-            if(carryFlag && (!zeroFlag))
-                return 1;
-            break;
+            return carryFlag && (!zeroFlag);
         case 0x90000000:
-            if((!carryFlag) && zeroFlag)
-                return 1;
-            break;
+            return(!carryFlag) && zeroFlag;
         case 0xA0000000:
-            if(signFlag == overflowFlag)
-                return 1;
-            break;
+            return signFlag == overflowFlag;
         case 0xB0000000:
-            if(signFlag != overflowFlag)
-                return 1;
-            break;
+            return signFlag != overflowFlag;
         case 0xC0000000:
-            if((!zeroFlag) && (signFlag == overflowFlag))
-                return 1;
-            break;
+            return (!zeroFlag) && (signFlag == overflowFlag);
         case 0xD0000000:
-            if(zeroFlag || (signFlag != overflowFlag))
-                return 1;
-            break;
+            return zeroFlag || (signFlag != overflowFlag);
         case 0xE0000000:
             return 1;
     }

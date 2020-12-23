@@ -20,9 +20,8 @@ void GBA::interpretARM() {
         uint16_t armIndex = arm7tdmi->fetchARMIndex(instruction);
         (arm7tdmi->*(arm7tdmi->armTable[armIndex]))(instruction);
         cyclesPassed += arm7tdmi->cycleTicks;
+        cyclesSinceHBlank += arm7tdmi->cycleTicks;
     }
-
-    doProcesses();
 }
 
 void GBA::interpretTHUMB() {
@@ -30,6 +29,4 @@ void GBA::interpretTHUMB() {
                             (*memory)[arm7tdmi->pc];
     uint8_t thumbIndex = arm7tdmi->fetchTHUMBIndex(instruction);
     (arm7tdmi->*(arm7tdmi->thumbTable[thumbIndex]))(instruction);
-
-    doProcesses();
 }
