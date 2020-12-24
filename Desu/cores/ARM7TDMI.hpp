@@ -1,11 +1,13 @@
 #pragma once
 #include <string.h>
 #include <stdint.h>
-#include <bit>
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include "../hardware/GBA/GBAMemory.hpp"
+
+// debug
+#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -50,8 +52,6 @@ struct ARM7TDMI {
             signFlag; // N, 1 : 0 = not signed, 1 = signed
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
-    ARM7TDMI(GBAMemory*);
-
     /// Helper functions ///
     // todo: implement exception stuff at 0x3007F00
     void handleException(uint8_t, uint32_t, uint8_t);
@@ -75,8 +75,7 @@ struct ARM7TDMI {
     uint32_t getCPSR();
     void setCPSR(uint32_t);
     bool checkCond(uint32_t);
-    template<typename INT>
-    INT shift(INT, uint8_t, uint8_t);
+    uint32_t shift(uint32_t, uint8_t, uint8_t);
     void setZeroAndSign(uint32_t);
 
     // For unimplemented/undefined instructions
@@ -196,8 +195,7 @@ inline void ARM7TDMI::setCPSR(uint32_t num) {
     signFlag = (num & 0x80000000) >> 31;
 }
 
-template<typename INT>
-INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
+inline uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType) {
     switch(shiftType) {
         case 0b00: // lsl
             return value << shiftAmount; 
@@ -211,7 +209,8 @@ INT ARM7TDMI::shift(INT value, uint8_t shiftAmount, uint8_t shiftType) {
             return value >> shiftAmount;
         }
         case 0b11: // ror
-            return std::rotr(value,shiftAmount);
+            uint32_t dupeVal = value >> (shiftAmount % 32);
+            return dupeVal | (value << ((32 - shiftAmount) % 32));
     }
 }
 inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {

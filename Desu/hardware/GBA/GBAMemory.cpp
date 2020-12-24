@@ -32,18 +32,6 @@ uint8_t& GBAMemory::operator[](uint32_t i) {
     }
 }
 
-GBAMemory::GBAMemory() {
-    bios = new uint8_t[0x4000];
-    wramOnBoard = new uint8_t[0x40000];
-    wramOnChip = new uint8_t[0x8000];
-    IORegisters = new uint8_t[0x3FF];
-    pram = new uint8_t[0x400];
-    vram = new uint8_t[0x18000];
-    oam = new uint8_t[0x400];
-    gamePak = new uint8_t[0x3000000];
-    gPakSram = new uint8_t[0x10000];
-}
-
 void GBAMemory::setMappedIO(uint16_t addr, uint8_t num) {
     switch(addr) {
         case 0x000: dispcnt &= 0xFF00 | num; break;

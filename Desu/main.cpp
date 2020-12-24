@@ -7,7 +7,7 @@
 
 struct {
     uint8_t jit : 1; // not implemented
-} options;
+} runtimeOptions;
 
 bool parseArguments(uint64_t argc, char* argv[]) {
     if(argc < 2)
@@ -16,7 +16,7 @@ bool parseArguments(uint64_t argc, char* argv[]) {
     if(argc > 2)
         for(uint64_t i = 1; i < (argc - 1); i++) {
             if(strcmp(argv[i], "-j") == 0)
-                options.jit = 1;
+                runtimeOptions.jit = 1;
             else
                 return 0;
         }
@@ -34,7 +34,7 @@ void runProgram(char* fileName) {
         if(!gba.memory->loadRom(fileName))
             return;
 
-        if(options.jit) { // GBA JIT
+        if(runtimeOptions.jit) { // GBA JIT
             // no implementation yet
             return;
         } else { // GBA interpreter

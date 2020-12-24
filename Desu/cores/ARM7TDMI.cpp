@@ -1,16 +1,5 @@
 #include "ARM7TDMI.hpp"
 
-ARM7TDMI::ARM7TDMI(GBAMemory* systemMemory) {
-    this->systemMemory = systemMemory;
-
-    // skip the bios, todo: implement everything in order to load it correctly
-    pc = 0x8000000;
-    setModeArrayIndex(User,'S',0x03007F00);
-    setModeArrayIndex(IRQ,'S',0x03007FA0);
-    setModeArrayIndex(Supervisor,'S',0x3007FE0);
-    setModeArrayIndex(System,14,0x6000001F);
-}
-
 void ARM7TDMI::fillARM() {
 
     for(uint16_t i = 0; i < 4096; i++) {
@@ -37,9 +26,9 @@ void ARM7TDMI::fillARM() {
             armTable[i] = &ARM7TDMI::ARMswap;
         else if((i & 0b111000011111) == 0b000000001011)
             armTable[i] = &ARM7TDMI::ARMhdsDataSTRH;
-        else if((i & 0b111000011111) == 0b000000001101)
-            armTable[i] = &ARM7TDMI::ARMhdsDataLDRH;
         else if((i & 0b111000011111) == 0b000000011011)
+            armTable[i] = &ARM7TDMI::ARMhdsDataLDRH;
+        else if((i & 0b111000011111) == 0b000000011101)
             armTable[i] = &ARM7TDMI::ARMhdsDataLDRSB;
         else if((i & 0b111000011111) == 0b000000011111)
             armTable[i] = &ARM7TDMI::ARMhdsDataLDRSH;
@@ -307,6 +296,9 @@ bool ARM7TDMI::checkCond(uint32_t cond) {
 }
 
 void ARM7TDMI::emptyInstruction(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Empty Instruction=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = (2*s) + 1 + n;
     if(!state) {
@@ -317,6 +309,9 @@ void ARM7TDMI::emptyInstruction(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMbranch(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Branch=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = (2*s) + n;
     // Implementation dependent sign extend
@@ -328,6 +323,9 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     pc += 8 + signedOffset;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Branch Exchange=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = (2*s) + n;
     uint32_t rn = instruction & 0xF;
@@ -339,12 +337,18 @@ void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     pc = rn;
 }
 void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X SWI=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = (2*s) + n;
     handleException(SoftwareInterrupt,4,Supervisor);
 }
 
 void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Data Proc=",pc);
+    #endif
     bool I = instruction & 0x2000000;
     bool s = instruction & 0x100000;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
@@ -353,10 +357,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint32_t op2;
 
     setSNCycles(32);
-    if(rd == 15)
-        cycleTicks = (2*s) + n;
-    else
-        cycleTicks = 0;
 
     // shifting
     switch(I) {
@@ -402,7 +402,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                 }
 
                 default: // register operand w/ register shift
-                    cycleTicks++;
+                    cycleTicks = 1;
                     uint8_t Rs = (instruction & 0xF00) >> 8;
                     if((rn == 15) || (rm == 15))
                         pc+=12;
@@ -416,12 +416,16 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         }
 
         default: // immediate is second operand
-            uint8_t Imm = instruction & 0xF;
+            uint32_t Imm = instruction & 0xF;
             uint8_t rotate = (instruction & 0xF00) >> 8;
             op2 = shift(Imm,rotate*2,0b11);
-            pc+=8;
             break;
     }
+
+    if(rd == 15)
+        cycleTicks += (2*s) + n;
+    else
+        cycleTicks += s;
 
     // when writing to R15
     if((s) && (rd == 15)) {
@@ -443,62 +447,70 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         case 0x2: // SUB
             result = rn - op2;
             setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = op2 > rn;
+            }
             break;
         case 0x3: // RSB
             result = op2 - rn;
             setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = rn > op2;
+            }
             break;
         case 0x4: // ADD
             result = rn + op2;
             setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+            }
             break;
         case 0x5: // ADC
             result = rn + op2 + (carryFlag << 31);
             setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+            }
             break;
         case 0x6: // SBC
             result = rn - op2 + (carryFlag << 31) - 1;
             setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = op2 > rn;
+            }
             break;
         case 0x7: // RSC
             result = rn + op2 + (carryFlag << 31);
             setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+            }
             break;
         case 0x8: // TST
             result = rn & op2;
-            if(rd != 15)
-                setModeArrayIndex(mode,rd,result);
             break;
         case 0x9: // TEQ
             result = rn ^ op2;
-            if(rd != 15)
-                setModeArrayIndex(mode,rd,result);
             break;
         case 0xA: // CMP
             result = rn - op2;
-            if(rd != 15)
-                setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = op2 > rn;
+            }
             break;
         case 0xB: // CMN
             result = rn + op2;
-            if(rd != 15)
-                setModeArrayIndex(mode,rd,result);
-            if(s)
+            if(s) {
                 carryFlag = (result & 0x80000000) >> 31;
+                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+            }
             break;
         case 0xC: // ORR
             result = rn | op2;
@@ -520,6 +532,9 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Multiply and MulAcc=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = s;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
@@ -590,6 +605,9 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X PSR Transfer=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = s;
     bool psr = instruction & 0x400000;
@@ -621,7 +639,7 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
                     op = getModeArrayIndex(mode,instruction & 0xF);
                     break;
                 default: // Imm
-                    uint8_t Imm = instruction & 0xF;
+                    uint32_t Imm = instruction & 0xF;
                     uint8_t rotate = (instruction & 0xF00) >> 8;
                     op = shift(Imm,rotate*2,0b11);
             }
@@ -648,6 +666,9 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
 }
 
 void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Single Data Transfer=",pc);
+    #endif
     setSNCycles(32);
     uint32_t offset;
     bool p = instruction & 0x1000000;
@@ -725,6 +746,9 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X STRH=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = 2*n;
     uint32_t offset;
@@ -776,6 +800,9 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) { 
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X LDRH=",pc);
+    #endif
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -828,6 +855,9 @@ void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X LDRSB=",pc);
+    #endif
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -880,6 +910,9 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X LDRSH=",pc);
+    #endif
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -932,6 +965,9 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Block Data Transfer=",pc);
+    #endif
     setSNCycles(32);
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -1030,6 +1066,9 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     pc+=4;
 }
 void ARM7TDMI::ARMswap(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Swap=",pc);
+    #endif
     setSNCycles(32);
     cycleTicks = s + 2*n + 1;
     uint8_t rn = (instruction & 0xF0000) >> 16;

@@ -29,12 +29,27 @@ LCD::LCD(GBAMemory* systemMemory) {
     frameBuffer = new uint32_t[38400];
     memset(frameBuffer,0,38400);
 
+    vertexArrayObject = new uint32_t[1];
+    vertexArrayObject[0] = 0;
     compileShaders();
 }
 
 void LCD::fetchScanline() {
     if((*systemMemory).vcount < 160) {
-        
+        switch((*systemMemory).getBits((*systemMemory).dispcnt,0,2)) {
+            case 0:
+                break;
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                break;
+            case 5:
+                break;
+        }
     }
 }
 
@@ -80,8 +95,8 @@ uint32_t LCD::createShader(std::string source, uint32_t shaderType) {
 void LCD::compileShaders() {
     program = glCreateProgram();
 
-    uint32_t vertexShader = createShader(loadShader("../../shaders/GBA.vert"),GL_VERTEX_SHADER);
-    uint32_t fragmentShader = createShader(loadShader("../../shaders/GBA.frag"),GL_FRAGMENT_SHADER);
+    uint32_t vertexShader = createShader(loadShader("./shaders/GBA.vert"),GL_VERTEX_SHADER);
+    uint32_t fragmentShader = createShader(loadShader("./shaders/GBA.frag"),GL_FRAGMENT_SHADER);
 
     glGenTextures(1,frameBuffer);
 

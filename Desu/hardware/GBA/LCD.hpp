@@ -12,7 +12,7 @@ struct LCD {
         WIDTH = 240,
         HEIGHT = 160;
 
-    uint8_t fps;
+    uint8_t fps = 0;
     // seconds elapsed for last frame drawn
     uint8_t secondsElapsed = SDL_GetTicks() / 1000;
     GBAMemory* systemMemory;

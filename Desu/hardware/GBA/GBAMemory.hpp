@@ -3,6 +3,7 @@
 #include <fstream>
 #include <filesystem>
 
+// todo: turn it into a general memory class for more than one system
 struct GBAMemory {
     uint8_t* bios;
     uint8_t* wramOnBoard;
@@ -47,6 +48,7 @@ struct GBAMemory {
 
     // MMIO field helpers
     uint32_t getBits(uint32_t,uint8_t,uint8_t);
+    uint16_t getBits(uint16_t,uint8_t,uint8_t);
 
     // for getting memory (can be used for setting but don't pls)
     uint8_t& operator[](uint32_t);
@@ -54,19 +56,19 @@ struct GBAMemory {
     // for setting memory, only bytes can be set
     void setByte(uint32_t,uint8_t);
 
-    // todo: make this constructor accept args to
-    // turn it into a general memory class for more than one system
-    GBAMemory();
-
     void setMappedIO(uint16_t,uint8_t);
 
     // todo: create a saveRom function for different storage types (None, EEPROM-512/8, SRAM-32, Flash-64/128)
     bool loadRom(std::string);
 };
 
-inline uint32_t GBAMemory::getBits(uint32_t reg, uint8_t startBit, uint8_t endBit) {
-    uint8_t lshiftAmount = 31-startBit;
-    return (0xFFFFFFFF << lshiftAmount) >> (lshiftAmount+startBit);
+inline uint32_t GBAMemory::getBits(uint32_t val, uint8_t startBit, uint8_t endBit) {
+    uint8_t lshiftAmount = 31-endBit;
+    return (val << lshiftAmount) >> (lshiftAmount+startBit);
+}
+inline uint16_t GBAMemory::getBits(uint16_t val, uint8_t startBit, uint8_t endBit) {
+    uint8_t lshiftAmount = 16-endBit;
+    return (val << lshiftAmount) >> (lshiftAmount+startBit);
 }
 
 inline void GBAMemory::setByte(uint32_t i, uint8_t num) {
