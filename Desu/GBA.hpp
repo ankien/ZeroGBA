@@ -2,9 +2,9 @@
 #include <stdint.h>
 #include <SDL.h>
 #include <glew.h>
-#include "hardware/GBA/LCD.hpp"
+#include "hardware/LCD.hpp"
 #include "cores/ARM7TDMI.hpp"
-#include "hardware/GBA/GBAMemory.hpp"
+#include "hardware/GBAMemory.hpp"
 
 struct GBA {
     /// Cycle scheduler variables ///

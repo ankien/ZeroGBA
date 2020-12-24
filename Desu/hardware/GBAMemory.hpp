@@ -3,7 +3,6 @@
 #include <fstream>
 #include <filesystem>
 
-// todo: turn it into a general memory class for more than one system
 struct GBAMemory {
     uint8_t* bios;
     uint8_t* wramOnBoard;

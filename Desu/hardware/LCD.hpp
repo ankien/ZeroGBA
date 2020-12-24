@@ -8,7 +8,7 @@
 struct LCD {
     /// GBA variables ///
     static const uint16_t 
-        SCALE = 6,
+        SCALE = 3,
         WIDTH = 240,
         HEIGHT = 160;
 
@@ -29,6 +29,7 @@ struct LCD {
     // into a single line of the framebuffer
     void fetchScanline();
 
+    // todo: figure out why the fuck my fps is so high
     void draw();
 
     std::string loadShader(const char*);

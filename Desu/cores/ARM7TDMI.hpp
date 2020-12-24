@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include "../hardware/GBA/GBAMemory.hpp"
+#include "../hardware/GBAMemory.hpp"
 
 // debug
 #define PRINT_INSTR

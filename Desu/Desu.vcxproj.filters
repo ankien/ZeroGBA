@@ -5,12 +5,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Hardware">
-      <UniqueIdentifier>{cd56e99c-2070-464a-97a7-2650e70b0547}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Hardware\GBA">
-      <UniqueIdentifier>{2e1f9618-4e91-4e24-9446-6d6de102fdec}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Cores">
       <UniqueIdentifier>{30be8d09-6832-4b80-949f-fa2ce1a2aea4}</UniqueIdentifier>
     </Filter>
@@ -24,6 +18,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="Hardware">
+      <UniqueIdentifier>{cd56e99c-2070-464a-97a7-2650e70b0547}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -32,43 +29,40 @@
     <ClCompile Include="cores\ARM7TDMI.cpp">
       <Filter>Cores</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\GBA\LCD.cpp">
-      <Filter>Hardware\GBA</Filter>
-    </ClCompile>
-    <ClCompile Include="hardware\GBA\Keypad.cpp">
-      <Filter>Hardware\GBA</Filter>
-    </ClCompile>
     <ClCompile Include="GBA.cpp">
       <Filter>Systems</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\GBA\Timer.cpp">
-      <Filter>Hardware\GBA</Filter>
+    <ClCompile Include="hardware\GBAMemory.cpp">
+      <Filter>Hardware</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\GBA\GBAMemory.cpp">
-      <Filter>Hardware\GBA</Filter>
+    <ClCompile Include="hardware\Timer.cpp">
+      <Filter>Hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\Keypad.cpp">
+      <Filter>Hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\LCD.cpp">
+      <Filter>Hardware</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GBA.hpp">
       <Filter>Systems</Filter>
     </ClInclude>
-    <ClInclude Include="DS.hpp">
-      <Filter>Systems</Filter>
-    </ClInclude>
     <ClInclude Include="cores\ARM7TDMI.hpp">
       <Filter>Cores</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\GBA\LCD.hpp">
-      <Filter>Hardware\GBA</Filter>
+    <ClInclude Include="hardware\GBAMemory.hpp">
+      <Filter>Hardware</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\GBA\Keypad.hpp">
-      <Filter>Hardware\GBA</Filter>
+    <ClInclude Include="hardware\Timer.hpp">
+      <Filter>Hardware</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\GBA\Timer.hpp">
-      <Filter>Hardware\GBA</Filter>
+    <ClInclude Include="hardware\Keypad.hpp">
+      <Filter>Hardware</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\GBA\GBAMemory.hpp">
-      <Filter>Hardware\GBA</Filter>
+    <ClInclude Include="hardware\LCD.hpp">
+      <Filter>Hardware</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
