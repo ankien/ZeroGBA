@@ -1,9 +1,25 @@
 #include <cctype>
-#include <string.h>
+#include <cstring>
 #include <iostream>
 #include "GBA.hpp"
 
-#undef main // because SDL defines main for some reason
+// because SDL defines main for some reason
+// enable for console subsystem on VS
+#undef main 
+
+/* // Black magic code for windows subsystem compatibility
+#ifdef __GNUC__
+#define _stdcall  __attribute__((stdcall))
+#endif
+int _stdcall
+WinMain (struct HINSTANCE__ *hInstance,
+         struct HINSTANCE__ *hPrevInstance,
+         char               *lpszCmdLine,
+         int                 nCmdShow)
+{
+  return main (__argc, __argv);
+}
+*/
 
 struct {
     uint8_t jit : 1; // not implemented
@@ -66,9 +82,6 @@ void runProgram(char* fileName) {
             }
         }
 
-    } else if(fileExtension == ".nds") {
-        // no implementation yet
-        return;
     } else
         std::cout << "Invalid ROM\n";
 }

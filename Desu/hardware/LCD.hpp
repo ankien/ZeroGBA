@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include <SDL.h>
 #include <glew.h>
 #include <string>
@@ -20,8 +20,8 @@ struct LCD {
     /// SDL + OpenGL variables ///
     SDL_Window* window;
     uint32_t program;
-    uint32_t* frameBuffer; // 32-bit cuz glew is strict...
-    uint32_t* vertexArrayObject;
+    // pixel format: xbbbbbgggggrrrrr, x unused
+    uint16_t* pixelBuffer;
     
     LCD(GBAMemory*);
 

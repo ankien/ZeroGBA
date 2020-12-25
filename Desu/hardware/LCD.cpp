@@ -6,11 +6,6 @@ LCD::LCD(GBAMemory* systemMemory) {
     // SDL + OpenGL setup
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER);
 
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE,5);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,5);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,5);
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL,1);
-
     SDL_Window* window = SDL_CreateWindow(
         "Placeholder Title", 
         SDL_WINDOWPOS_CENTERED, 
@@ -24,13 +19,17 @@ LCD::LCD(GBAMemory* systemMemory) {
 
     SDL_GL_CreateContext(window);
     glewInit();
+    
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE,5);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,5);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,5);
+    SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL,1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    // initialize framebuffer
-    frameBuffer = new uint32_t[38400];
-    memset(frameBuffer,0,38400);
+    // initialize pixel buffer
+    pixelBuffer = new uint16_t[38400];
 
-    vertexArrayObject = new uint32_t[1];
-    vertexArrayObject[0] = 0;
     compileShaders();
 }
 
@@ -54,8 +53,10 @@ void LCD::fetchScanline() {
 }
 
 void LCD::draw() {
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5,WIDTH,HEIGHT,0,GL_RGBA,GL_UNSIGNED_SHORT_1_5_5_5_REV,frameBuffer);
+    // problem code
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5_A1,WIDTH,HEIGHT,0,GL_BGRA,GL_UNSIGNED_SHORT_1_5_5_5_REV,pixelBuffer);
     glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+
     SDL_GL_SwapWindow(window);
 
     fps+=1;
@@ -86,7 +87,6 @@ uint32_t LCD::createShader(std::string source, uint32_t shaderType) {
     uint32_t shader = glCreateShader(shaderType);
 
     const char* shaderSourceStrings[1] = {source.c_str()};
-
     glShaderSource(shader,1,shaderSourceStrings,NULL);
     glCompileShader(shader);
 
@@ -98,11 +98,10 @@ void LCD::compileShaders() {
     uint32_t vertexShader = createShader(loadShader("./shaders/GBA.vert"),GL_VERTEX_SHADER);
     uint32_t fragmentShader = createShader(loadShader("./shaders/GBA.frag"),GL_FRAGMENT_SHADER);
 
-    glGenTextures(1,frameBuffer);
-
+    uint32_t textureName;
     // bind textures
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,*frameBuffer);
+    glGenTextures(1,&textureName);
+    glBindTexture(GL_TEXTURE_2D,textureName);
 
     // attach shaders to program
     glAttachShader(program,vertexShader);
@@ -110,14 +109,16 @@ void LCD::compileShaders() {
     glLinkProgram(program);
 
     // set texture parameters of program
-    const int32_t abgr[4] = {1,GL_BLUE,GL_GREEN,GL_RED};
-    glTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_SWIZZLE_RGBA,abgr);
+    const int32_t bgrx[4] = {GL_BLUE,GL_GREEN,GL_RED,GL_ONE};
+    // r is b when fetched, g is g, b is r, alpha is always on
+    glTexParameteriv(GL_TEXTURE_2D,GL_TEXTURE_SWIZZLE_RGBA,bgrx);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glUseProgram(program);
 
     // generate mesh/vertices
-    glGenVertexArrays(1,vertexArrayObject);
-    glBindVertexArray(*vertexArrayObject);
+    uint32_t vertexArrayObject;
+    glGenVertexArrays(1,&vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
 }

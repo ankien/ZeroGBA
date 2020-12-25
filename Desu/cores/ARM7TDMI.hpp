@@ -1,12 +1,12 @@
 #pragma once
-#include <string.h>
-#include <stdint.h>
+#include <cstring>
+#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include "../hardware/GBAMemory.hpp"
 
-// debug
+// debug console print
 #define PRINT_INSTR
 
 struct ARM7TDMI {

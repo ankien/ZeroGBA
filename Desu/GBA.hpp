@@ -1,5 +1,5 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include <SDL.h>
 #include <glew.h>
 #include "hardware/LCD.hpp"
