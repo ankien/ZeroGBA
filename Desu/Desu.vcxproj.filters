@@ -64,6 +64,9 @@
     <ClInclude Include="hardware\LCD.hpp">
       <Filter>Hardware</Filter>
     </ClInclude>
+    <ClInclude Include="hardware\MMIO.h">
+      <Filter>Hardware</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\GBA.frag">

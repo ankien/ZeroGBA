@@ -24,6 +24,7 @@
     <ClInclude Include="hardware\GBAMemory.hpp" />
     <ClInclude Include="hardware\Keypad.hpp" />
     <ClInclude Include="hardware\LCD.hpp" />
+    <ClInclude Include="hardware\MMIO.h" />
     <ClInclude Include="hardware\Timer.hpp" />
   </ItemGroup>
   <ItemGroup>

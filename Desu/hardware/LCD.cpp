@@ -29,13 +29,14 @@ LCD::LCD(GBAMemory* systemMemory) {
 
     // initialize pixel buffer
     pixelBuffer = new uint16_t[38400];
+    pixelBuffer[0] = 0x8000;
 
     compileShaders();
 }
 
 void LCD::fetchScanline() {
     if((*systemMemory).vcount < 160) {
-        switch((*systemMemory).getBits((*systemMemory).dispcnt,0,2)) {
+        switch(DISPCNT_MODE) {
             case 0:
                 break;
             case 1:

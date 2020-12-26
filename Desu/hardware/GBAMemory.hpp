@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <fstream>
 #include <filesystem>
+#include "MMIO.h" // for getting mmio fields
 
 struct GBAMemory {
     uint8_t* bios;
@@ -45,30 +46,16 @@ struct GBAMemory {
     uint16_t bldalpha;
     uint16_t bldy;
 
-    // MMIO field helpers
-    uint32_t getBits(uint32_t,uint8_t,uint8_t);
-    uint16_t getBits(uint16_t,uint8_t,uint8_t);
-
     // for getting memory (can be used for setting but don't pls)
     uint8_t& operator[](uint32_t);
 
-    // for setting memory, only bytes can be set
+    // for setting memory
     void setByte(uint32_t,uint8_t);
-
     void setMappedIO(uint16_t,uint8_t);
 
     // todo: create a saveRom function for different storage types (None, EEPROM-512/8, SRAM-32, Flash-64/128)
     bool loadRom(std::string);
 };
-
-inline uint32_t GBAMemory::getBits(uint32_t val, uint8_t startBit, uint8_t endBit) {
-    uint8_t lshiftAmount = 31-endBit;
-    return (val << lshiftAmount) >> (lshiftAmount+startBit);
-}
-inline uint16_t GBAMemory::getBits(uint16_t val, uint8_t startBit, uint8_t endBit) {
-    uint8_t lshiftAmount = 16-endBit;
-    return (val << lshiftAmount) >> (lshiftAmount+startBit);
-}
 
 inline void GBAMemory::setByte(uint32_t i, uint8_t num) {
     // every time you set a byte in memory, check to see
