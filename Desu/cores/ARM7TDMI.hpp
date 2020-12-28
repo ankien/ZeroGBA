@@ -6,8 +6,8 @@
 #include <algorithm>
 #include "../hardware/GBAMemory.hpp"
 
-// debug console print
-#define PRINT_INSTR
+// debug console print, reeeally slow, like 1 fps slow
+//#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -17,7 +17,7 @@ struct ARM7TDMI {
 
     // lookup tables, array size is the different number of instructions
     void (ARM7TDMI::*armTable[4096])(uint32_t);
-    void (ARM7TDMI::*thumbTable[256])(uint32_t);
+    void (ARM7TDMI::*thumbTable[256])(uint16_t);
 
     // could make this a generic pointer for code reuse
     GBAMemory* systemMemory;
@@ -40,16 +40,16 @@ struct ARM7TDMI {
     uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und
     uint32_t pc; // R15
     // CPSR bitfield implementation
-    uint8_t mode, // 5 : see enum modes
-            state, // 1 : 0 = ARM, 1 = THUMB
-            fiqDisable, // 1 : 0 = enable, 1 = disable
-            irqDisable; // 1 : 0 = enable, 1 = disable
+    bool mode, // 5 : see enum modes
+         state, // 1 : 0 = ARM, 1 = THUMB
+         fiqDisable, // 1 : 0 = enable, 1 = disable
+         irqDisable; // 1 : 0 = enable, 1 = disable
     uint32_t reserved; // 19 : never used?
-    uint8_t stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
-            overflowFlag, // V, 1 : 0 = no overflow, 1 = overflow 
-            carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow
-            zeroFlag, // Z, 1 : 0 = not zero, 1 = zero
-            signFlag; // N, 1 : 0 = not signed, 1 = signed
+    bool stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
+         overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's compliment, set bit) 
+         carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, (AKA unsigned overflow flag), 1 if overflow in result 32-bit register
+         zeroFlag, // Z, 1 : 0 = not zero, 1 = zero
+         signFlag; // N, 1 : 0 = not signed, 1 = signed (31 bit is filled)
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
 
     /// Helper functions ///
@@ -75,11 +75,14 @@ struct ARM7TDMI {
     uint32_t getCPSR();
     void setCPSR(uint32_t);
     bool checkCond(uint32_t);
+    // shift for registers
     uint32_t shift(uint32_t, uint8_t, uint8_t);
     void setZeroAndSign(uint32_t);
 
     // For unimplemented/undefined instructions
-    void emptyInstruction(uint32_t);
+    void ARMundefinedInstruction(uint32_t);
+    void ARMemptyInstruction(uint32_t);
+    void THUMBemptyInstruction(uint16_t);
 
     /// ARM Instructions ///
     void ARMbranch(uint32_t);
@@ -100,14 +103,15 @@ struct ARM7TDMI {
     void ARMswap(uint32_t);
 
     /// THUMB Instructions ///
-
+    void THUMBmoveShiftedRegister(uint16_t);
+    void THUMBaddSubtract(uint16_t);
 };
 
 // Bits 27-20 + 7-4
 inline uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
     return ((instruction >> 16) & 0xFF0) | ((instruction >> 4) & 0xF);
 }
-// Bits 8-15
+// Bits 15-8
 inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
@@ -202,12 +206,9 @@ inline uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shi
         case 0b01: // lsr
             return value >> shiftAmount;
         case 0b10: // asr
-        {
-            uint8_t dupeBit = (sizeof(value) * 8) - 1;
-            if(value & (1 << dupeBit))
+            if(value & 0x80000000)
                 return (value >> shiftAmount) | (0xFFFFFFFF << shiftAmount);
             return value >> shiftAmount;
-        }
         case 0b11: // ror
             uint32_t dupeVal = value >> (shiftAmount % 32);
             return dupeVal | (value << ((32 - shiftAmount) % 32));
@@ -215,5 +216,5 @@ inline uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shi
 }
 inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
     (arg == 0) ?  zeroFlag = 1 : zeroFlag = 0;
-    (arg | 0x80000000) ? signFlag = 1 : signFlag = 0;
+    (arg & 0x80000000) ? signFlag = 1 : signFlag = 0;
 }

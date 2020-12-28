@@ -1,9 +1,7 @@
 #include "ARM7TDMI.hpp"
 
 void ARM7TDMI::fillARM() {
-
     for(uint16_t i = 0; i < 4096; i++) {
-
         // harder to distinguish opcodes at the bottom
         // no coprocessor instructions on GBA
         if((i & 0b111000000000) == 0b101000000000)
@@ -15,7 +13,7 @@ void ARM7TDMI::fillARM() {
         else if((i & 0b111100000000) == 0b111100000000)
             armTable[i] = &ARM7TDMI::ARMsoftwareInterrupt;
         else if((i & 0b111000000001) == 0b011000000001)
-            armTable[i] = &ARM7TDMI::emptyInstruction; // undefined opcode
+            armTable[i] = &ARM7TDMI::ARMundefinedInstruction; // undefined opcode
         else if((i & 0b110000000000) == 0b010000000000)
             armTable[i] = &ARM7TDMI::ARMsingleDataTransfer;
         else if((i & 0b110110010000) == 0b000100000000) 
@@ -35,19 +33,18 @@ void ARM7TDMI::fillARM() {
         else if((i & 0b110000000000) == 0b000000000000)
             armTable[i] = &ARM7TDMI::ARMdataProcessing;
         else
-            armTable[i] = &ARM7TDMI::emptyInstruction; // undecoded opcode
-
+            armTable[i] = &ARM7TDMI::ARMemptyInstruction; // undecoded opcode
     }
 }
 void ARM7TDMI::fillTHUMB() {
-    
-    /*
-    for(uint8_t i = 0; i < 256; i++) {
-
-        
-
+    for(uint16_t i = 0; i < 256; i++) {
+        if((i & 0b11111000) == 0b00011000)
+            thumbTable[i] = &ARM7TDMI::THUMBaddSubtract;
+        else if((i & 0b11100000) == 0b00000000)
+            thumbTable[i] = &ARM7TDMI::THUMBmoveShiftedRegister;
+        else
+            thumbTable[i] = &ARM7TDMI::THUMBemptyInstruction;
     }
-    */
 }
 
 void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
@@ -295,16 +292,26 @@ bool ARM7TDMI::checkCond(uint32_t cond) {
     return 0;
 }
 
-void ARM7TDMI::emptyInstruction(uint32_t instruction) {
+void ARM7TDMI::ARMundefinedInstruction(uint32_t instruction) {
     #if defined(PRINT_INSTR)
-        printf("at pc=%X Empty Instruction=",pc);
+        printf("at pc=%X Undefined Instruction=",pc);
     #endif
     setSNCycles(32);
     cycleTicks = (2*s) + 1 + n;
-    if(!state) {
-        pc+=4;
-        return;
-    }
+    pc+=4;
+}
+void ARM7TDMI::ARMemptyInstruction(uint32_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Undecoded Instruction=",pc);
+    #endif
+    cycleTicks = 1; // arbitrary cycle increment, this instr isn't supposed to happen
+    pc+=4;
+}
+void ARM7TDMI::THUMBemptyInstruction(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Undecoded Instruction=",pc);
+    #endif
+    cycleTicks = 1; // arbitrary cycle increment, this instr isn't supposed to happen
     pc+=2;
 }
 
@@ -372,9 +379,9 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     uint8_t Is = (instruction & 0xF80) >> 7;
                     if((rn == 15) || (rm == 15))
                         pc+=8;
-                    switch(Is) { // special behavior when shift amount is 0
+                    switch(Is) { 
 
-                        case 0:
+                        case 0: // special behavior when shift amount is 0
                             switch(shiftType) {
                                 case 0b00:
                                     op2 = getModeArrayIndex(mode, rm);
@@ -385,7 +392,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                                     break;
                                 case 0b10:
                                     op2 = shift(getModeArrayIndex(mode, rm), 32, shiftType);
-                                    carryFlag = op2 & 1;
+                                    carryFlag = op2 & 1; // op2 is filled at this point
                                     break;
                                 case 0b11:
                                     op2 = shift(getModeArrayIndex(mode, rm), 1, 0b11);
@@ -393,7 +400,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                             }
                             break;
 
-                        default:
+                        default: // shift reg normally when not 0
                             op2 = shift(getModeArrayIndex(mode,rm),Is,shiftType);
                     }
                     if((rn == 15) || (rm == 15))
@@ -416,7 +423,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         }
 
         default: // immediate is second operand
-            uint32_t Imm = instruction & 0xF;
+            uint32_t Imm = instruction & 0xFF;
             uint8_t rotate = (instruction & 0xF00) >> 8;
             op2 = shift(Imm,rotate*2,0b11);
             break;
@@ -433,6 +440,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         s = 0;
     }    
 
+    // good tip to remember: signed and unsigned integer ops produce the same binary
     rn = getModeArrayIndex(mode,rn);
     uint32_t result;
     switch(opcode) { // could optimize this since we don't need the actual opcode value
@@ -448,48 +456,54 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             result = rn - op2;
             setModeArrayIndex(mode,rd,result);
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = op2 > rn;
+                carryFlag = rn < op2;
+                rn >>= 31; op2 >>= 31;
+                overflowFlag = (rn ^ op2) ? (result >> 31) ^ rn : 0; // if rn and op2 bits 31 are diff, check for overflow
             }
             break;
         case 0x3: // RSB
             result = op2 - rn;
             setModeArrayIndex(mode,rd,result);
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = rn > op2;
+                carryFlag = op2 < rn;
+                rn >>= 31; op2 >>= 31;
+                overflowFlag = (rn ^ op2) ? (result >> 31) ^ op2 : 0;
             }
             break;
         case 0x4: // ADD
             result = rn + op2;
             setModeArrayIndex(mode,rd,result);
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+                carryFlag = (*reinterpret_cast<uint64_t*>(&rn) + op2) > 0xFFFFFFFF;
+                rn >>= 31; op2 >>= 31;
+                overflowFlag = (rn ^ op2) ? 0 : (result >> 31) ^ rn;
             }
             break;
         case 0x5: // ADC
-            result = rn + op2 + (carryFlag << 31);
+            result = rn + op2 + carryFlag;
             setModeArrayIndex(mode,rd,result);
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+                carryFlag = (*reinterpret_cast<uint64_t*>(&rn) + op2 + carryFlag) > 0xFFFFFFFF;
+                rn >>= 31; op2 >>= 31;
+                overflowFlag = (rn ^ op2) ? 0 : (result >> 31) ^ rn; // todo: check if overflow calc for carry opcodes are correct
             }
             break;
         case 0x6: // SBC
-            result = rn - op2 + (carryFlag << 31) - 1;
+            result = rn - op2 + carryFlag - 1;
             setModeArrayIndex(mode,rd,result);
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = op2 > rn;
+                carryFlag = rn < (op2 + carryFlag - 1);
+                rn >>= 31; op2 >>= 31;
+                overflowFlag = (rn ^ op2) ? (result >> 31) ^ rn : 0;
             }
             break;
         case 0x7: // RSC
-            result = rn + op2 + (carryFlag << 31);
+            result = op2 - rn + carryFlag - 1;
             setModeArrayIndex(mode,rd,result);
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+                carryFlag = op2 < (rn + carryFlag - 1);
+                op2 >>= 31; rn >>= 31;
+                overflowFlag = (op2 ^ rn) ? (result >> 31) ^ op2 : 0;
             }
             break;
         case 0x8: // TST
@@ -501,15 +515,17 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         case 0xA: // CMP
             result = rn - op2;
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = op2 > rn;
+                carryFlag = rn < op2;
+                rn >>= 31; op2 >>= 31;
+                overflowFlag = (rn ^ op2) ? (result >> 31) ^ rn : 0; // if rn and op2 bits 31 are diff, check for overflow
             }
             break;
         case 0xB: // CMN
             result = rn + op2;
             if(s) {
-                carryFlag = (result & 0x80000000) >> 31;
-                overflowFlag = static_cast<uint64_t>((rn + op2) > 0xFFFFFFFF);
+                carryFlag = (*reinterpret_cast<uint64_t*>(&rn) + op2) > 0xFFFFFFFF;
+                rn >>= 31; op2 >>= 31;
+                overflowFlag = (rn ^ op2) ? 0 : (result >> 31) ^ rn;
             }
             break;
         case 0xC: // ORR
@@ -726,6 +742,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     setModeArrayIndex(mode, rd, readWordRotate(address));
                     break;
                 default:
+                    int flug = (*systemMemory)[address];
                     setModeArrayIndex(mode, rd, (*systemMemory)[address]);
             }
     }
@@ -838,6 +855,7 @@ void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
     }
 
     setModeArrayIndex(mode,rd,readHalfWordRotate(address));
+    uint16_t fug = readHalfWord(address);
 
     if(!p) {
         switch(u) {
@@ -1087,4 +1105,29 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
     }
 
     pc+=4;
+}
+
+void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Move Shifted Reg=",pc);
+    #endif
+    setSNCycles(16);
+    cycleTicks = s;
+    uint8_t offset = (instruction & 0x7C0) >> 6;
+    uint8_t rs = (instruction & 0x38) >> 3;
+    uint8_t rd = instruction & 0x7;
+
+    switch(instruction & 0x1800) {
+        case 0x0000:
+            
+            break;
+        case 0x0100:
+            break;
+        case 0x1000:
+            break;
+    }
+
+    pc+=2;
+}
+void ARM7TDMI::THUMBaddSubtract(uint16_t) {
 }

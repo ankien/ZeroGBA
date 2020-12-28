@@ -24,9 +24,7 @@ GBA::GBA() {
     lcd = new LCD(memory);
 }
 
-// todo: locate all sources of cycle incrementing and implement them, look at mgba logs
-
-// each instruction has multiple cycles, there's a pipeline, DMA channels, audio channels, PPU, and timers too?
+// there's a pipeline, DMA channels, audio channels, PPU, and timers too?
 // i think i can fake the pipeline
 void GBA::interpretARM() {
     uint32_t instruction = ((*memory)[arm7tdmi->pc + 3] << 24) |
@@ -46,11 +44,16 @@ void GBA::interpretARM() {
         arm7tdmi->pc+=4;
 }
 
+// how do we get to ARM from THUMB?
 void GBA::interpretTHUMB() {
-    /*
     uint16_t instruction = ((*memory)[arm7tdmi->pc+1] << 8) |
                             (*memory)[arm7tdmi->pc];
+
     uint8_t thumbIndex = arm7tdmi->fetchTHUMBIndex(instruction);
     (arm7tdmi->*(arm7tdmi->thumbTable[thumbIndex]))(instruction);
-    */
+    #if defined(PRINT_INSTR)
+        printf(" %X\n",instruction); // debug
+    #endif
+    cyclesPassed += arm7tdmi->cycleTicks;
+    cyclesSinceHBlank += arm7tdmi->cycleTicks;
 }

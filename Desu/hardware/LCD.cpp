@@ -29,46 +29,59 @@ LCD::LCD(GBAMemory* systemMemory) {
 
     // initialize pixel buffer
     pixelBuffer = new uint16_t[38400];
-    pixelBuffer[0] = 0x8000;
 
     compileShaders();
 }
 
 void LCD::fetchScanline() {
-    if((*systemMemory).vcount < 160) {
+    
+    systemMemory->setByte(0x4000004,systemMemory->IORegisters[0x4000004] | 0x2); // set hblank flag
+
+    if(VCOUNT < 160) { // if VCOUNT < 160, load update a single scanline
         switch(DISPCNT_MODE) {
-            case 0:
+            case 0: // tile/map + text mode
+                
                 break;
-            case 1:
+            case 1: // mode 0/2 mixed
                 break;
-            case 2:
+            case 2: // tile/map + scale/rotation mode
                 break;
-            case 3:
+            case 3: // bitmap mode for still images
+            {
+                uint8_t lineStart = VCOUNT * 240;
+                for(uint8_t i = 0; i < 240; i++)
+                    pixelBuffer[lineStart + i] = systemMemory->vram[lineStart + i];
                 break;
-            case 4:
+            }
+            case 4: // bitmap mode
                 break;
-            case 5:
+            case 5: // bitmap mode
                 break;
         }
     }
+
+    if(systemMemory->vcount == 228)
+        systemMemory->setByte(0x4000006, 0); // reset vcount
+    else
+        systemMemory->setByte(0x4000006, systemMemory->IORegisters[0x4000006] + 1); // increment vcount
+    systemMemory->setByte(0x4000004, systemMemory->IORegisters[0x4000004] | ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2)); // set vcount flag
 }
 
 void LCD::draw() {
-    // problem code
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5_A1,WIDTH,HEIGHT,0,GL_BGRA,GL_UNSIGNED_SHORT_1_5_5_5_REV,pixelBuffer);
     glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 
     SDL_GL_SwapWindow(window);
 
-    fps+=1;
+    fps++;
 
     // If a second has passed
-    uint8_t currSecsPassed = SDL_GetTicks() / 1000;
-    if(currSecsPassed != secondsElapsed) {
+    currSeconds = SDL_GetTicks() / 1000;
+    if(currSeconds != secondsElapsed) {
         std::string title = std::to_string(fps)+" FPS desu!";
         SDL_SetWindowTitle(window,title.c_str());
         fps = 0;
-        secondsElapsed = currSecsPassed;
+        secondsElapsed = currSeconds;
     }
 }
 

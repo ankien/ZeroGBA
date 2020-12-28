@@ -1,6 +1,8 @@
 #include <cctype>
 #include <cstring>
 #include <iostream>
+#include <filesystem>
+#include <chrono>
 #include "GBA.hpp"
 
 // because SDL defines main for some reason
@@ -55,9 +57,10 @@ void runProgram(char* fileName) {
             return;
         } else { // GBA interpreter
             gba.arm7tdmi->fillARM();
-            gba.arm7tdmi->fillTHUMB();
+            //gba.arm7tdmi->fillTHUMB();
 
             while(true) {
+                
                 while(gba.cyclesPassed < 280896) {
                     if(gba.arm7tdmi->state)
                         gba.interpretTHUMB();
@@ -65,20 +68,21 @@ void runProgram(char* fileName) {
                         gba.interpretARM();
 
                     if((gba.cyclesSinceHBlank >= 960) && (gba.cyclesPassed <= 197120)) { // scan and draw line from framebuffer
-                        gba.lcd->fetchScanline();
-                        gba.lcd->draw();
+                        gba.lcd->fetchScanline(); // hblank then prep next line, todo: check if the IO flags are set correctly
                         gba.cyclesSinceHBlank -= 1232;
                     }
                 }
+
+                gba.memory->setByte(0x4000004,gba.memory->IORegisters[0x4000004] | 0x1); // set vblank flag
 
                 if(gba.cyclesPassed > 280896)
                     gba.cyclesPassed -= 280896;
                 else
                     gba.cyclesPassed = 0;
 
-                gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system
-
-                SDL_Delay(16 - (SDL_GetTicks() / 1000 - gba.lcd->secondsElapsed)); // roughly 1000ms / 60fps - delay since start of last frame draw
+                gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system, todo: implement an event scheduler
+                gba.lcd->draw();
+                SDL_Delay(16 - (gba.lcd->currSeconds - gba.lcd->secondsElapsed)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }
         }
 

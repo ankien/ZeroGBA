@@ -14,6 +14,7 @@ struct GBAMemory {
     uint8_t* oam;
     uint8_t* gamePak;
     uint8_t* gPakSram;
+    uint8_t unusedMemoryAccess;
 
     /// MMIO ///
 

@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <glew.h>
 #include <string>
+#include <chrono>
 #include "GBAMemory.hpp"
 
 struct LCD {
@@ -11,10 +12,12 @@ struct LCD {
         SCALE = 3,
         WIDTH = 240,
         HEIGHT = 160;
+    
 
     uint8_t fps = 0;
     // seconds elapsed for last frame drawn
-    uint8_t secondsElapsed = SDL_GetTicks() / 1000;
+    uint32_t currSeconds = 0;
+    uint32_t secondsElapsed = 0;
     GBAMemory* systemMemory;
 
     /// SDL + OpenGL variables ///
