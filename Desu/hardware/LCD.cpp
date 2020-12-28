@@ -48,14 +48,13 @@ void LCD::fetchScanline() {
             {
                 uint16_t lineStart = VCOUNT * 240;
                 for(uint8_t i = 0; i < 240; i++)
-                    pixelBuffer[lineStart + i] = systemMemory->vram[lineStart + (i*2)] | (systemMemory->vram[lineStart + (i*2) + 1] << 8);
+                    pixelBuffer[lineStart + i] = systemMemory->vram[(lineStart + i) * 2] | (systemMemory->vram[(lineStart + i) * 2 + 1] << 8);
                 break;
             }
             case 4: // bitmap mode
             {
                 uint16_t frameBufferStart = DISPCNT_DISPLAY_FRAME_SELECT ? 0x5000 : 0;
                 uint16_t lineStart = VCOUNT * 240;
-                unsigned int fug = systemMemory->vcount;
                 for(uint8_t i = 0; i < 240; i++) {
                     uint8_t paletteEntry = systemMemory->vram[frameBufferStart + lineStart + i];
                     pixelBuffer[lineStart + i] = systemMemory->pram[paletteEntry * 2] | (systemMemory->pram[paletteEntry * 2 + 1] << 8);
@@ -85,7 +84,7 @@ void LCD::draw() {
     // If a second has passed
     currSeconds = SDL_GetTicks() / 1000;
     if(currSeconds != secondsElapsed) {
-        std::string title = std::to_string(fps)+" FPS desu~";
+        std::string title = std::to_string(fps)+" FPS desu!";
         SDL_SetWindowTitle(window,title.c_str());
         fps = 0;
         secondsElapsed = currSeconds;

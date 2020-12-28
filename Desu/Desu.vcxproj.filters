@@ -76,4 +76,9 @@
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="non-code\pandaBoot.png">
+      <Filter>Non-code</Filter>
+    </Image>
+  </ItemGroup>
 </Project>
