@@ -2,7 +2,6 @@
 #include <cstring>
 #include <iostream>
 #include <filesystem>
-#include <chrono>
 #include "GBA.hpp"
 
 // because SDL defines main for some reason
@@ -69,11 +68,11 @@ void runProgram(char* fileName) {
 
                     if((gba.cyclesSinceHBlank >= 960) && (gba.cyclesPassed <= 197120)) { // scan and draw line from framebuffer
                         gba.lcd->fetchScanline(); // hblank then prep next line, todo: check if the IO flags are set correctly
-                        gba.cyclesSinceHBlank -= 1232;
+                        gba.cyclesSinceHBlank -= 1232; // stub hblank
                     }
                 }
 
-                gba.memory->setByte(0x4000004,gba.memory->IORegisters[0x4000004] | 0x1); // set vblank flag
+                gba.memory->setByte(0x4000004,gba.memory->IORegisters[0x4] | 0x1); // set vblank flag
 
                 if(gba.cyclesPassed > 280896)
                     gba.cyclesPassed -= 280896;

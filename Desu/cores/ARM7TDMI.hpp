@@ -8,6 +8,7 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
+// todo: implement unaccurate global equal instr cycle times for stable+better fps
 
 struct ARM7TDMI {
     // cycles per instruction

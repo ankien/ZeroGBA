@@ -3,7 +3,6 @@
 #include <SDL.h>
 #include <glew.h>
 #include <string>
-#include <chrono>
 #include "GBAMemory.hpp"
 
 struct LCD {

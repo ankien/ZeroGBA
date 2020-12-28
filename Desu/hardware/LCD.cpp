@@ -34,10 +34,8 @@ LCD::LCD(GBAMemory* systemMemory) {
 }
 
 void LCD::fetchScanline() {
-    
-    systemMemory->setByte(0x4000004,systemMemory->IORegisters[0x4000004] | 0x2); // set hblank flag
 
-    if(VCOUNT < 160) { // if VCOUNT < 160, load update a single scanline
+    if(VCOUNT < 160) { // if VCOUNT < 160, load update a single scanline, 160-227 is non-visible scanline range
         switch(DISPCNT_MODE) {
             case 0: // tile/map + text mode
                 
@@ -48,23 +46,32 @@ void LCD::fetchScanline() {
                 break;
             case 3: // bitmap mode for still images
             {
-                uint8_t lineStart = VCOUNT * 240;
+                uint16_t lineStart = VCOUNT * 240;
                 for(uint8_t i = 0; i < 240; i++)
-                    pixelBuffer[lineStart + i] = systemMemory->vram[lineStart + i];
+                    pixelBuffer[lineStart + i] = systemMemory->vram[lineStart + (i*2)] | (systemMemory->vram[lineStart + (i*2) + 1] << 8);
                 break;
             }
             case 4: // bitmap mode
+            {
+                uint16_t frameBufferStart = DISPCNT_DISPLAY_FRAME_SELECT ? 0x5000 : 0;
+                uint16_t lineStart = VCOUNT * 240;
+                unsigned int fug = systemMemory->vcount;
+                for(uint8_t i = 0; i < 240; i++) {
+                    uint8_t paletteEntry = systemMemory->vram[frameBufferStart + lineStart + i];
+                    pixelBuffer[lineStart + i] = systemMemory->pram[paletteEntry * 2] | (systemMemory->pram[paletteEntry * 2 + 1] << 8);
+                }
                 break;
+            }
             case 5: // bitmap mode
                 break;
         }
     }
-
+    
     if(systemMemory->vcount == 228)
         systemMemory->setByte(0x4000006, 0); // reset vcount
     else
-        systemMemory->setByte(0x4000006, systemMemory->IORegisters[0x4000006] + 1); // increment vcount
-    systemMemory->setByte(0x4000004, systemMemory->IORegisters[0x4000004] | ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2)); // set vcount flag
+        systemMemory->setByte(0x4000006, systemMemory->IORegisters[0x6] + 1); // increment vcount
+    systemMemory->setByte(0x4000004, systemMemory->IORegisters[0x4] | ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2)); // set v-counter flag
 }
 
 void LCD::draw() {
@@ -78,7 +85,7 @@ void LCD::draw() {
     // If a second has passed
     currSeconds = SDL_GetTicks() / 1000;
     if(currSeconds != secondsElapsed) {
-        std::string title = std::to_string(fps)+" FPS desu!";
+        std::string title = std::to_string(fps)+" FPS desu~";
         SDL_SetWindowTitle(window,title.c_str());
         fps = 0;
         secondsElapsed = currSeconds;

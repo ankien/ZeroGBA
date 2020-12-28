@@ -5,6 +5,7 @@
 #include "MMIO.h" // for getting mmio fields
 
 struct GBAMemory {
+
     uint8_t* bios;
     uint8_t* wramOnBoard;
     uint8_t* wramOnChip;
