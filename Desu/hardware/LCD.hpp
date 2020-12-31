@@ -31,7 +31,6 @@ struct LCD {
     // into a single line of the framebuffer
     void fetchScanline();
 
-    // todo: figure out why the fuck my fps is so high
     void draw();
 
     std::string loadShader(const char*);

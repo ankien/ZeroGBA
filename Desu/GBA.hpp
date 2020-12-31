@@ -3,7 +3,7 @@
 #include <SDL.h>
 #include <glew.h>
 #include "hardware/LCD.hpp"
-#include "cores/ARM7TDMI.hpp"
+#include "core/ARM7TDMI.hpp"
 #include "hardware/GBAMemory.hpp"
 
 struct GBA {

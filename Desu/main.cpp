@@ -8,24 +8,23 @@
 // enable for console subsystem on VS
 #undef main 
 
-/* // Black magic code for windows subsystem compatibility
+// For windows subsystem compatibility
+// https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem?view=msvc-160
+/*
 #ifdef __GNUC__
 #define _stdcall  __attribute__((stdcall))
 #endif
-int _stdcall
-WinMain (struct HINSTANCE__ *hInstance,
-         struct HINSTANCE__ *hPrevInstance,
-         char               *lpszCmdLine,
-         int                 nCmdShow)
-{
-  return main (__argc, __argv);
+int _stdcall WinMain (struct HINSTANCE__ *,struct HINSTANCE__ *,char*,int) {
+    return main (__argc, __argv);
 }
 */
+
 
 struct {
     uint8_t jit : 1; // not implemented
 } runtimeOptions;
 
+// todo: not really urgent, but change this to use regex
 bool parseArguments(uint64_t argc, char* argv[]) {
     if(argc < 2)
         return 0;
@@ -67,12 +66,12 @@ void runProgram(char* fileName) {
                         gba.interpretARM();
 
                     if((gba.cyclesSinceHBlank >= 960) && (gba.cyclesPassed <= 197120)) { // scan and draw line from framebuffer
-                        gba.lcd->fetchScanline(); // hblank then prep next line, todo: check if the IO flags are set correctly
+                        gba.lcd->fetchScanline(); // hblank then prep next line
                         gba.cyclesSinceHBlank -= 1232; // stub hblank
                     }
                 }
 
-                gba.memory->setByte(0x4000004,gba.memory->IORegisters[0x4] | 0x1); // set vblank flag
+                gba.memory->IORegisters[4] |= 0x1; // set vblank flag
 
                 if(gba.cyclesPassed > 280896)
                     gba.cyclesPassed -= 280896;

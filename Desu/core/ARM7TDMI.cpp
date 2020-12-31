@@ -379,30 +379,9 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     uint8_t Is = (instruction & 0xF80) >> 7;
                     if((rn == 15) || (rm == 15))
                         pc+=8;
-                    switch(Is) { 
 
-                        case 0: // special behavior when shift amount is 0
-                            switch(shiftType) {
-                                case 0b00:
-                                    op2 = getModeArrayIndex(mode, rm);
-                                    break;
-                                case 0b01:
-                                    op2 = 0;
-                                    carryFlag = (getModeArrayIndex(mode, rm) & 0x80000000) >> 31;
-                                    break;
-                                case 0b10:
-                                    op2 = shift(getModeArrayIndex(mode, rm), 32, shiftType);
-                                    carryFlag = op2 & 1; // op2 is filled at this point
-                                    break;
-                                case 0b11:
-                                    op2 = shift(getModeArrayIndex(mode, rm), 1, 0b11);
-                                    op2 |= carryFlag << 31;
-                            }
-                            break;
+                    op2 = ALUshift(getModeArrayIndex(mode,rm),Is,shiftType,1);
 
-                        default: // shift reg normally when not 0
-                            op2 = shift(getModeArrayIndex(mode,rm),Is,shiftType);
-                    }
                     if((rn == 15) || (rm == 15))
                         pc-=8;
                     break;
@@ -705,7 +684,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
             uint8_t Is = (instruction & 0xF80) >> 7;
             uint8_t shiftType = (instruction & 0x60) >> 5;
             uint8_t rm = instruction & 0xF;
-            offset = shift(getModeArrayIndex(mode,rm),Is,shiftType);
+            offset = ALUshift(getModeArrayIndex(mode,rm),Is,shiftType,1);
             
     }
 
@@ -727,10 +706,10 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     storeValue(getModeArrayIndex(mode,rd),address);
                     break;
                 default:
-                    (*systemMemory).setByte(address, getModeArrayIndex(mode,rd));
+                    (*systemMemory)[address] = getModeArrayIndex(mode,rd);
             }
             if(rd == 15)
-                (*systemMemory).setByte(address, (*systemMemory)[address]+12);
+                (*systemMemory)[address] = (*systemMemory)[address]+12;
             break;
         default: // LDR
             if(rd == 15)
@@ -799,7 +778,7 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     storeValue(static_cast<uint16_t>(getModeArrayIndex(mode,rd)),address);
 
     if(rd == 15)
-        (*systemMemory).setByte(address, (*systemMemory)[address]+12);
+        (*systemMemory)[address] = (*systemMemory)[address]+12;
 
     if(!p) {
         switch(u) {
@@ -1097,7 +1076,7 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
     if(instruction & 0x400000) {
         uint32_t rnValue = getModeArrayIndex(mode,rn);
         setModeArrayIndex(mode,rd,(*systemMemory)[rnValue]);
-        (*systemMemory).setByte(rnValue, getModeArrayIndex(mode,rm));
+        (*systemMemory)[rnValue] = getModeArrayIndex(mode,rm);
     } else { // swap word
         uint32_t rnValue = getModeArrayIndex(mode,rn);
         setModeArrayIndex(mode,rd,readWordRotate(rnValue));
@@ -1114,20 +1093,43 @@ void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
     setSNCycles(16);
     cycleTicks = s;
     uint8_t offset = (instruction & 0x7C0) >> 6;
-    uint8_t rs = (instruction & 0x38) >> 3;
+    uint32_t rs = (instruction & 0x38) >> 3;
     uint8_t rd = instruction & 0x7;
 
+    rs = getModeArrayIndex(mode,rs);
     switch(instruction & 0x1800) {
-        case 0x0000:
-            
+        case 0x0000: // LSL
+            setModeArrayIndex(mode,rd,ALUshift(rs,offset,0));
             break;
-        case 0x0100:
+        case 0x0800: // LSR
+            setModeArrayIndex(mode,rd,ALUshift(rs,offset,1));
             break;
-        case 0x1000:
+        case 0x1000: // ASR
+            setModeArrayIndex(mode,rd,ALUshift(rs,offset,0x10));
             break;
     }
 
+    setZeroAndSign(getModeArrayIndex(mode,rd));
     pc+=2;
 }
-void ARM7TDMI::THUMBaddSubtract(uint16_t) {
+void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Move Shifted Reg=",pc);
+    #endif
+    setSNCycles(16);
+    cycleTicks = s;
+    uint32_t rs = getModeArrayIndex(mode,(instruction & 0x38) >> 3);
+    uint8_t rd = instruction & 0x3;
+
+    uint32_t result;
+    if(instruction & 0x400) { // immediate
+    
+    } else { // register
+        uint8_t nn = (instruction & 0x1C0) >> 6;
+        result = ;
+        setModeArrayIndex(mode,rd,result);
+    }
+
+    setZeroAndSign(result);
+    pc+=2;
 }

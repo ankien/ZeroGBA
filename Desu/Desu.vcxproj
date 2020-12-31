@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cores\ARM7TDMI.hpp" />
+    <ClInclude Include="core\ARM7TDMI.hpp" />
     <ClInclude Include="GBA.hpp" />
     <ClInclude Include="hardware\GBAMemory.hpp" />
     <ClInclude Include="hardware\Keypad.hpp" />
@@ -28,7 +28,7 @@
     <ClInclude Include="hardware\Timer.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cores\ARM7TDMI.cpp" />
+    <ClCompile Include="core\ARM7TDMI.cpp" />
     <ClCompile Include="GBA.cpp" />
     <ClCompile Include="hardware\GBAMemory.cpp" />
     <ClCompile Include="hardware\Keypad.cpp" />

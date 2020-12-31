@@ -5,9 +5,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Cores">
-      <UniqueIdentifier>{30be8d09-6832-4b80-949f-fa2ce1a2aea4}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{26137989-6e5d-49d1-ab8b-1712ef042b8b}</UniqueIdentifier>
     </Filter>
@@ -21,13 +18,13 @@
     <Filter Include="Hardware">
       <UniqueIdentifier>{cd56e99c-2070-464a-97a7-2650e70b0547}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{30be8d09-6832-4b80-949f-fa2ce1a2aea4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cores\ARM7TDMI.cpp">
-      <Filter>Cores</Filter>
     </ClCompile>
     <ClCompile Include="GBA.cpp">
       <Filter>Systems</Filter>
@@ -44,13 +41,13 @@
     <ClCompile Include="hardware\LCD.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
+    <ClCompile Include="core\ARM7TDMI.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GBA.hpp">
       <Filter>Systems</Filter>
-    </ClInclude>
-    <ClInclude Include="cores\ARM7TDMI.hpp">
-      <Filter>Cores</Filter>
     </ClInclude>
     <ClInclude Include="hardware\GBAMemory.hpp">
       <Filter>Hardware</Filter>
@@ -66,6 +63,9 @@
     </ClInclude>
     <ClInclude Include="hardware\MMIO.h">
       <Filter>Hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ARM7TDMI.hpp">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

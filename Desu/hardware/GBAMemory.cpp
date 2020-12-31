@@ -34,63 +34,6 @@ uint8_t& GBAMemory::operator[](uint32_t i) {
     }
 }
 
-void GBAMemory::setMappedIO(uint16_t addr, uint8_t num) {
-    switch(addr) {
-        case 0x000: dispcnt = (dispcnt & 0xFF00) | num; break;
-        case 0x001: dispcnt = (dispcnt & 0x00FF) | (num << 8); break;
-        case 0x002: greenSwap = (greenSwap & 0xFF00) | num; break;
-        case 0x003: greenSwap = (greenSwap & 0x00FF) | (num << 8); break;
-        case 0x004: dispstat = (dispstat & 0xFF00) | num; break;
-        case 0x005: dispstat = (dispstat & 0x00FF) | (num << 8); break;
-        case 0x006: vcount = (vcount & 0xFF00) | num; break;
-        case 0x007: vcount = (vcount & 0x00FF) | (num << 8); break;
-        case 0x008: bgcnt0 = (bgcnt0 & 0xFF00) | num; break;
-        case 0x009: bgcnt0 = (bgcnt0 & 0x00FF) | (num << 8); break;
-        case 0x00A: bgcnt1 = (bgcnt1 & 0xFF00) | num; break;
-        case 0x00B: bgcnt1 = (bgcnt1 & 0x00FF) | (num << 8); break;
-        case 0x00C: bgcnt2 = (bgcnt2 & 0xFF00) | num; break;
-        case 0x00D: bgcnt2 = (bgcnt2 & 0x00FF) | (num << 8); break;
-        case 0x00E: bgcnt3 = (bgcnt3 & 0xFF00) | num; break;
-        case 0x00F: bgcnt3 = (bgcnt3 & 0x00FF) | (num << 8); break;
-        case 0x010: bghofs0 = (bghofs0 & 0xFF00) | num; break;
-        case 0x011: bghofs0 = (bghofs0 & 0x00FF) | (num << 8); break;
-        case 0x012: bgvofs0 = (bgvofs0 & 0xFF00) | num; break;
-        case 0x013: bgvofs0 = (bgvofs0 & 0x00FF) | (num << 8); break;
-        case 0x014: bghofs1 = (bghofs1 & 0xFF00) | num; break;
-        case 0x015: bghofs1 = (bghofs1 & 0x00FF) | (num << 8); break;
-        case 0x016: bgvofs1 = (bgvofs1 & 0xFF00) | num; break;
-        case 0x017: bgvofs1 = (bgvofs1 & 0x00FF) | (num << 8); break;
-        case 0x018: bghofs2 = (bghofs2 & 0xFF00) | num; break;
-        case 0x019: bghofs2 = (bghofs2 & 0x00FF) | (num << 8); break;
-        case 0x01A: bgvofs2 = (bgvofs2 & 0xFF00) | num; break;
-        case 0x01B: bgvofs2 = (bgvofs2 & 0x00FF) | (num << 8); break;
-        case 0x01C: bghofs3 = (bghofs3 & 0xFF00) | num; break;
-        case 0x01D: bghofs3 = (bghofs3 & 0x00FF) | (num << 8); break;
-        case 0x01E: bgvofs3 = (bgvofs3 & 0xFF00) | num; break;
-        case 0x01F: bgvofs3 = (bgvofs3 & 0x00FF) | (num << 8); break;
-        case 0x040: winh0 = (winh0 & 0xFF00) | num; break;
-        case 0x041: winh0 = (winh0 & 0x00FF) | (num << 8); break;
-        case 0x042: winh1 = (winh1 & 0xFF00) | num; break;
-        case 0x043: winh1 = (winh1 & 0x00FF) | (num << 8); break;
-        case 0x044: winv0 = (winv0 & 0xFF00) | num; break;
-        case 0x045: winv0 = (winv0 & 0x00FF) | (num << 8); break;
-        case 0x046: winv1 = (winv1 & 0xFF00) | num; break;
-        case 0x047: winv1 = (winv1 & 0x00FF) | (num << 8); break;
-        case 0x048: winin = (winin & 0xFF00) | num; break;
-        case 0x049: winin = (winin & 0x00FF) | (num << 8); break;
-        case 0x04A: winout = (winout & 0xFF00) | num; break;
-        case 0x04B: winout = (winout & 0x00FF) | (num << 8); break;
-        case 0x04C: mosaic = (mosaic & 0xFF00) | num; break;
-        case 0x04D: mosaic = (mosaic & 0x00FF) | (num << 8); break;
-        case 0x050: bldcnt = (bldcnt & 0xFF00) | num; break;
-        case 0x051: bldcnt = (bldcnt & 0x00FF) | (num << 8); break;
-        case 0x052: bldalpha = (bldalpha & 0xFF00) | num; break;
-        case 0x053: bldalpha = (bldalpha & 0x00FF) | (num << 8); break;
-        case 0x054: bldy = (bldy & 0xFF00) | num; break;
-        case 0x055: bldy = (bldy & 0x00FF) | (num << 8); break;
-    }
-}
-
 bool GBAMemory::loadRom(std::string rom) {
     std::ifstream fileStream(rom.c_str(), std::ifstream::in | std::ifstream::binary);
     uint32_t romSizeInBytes = std::filesystem::file_size(rom);

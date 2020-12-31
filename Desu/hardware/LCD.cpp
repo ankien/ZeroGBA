@@ -56,8 +56,8 @@ void LCD::fetchScanline() {
                 uint16_t frameBufferStart = DISPCNT_DISPLAY_FRAME_SELECT ? 0x5000 : 0;
                 uint16_t lineStart = VCOUNT * 240;
                 for(uint8_t i = 0; i < 240; i++) {
-                    uint8_t paletteEntry = systemMemory->vram[frameBufferStart + lineStart + i];
-                    pixelBuffer[lineStart + i] = systemMemory->pram[paletteEntry * 2] | (systemMemory->pram[paletteEntry * 2 + 1] << 8);
+                    uint8_t paletteEntry = systemMemory->vram[frameBufferStart + lineStart + i] * 2;
+                    pixelBuffer[lineStart + i] = systemMemory->pram[paletteEntry] | (systemMemory->pram[paletteEntry + 1] << 8);
                 }
                 break;
             }
@@ -66,11 +66,11 @@ void LCD::fetchScanline() {
         }
     }
     
-    if(systemMemory->vcount == 228)
-        systemMemory->setByte(0x4000006, 0); // reset vcount
+    if(VCOUNT == 228)
+        systemMemory->IORegisters[6] = 0; // reset vcount
     else
-        systemMemory->setByte(0x4000006, systemMemory->IORegisters[0x6] + 1); // increment vcount
-    systemMemory->setByte(0x4000004, systemMemory->IORegisters[0x4] | ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2)); // set v-counter flag
+        systemMemory->IORegisters[6]++; // increment vcount
+    systemMemory->IORegisters[4] |= ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2); // set v-counter flag
 }
 
 void LCD::draw() {
@@ -136,9 +136,4 @@ void LCD::compileShaders() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glUseProgram(program);
-
-    // generate mesh/vertices
-    uint32_t vertexArrayObject;
-    glGenVertexArrays(1,&vertexArrayObject);
-    glBindVertexArray(vertexArrayObject);
 }

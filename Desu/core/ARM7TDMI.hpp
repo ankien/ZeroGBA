@@ -8,7 +8,6 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
-// todo: implement unaccurate global equal instr cycle times for stable+better fps
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -48,7 +47,7 @@ struct ARM7TDMI {
     uint32_t reserved; // 19 : never used?
     bool stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
          overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's compliment, set bit) 
-         carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, (AKA unsigned overflow flag), 1 if overflow in result 32-bit register
+         carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, (AKA unsigned overflow flag), for arithmetic ops, 1 if overflow in result of 32-bit register
          zeroFlag, // Z, 1 : 0 = not zero, 1 = zero
          signFlag; // N, 1 : 0 = not signed, 1 = signed (31 bit is filled)
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
@@ -76,8 +75,9 @@ struct ARM7TDMI {
     uint32_t getCPSR();
     void setCPSR(uint32_t);
     bool checkCond(uint32_t);
-    // shift for registers
+    // shift for registers, ALUshift affects carry flags
     uint32_t shift(uint32_t, uint8_t, uint8_t);
+    uint32_t ALUshift(uint32_t, uint8_t, uint8_t,bool);
     void setZeroAndSign(uint32_t);
 
     // For unimplemented/undefined instructions
@@ -144,14 +144,14 @@ inline void ARM7TDMI::setSNCycles(uint8_t accessWidth) {
     }
 }
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
-    (*systemMemory).setByte(address,value);
-    (*systemMemory).setByte(address + 1, (value & 0xFF00) >> 8);
+    (*systemMemory)[address] = value;
+    (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
 }
 inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
-    (*systemMemory).setByte(address, value);
-    (*systemMemory).setByte(address + 1, (value & 0xFF00) >> 8);
-    (*systemMemory).setByte(address + 2, (value & 0xFF0000) >> 16);
-    (*systemMemory).setByte(address + 3, (value & 0xFF000000) >> 24);
+    (*systemMemory)[address] = value;
+    (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
+    (*systemMemory)[address + 2] = (value & 0xFF0000) >> 16;
+    (*systemMemory)[address + 3] = (value & 0xFF000000) >> 24;
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
     return (*systemMemory)[address] |
@@ -213,6 +213,45 @@ inline uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shi
         case 0b11: // ror
             uint32_t dupeVal = value >> (shiftAmount % 32);
             return dupeVal | (value << ((32 - shiftAmount) % 32));
+    }
+}
+inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType, bool setFlags) {
+    switch(shiftType) {
+        case 0b00: // lsl
+            if(shiftAmount == 0)
+                return value;
+            value <<= shiftAmount - 1;
+            if(setFlags)
+                carryFlag = 0x80000000 & value;
+            return value << 1; 
+        case 0b01: // lsr
+            if(shiftAmount == 0) {
+                if(setFlags)
+                    carryFlag = value & 0x80000000;
+                return 0;
+            }
+            value >>= shiftAmount - 1;
+            if(setFlags)
+                carryFlag = 1 & value;
+            return value >> 1;
+        case 0b10: // asr
+            if(shiftAmount == 0)
+                shiftAmount = 32;
+            if(setFlags)
+                carryFlag = 1 & (value >> (shiftAmount - 1));
+            if(value & 0x80000000)
+                return (value >> shiftAmount) | (0xFFFFFFFF << shiftAmount);
+            return value >> shiftAmount;
+        case 0b11: // ror
+            {
+            if(shiftAmount == 0)
+                shiftAmount = 1;
+            uint32_t dupeVal = value >> (shiftAmount % 32);
+            value = dupeVal | (value << ((32 - shiftAmount) % 32));
+            if(setFlags)
+                carryFlag = value & 0x80000000;
+            return value;
+            }
     }
 }
 inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
