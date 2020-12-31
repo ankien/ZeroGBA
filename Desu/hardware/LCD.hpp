@@ -15,8 +15,8 @@ struct LCD {
 
     uint8_t fps = 0;
     // seconds elapsed for last frame drawn
-    uint32_t currSeconds = 0;
-    uint32_t secondsElapsed = 0;
+    uint32_t currMillseconds = 0;
+    uint32_t millisecondsElapsed = 0;
     GBAMemory* systemMemory;
 
     /// SDL + OpenGL variables ///

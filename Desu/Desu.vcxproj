@@ -126,7 +126,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;SDL2.lib;SDL2main.lib;glew32.lib;glew32s.lib</AdditionalDependencies>
+      <AdditionalDependencies>Kernel32.lib;Winmm.lib;opengl32.lib;glu32.lib;SDL2.lib;SDL2main.lib;glew32.lib;glew32s.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\devlibs\SDL2\lib\x86;C:\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\lib\x86</AdditionalLibraryDirectories>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -150,7 +150,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\devlibs\SDL2\lib\x86;C:\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\lib\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;SDL2.lib;SDL2main.lib;glew32.lib;glew32s.lib</AdditionalDependencies>
+      <AdditionalDependencies>Kernel32.lib;Winmm.lib;opengl32.lib;glu32.lib;SDL2.lib;SDL2main.lib;glew32.lib;glew32s.lib</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
     </Link>

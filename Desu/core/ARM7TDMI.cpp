@@ -1099,13 +1099,13 @@ void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
     rs = getModeArrayIndex(mode,rs);
     switch(instruction & 0x1800) {
         case 0x0000: // LSL
-            setModeArrayIndex(mode,rd,ALUshift(rs,offset,0));
+            setModeArrayIndex(mode,rd,ALUshift(rs,offset,0,1));
             break;
         case 0x0800: // LSR
-            setModeArrayIndex(mode,rd,ALUshift(rs,offset,1));
+            setModeArrayIndex(mode,rd,ALUshift(rs,offset,1,1));
             break;
         case 0x1000: // ASR
-            setModeArrayIndex(mode,rd,ALUshift(rs,offset,0x10));
+            setModeArrayIndex(mode,rd,ALUshift(rs,offset,0x10,1));
             break;
     }
 
@@ -1126,10 +1126,10 @@ void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
     
     } else { // register
         uint8_t nn = (instruction & 0x1C0) >> 6;
-        result = ;
-        setModeArrayIndex(mode,rd,result);
+//        result = ;
+//        setModeArrayIndex(mode,rd,result);
     }
 
-    setZeroAndSign(result);
+//    setZeroAndSign(result);
     pc+=2;
 }

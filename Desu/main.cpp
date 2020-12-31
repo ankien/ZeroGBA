@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <filesystem>
+#include <Windows.h>
 #include "GBA.hpp"
 
 // because SDL defines main for some reason
@@ -11,14 +12,10 @@
 // For windows subsystem compatibility
 // https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem?view=msvc-160
 /*
-#ifdef __GNUC__
-#define _stdcall  __attribute__((stdcall))
-#endif
 int _stdcall WinMain (struct HINSTANCE__ *,struct HINSTANCE__ *,char*,int) {
     return main (__argc, __argv);
 }
 */
-
 
 struct {
     uint8_t jit : 1; // not implemented
@@ -80,7 +77,9 @@ void runProgram(char* fileName) {
 
                 gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system, todo: implement an event scheduler
                 gba.lcd->draw();
-                SDL_Delay(16 - (gba.lcd->currSeconds - gba.lcd->secondsElapsed)); // roughly 1000ms / 60fps - delay since start of last frame draw
+                uint64_t fug = gba.lcd->currMillseconds;
+                uint64_t fug2 = gba.lcd->millisecondsElapsed;
+                Sleep(16 - ((gba.lcd->currMillseconds - gba.lcd->millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }
         }
 
@@ -89,6 +88,7 @@ void runProgram(char* fileName) {
 }
 
 int main(int argc, char* argv[]) {
+    //timeBeginPeriod(1); // enable for high resolution clock, I don't personally notice a difference
     if(parseArguments(argc,argv))
         runProgram(argv[argc - 1]);
     else
