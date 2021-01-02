@@ -44,7 +44,6 @@ void GBA::interpretARM() {
         arm7tdmi->pc+=4;
 }
 
-// how do we get to ARM from THUMB?
 void GBA::interpretTHUMB() {
     uint16_t instruction = ((*memory)[arm7tdmi->pc+1] << 8) |
                             (*memory)[arm7tdmi->pc];

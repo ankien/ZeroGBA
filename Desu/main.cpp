@@ -12,7 +12,7 @@
 // For windows subsystem compatibility
 // https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem?view=msvc-160
 /*
-int _stdcall WinMain (struct HINSTANCE__ *,struct HINSTANCE__ *,char*,int) {
+int _stdcall WinMain (struct HINSTANCE__*,struct HINSTANCE__*,char*,int) {
     return main (__argc, __argv);
 }
 */
@@ -77,8 +77,7 @@ void runProgram(char* fileName) {
 
                 gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system, todo: implement an event scheduler
                 gba.lcd->draw();
-                uint64_t fug = gba.lcd->currMillseconds;
-                uint64_t fug2 = gba.lcd->millisecondsElapsed;
+                // modding isn't accurate on super slow computers but it'll do, todo: implement nanosecond accurate delay
                 Sleep(16 - ((gba.lcd->currMillseconds - gba.lcd->millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }
         }

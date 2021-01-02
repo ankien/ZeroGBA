@@ -61,7 +61,7 @@ struct ARM7TDMI {
     uint8_t fetchTHUMBIndex(uint16_t);
 
     // memory helper functions
-    void setSNCycles(uint8_t); // todo: implement waitstate cycles, currently using default listings on GBAtek
+    void setSNCycles(uint8_t); // todo: implement waitstate cycles, currently using a scalable workaround
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
     uint16_t readHalfWord(uint32_t);
@@ -72,12 +72,18 @@ struct ARM7TDMI {
     // more helpers
     uint32_t getModeArrayIndex(uint8_t, uint8_t);
     void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
+    uint32_t getArrayIndex(uint8_t);
+    void setArrayIndex(uint8_t, uint32_t);
     uint32_t getCPSR();
     void setCPSR(uint32_t);
     bool checkCond(uint32_t);
-    // shift for registers, ALUshift affects carry flags
+    // ALU Helpers: shift for registers, ALUshift affects carry flags
     uint32_t shift(uint32_t, uint8_t, uint8_t);
     uint32_t ALUshift(uint32_t, uint8_t, uint8_t,bool);
+    uint32_t sub(uint32_t,uint32_t,bool);
+    uint32_t subCarry(uint32_t,uint32_t,bool);
+    uint32_t add(uint32_t,uint32_t,bool);
+    uint32_t addCarry(uint32_t,uint32_t,bool);
     void setZeroAndSign(uint32_t);
 
     // For unimplemented/undefined instructions
@@ -106,6 +112,9 @@ struct ARM7TDMI {
     /// THUMB Instructions ///
     void THUMBmoveShiftedRegister(uint16_t);
     void THUMBaddSubtract(uint16_t);
+    void THUMBmoveCompareAddSubtract(uint16_t);
+    void THUMBaluOperations(uint16_t);
+    void THUMBhiRegOpsBranchEx(uint16_t);
 };
 
 // Bits 27-20 + 7-4
@@ -253,6 +262,42 @@ inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t 
             return value;
             }
     }
+}
+inline uint32_t ARM7TDMI::sub(uint32_t op1, uint32_t op2, bool setFlags) {
+    uint32_t result = op1 - op2;
+    if(setFlags) {
+        carryFlag = op1 < op2;
+        op1 >>= 31; op2 >>= 31;
+        overflowFlag = (op1 ^ op2) ? (result >> 31) ^ op1 : 0; // if rn and op2 bits 31 are diff, check for overflow
+    }
+    return result;
+}
+inline uint32_t ARM7TDMI::subCarry(uint32_t op1, uint32_t op2, bool setFlags) {
+    uint32_t result = op1 - op2 + carryFlag - 1;
+    if(setFlags) {
+        carryFlag = op1 < (op2 + carryFlag - 1);
+        op1 >>= 31; op2 >>= 31;
+        overflowFlag = (op1 ^ op2) ? (result >> 31) ^ op1 : 0;
+    }
+    return result;
+}
+inline uint32_t ARM7TDMI::add(uint32_t op1, uint32_t op2, bool setFlags) {
+    uint32_t result = op1 + op2;
+    if(s) {
+        carryFlag = (*reinterpret_cast<uint64_t*>(&op1) + op2) > 0xFFFFFFFF;
+        op1 >>= 31; op2 >>= 31;
+        overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1;
+    }
+    return result;
+}
+inline uint32_t ARM7TDMI::addCarry(uint32_t op1, uint32_t op2, bool setFlags){
+    uint32_t result = op1 + op2 + carryFlag;
+    if(setFlags) {
+        carryFlag = (*reinterpret_cast<uint64_t*>(&op1) + op2 + carryFlag) > 0xFFFFFFFF;
+        op1 >>= 31; op2 >>= 31;
+        overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1; // todo: check if overflow calc for carry opcodes are correct
+    }
+    return result;
 }
 inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
     (arg == 0) ?  zeroFlag = 1 : zeroFlag = 0;

@@ -14,6 +14,7 @@ struct GBA {
     /// Hardware ///
     GBAMemory* memory;
     ARM7TDMI* arm7tdmi;
+    // todo: eventually make ppu rendering, keypad, and apu dedicated to their own threads somehow
     LCD* lcd;
 
     GBA();
