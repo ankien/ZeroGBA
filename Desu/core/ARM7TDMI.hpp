@@ -64,6 +64,7 @@ struct ARM7TDMI {
     void setSNCycles(uint8_t); // todo: implement waitstate cycles, currently using a scalable workaround
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
+    // memory getters, rotates are for misaligned ldr+swp
     uint16_t readHalfWord(uint32_t);
     uint16_t readHalfWordRotate(uint32_t);
     uint32_t readWord(uint32_t);
@@ -115,6 +116,13 @@ struct ARM7TDMI {
     void THUMBmoveCompareAddSubtract(uint16_t);
     void THUMBaluOperations(uint16_t);
     void THUMBhiRegOpsBranchEx(uint16_t);
+
+    void THUMBloadPCRelative(uint16_t);
+    void THUMBloadStoreRegOffset(uint16_t);
+    void THUMBloadStoreSignExtendedByteHalfword(uint16_t);
+    void THUMBloadStoreImmOffset(uint16_t);
+    void THUMBloadStoreHalfword(uint16_t);
+    void THUMBloadStoreSPRelative(uint16_t);
 };
 
 // Bits 27-20 + 7-4
@@ -177,7 +185,6 @@ inline uint32_t ARM7TDMI::readWord(uint32_t address) {
            (*systemMemory)[address + 2] << 16 |
            (*systemMemory)[address + 3] << 24;
 }
-// Memory alignment stuff
 inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
     uint32_t word = readWord(address);
     uint8_t rorAmount = (address & 3) << 3;
