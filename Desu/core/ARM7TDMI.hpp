@@ -7,6 +7,7 @@
 #include "../hardware/GBAMemory.hpp"
 
 // debug console print, reeeally slow, like 1 fps slow
+// file logging is faster but has limitations
 //#define PRINT_INSTR
 
 struct ARM7TDMI {
@@ -19,7 +20,7 @@ struct ARM7TDMI {
     void (ARM7TDMI::*armTable[4096])(uint32_t);
     void (ARM7TDMI::*thumbTable[256])(uint16_t);
 
-    // could make this a generic pointer for code reuse
+    // could make this a generic pointer for code reuse with another system (the DS has an ARM7TDMI)
     GBAMemory* systemMemory;
 
     enum exceptions { Reset, UndefinedInstruction, SoftwareInterrupt, PrefetchAbort, DataAbort,
@@ -36,14 +37,14 @@ struct ARM7TDMI {
     uint32_t r10[2]; // sys/user-fiq
     uint32_t r11[2]; // sys/user-fiq
     uint32_t r12[2]; // sys/user-fiq
-    uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und
-    uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und
+    uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und - SP
+    uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und - LR
     uint32_t pc; // R15
     // CPSR bitfield implementation
-    bool mode, // 5 : see enum modes
-         state, // 1 : 0 = ARM, 1 = THUMB
-         fiqDisable, // 1 : 0 = enable, 1 = disable
-         irqDisable; // 1 : 0 = enable, 1 = disable
+    uint8_t mode; // 5 : see enum modes
+    bool    state, // 1 : 0 = ARM, 1 = THUMB
+            fiqDisable, // 1 : 0 = enable, 1 = disable
+            irqDisable; // 1 : 0 = enable, 1 = disable
     uint32_t reserved; // 19 : never used?
     bool stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
          overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's compliment, set bit) 
@@ -123,6 +124,12 @@ struct ARM7TDMI {
     void THUMBloadStoreImmOffset(uint16_t);
     void THUMBloadStoreHalfword(uint16_t);
     void THUMBloadStoreSPRelative(uint16_t);
+
+    void THUMBgetRelativeAddress(uint16_t);
+    void THUMBaddOffsetToSP(uint16_t);
+
+    void THUMBpushPopRegisters(uint16_t);
+    void THUMBmultipleLoadStore(uint16_t);
 };
 
 // Bits 27-20 + 7-4

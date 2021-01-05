@@ -38,14 +38,22 @@ void ARM7TDMI::fillARM() {
 }
 void ARM7TDMI::fillTHUMB() {
     for(uint16_t i = 0; i < 256; i++) {
-        if((i & 0b11111100) == 0b01000100)
+        if((i & 0b11111111) == 0b10110000)
+            thumbTable[i] = &ARM7TDMI::THUMBaddOffsetToSP;
+        else if((i & 0b11111100) == 0b01000100)
             thumbTable[i] = &ARM7TDMI::THUMBhiRegOpsBranchEx;
+        else if((i & 0b11110110) == 0b10110100)
+            thumbTable[i] = &ARM7TDMI::THUMBpushPopRegisters;
         else if((i & 0b11111000) == 0b00011000)
             thumbTable[i] = &ARM7TDMI::THUMBaddSubtract;
         else if((i & 0b11111000) == 0b01001000)
             thumbTable[i] = &ARM7TDMI::THUMBloadPCRelative;
+        else if((i & 0b11110000) == 0b11000000)
+            thumbTable[i] = &ARM7TDMI::THUMBmultipleLoadStore;
         else if((i & 0b11110000) == 0b10000000)
             thumbTable[i] = &ARM7TDMI::THUMBloadStoreHalfword;
+        else if((i & 0b11110000) == 0b10100000)
+            thumbTable[i] = &ARM7TDMI::THUMBgetRelativeAddress;
         else if((i & 0b11110000) == 0b10010000)
             thumbTable[i] = &ARM7TDMI::THUMBloadStoreSPRelative;
         else if((i & 0b11110010) == 0b01010000)
@@ -1588,6 +1596,95 @@ void ARM7TDMI::THUMBloadStoreSPRelative(uint16_t instruction) {
         cycleTicks = s + n + 1;
         storeValue(getArrayIndex(rd),getArrayIndex(13)+nn);
     }
+
+    pc+=2;
+}
+
+void ARM7TDMI::THUMBgetRelativeAddress(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Get Relative Address=",pc);
+    #endif
+    setSNCycles(16);
+    cycleTicks = s;
+    uint16_t nn = (instruction & 0xFF) << 2;
+    uint8_t rd = (instruction & 0x700) >> 8;
+    if(instruction & 0x800) // ADD SP
+        setArrayIndex(rd,getArrayIndex(13) + nn);
+    else // ADD PC
+        setArrayIndex(rd,((pc+4) & ~2) + nn);;
+    pc+=2;
+}
+
+void ARM7TDMI::THUMBaddOffsetToSP(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Add Offset To SP=",pc);
+    #endif
+    setSNCycles(16);
+    cycleTicks = s;
+    uint16_t nn = (instruction & 0x7F) << 2;
+    if(instruction & 0x80) // - offset
+        setArrayIndex(13,getArrayIndex(13) - nn);
+    else // + offset
+        setArrayIndex(13,getArrayIndex(13) + nn);;
+    pc+=2;
+}
+
+void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Push/Pop Registers=",pc);
+    #endif
+    setSNCycles(16);
+    cycleTicks = 0;
+    uint8_t rListBinary = instruction & 0xFF;
+    uint8_t rListOffset = 1;
+    bool pclrBit = instruction & 0x100;
+    uint32_t address = getArrayIndex(13);
+
+    if(instruction & 0x800) { // POP, AKA load from memory
+        cycleTicks += n + 1;
+        for(uint8_t i = 0; i < 8; i++) {
+            if(instruction & rListOffset) {
+                setArrayIndex(i,readWord(address));
+                address+=4;
+                cycleTicks += s;
+            }
+            rListOffset <<= 1;
+        }
+
+        if(pclrBit) {
+            setArrayIndex(15,readWord(address));
+            address+=4;
+            cycleTicks += s + n;
+        }
+    } else { // PUSH, AKA store to memory
+        cycleTicks += 2*n;
+        if(pclrBit) {
+            address-=4;
+            storeValue(getArrayIndex(14),address);
+        }
+        
+        for(uint8_t i = 0; i < 8; i++) {
+            if(instruction & rListOffset) {
+                address-=4;
+                storeValue(getArrayIndex(i),address);
+                if(i > 0)
+                    cycleTicks += s;
+            }
+            rListOffset <<= 1;
+        }
+    }
+
+    setArrayIndex(13,address);
+    pc+=2;
+}
+void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Multiple Load Store=",pc);
+    #endif
+    setSNCycles(16);
+    uint8_t rListBinary = instruction & 0xFF;
+    uint8_t rListOffset = 1;
+
 
     pc+=2;
 }
