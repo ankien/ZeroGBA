@@ -38,18 +38,26 @@ void ARM7TDMI::fillARM() {
 }
 void ARM7TDMI::fillTHUMB() {
     for(uint16_t i = 0; i < 256; i++) {
-        if((i & 0b11111111) == 0b10110000)
+        if((i & 0b11111111) == 0b11011111)
+            thumbTable[i] = &ARM7TDMI::THUMBsoftwareInterrupt;
+        else if((i & 0b11111111) == 0b10110000)
             thumbTable[i] = &ARM7TDMI::THUMBaddOffsetToSP;
         else if((i & 0b11111100) == 0b01000100)
             thumbTable[i] = &ARM7TDMI::THUMBhiRegOpsBranchEx;
         else if((i & 0b11110110) == 0b10110100)
             thumbTable[i] = &ARM7TDMI::THUMBpushPopRegisters;
+        else if((i & 0b11111000) == 0b11110000)
+            thumbTable[i] = &ARM7TDMI::THUMBlongBranchWithLink;
+        else if((i & 0b11111000) == 0b11100000)
+            thumbTable[i] = &ARM7TDMI::THUMBunconditionalBranch;
         else if((i & 0b11111000) == 0b00011000)
             thumbTable[i] = &ARM7TDMI::THUMBaddSubtract;
         else if((i & 0b11111000) == 0b01001000)
             thumbTable[i] = &ARM7TDMI::THUMBloadPCRelative;
         else if((i & 0b11110000) == 0b11000000)
             thumbTable[i] = &ARM7TDMI::THUMBmultipleLoadStore;
+        else if((i & 0b11110000) == 0b11010000)
+            thumbTable[i] = &ARM7TDMI::THUMBconditionalBranch;
         else if((i & 0b11110000) == 0b10000000)
             thumbTable[i] = &ARM7TDMI::THUMBloadStoreHalfword;
         else if((i & 0b11110000) == 0b10100000)
@@ -484,7 +492,7 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     signedOffset <<= 8;
     signedOffset >>= 6;
     if(instruction & 0x1000000)
-        r14[mode] = pc + 4;
+        setArrayIndex(14,pc+4);
     pc += 8 + signedOffset;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
@@ -1682,9 +1690,95 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
         printf("at pc=%X Multiple Load Store=",pc);
     #endif
     setSNCycles(16);
+    cycleTicks = 0;
     uint8_t rListBinary = instruction & 0xFF;
     uint8_t rListOffset = 1;
+    uint8_t rb = (instruction & 0x700) >> 8;
+    uint32_t address = getArrayIndex(rb);
 
+    if(!rListBinary) { // todo: handle empty rList
+        
+        address += 0x40;
+    } else {
+        if(instruction & 0x800) { // LDMIA
+            cycleTicks += n + 1;
+            for(uint8_t i = 0; i < 8; i++) {
+                if(instruction & rListOffset) {
+                    setArrayIndex(i, readWord(address));
+                    address += 4;
+                    cycleTicks += s;
+                }
+                rListOffset <<= 1;
+            }
+        } else { // STMIA
+            cycleTicks += 2 * n;
+            for(uint8_t i = 0; i < 8; i++) {
+                if(instruction & rListOffset) {
+                    address -= 4;
+                    storeValue(getArrayIndex(i), address);
+                    if(i > 0)
+                        cycleTicks += s;
+                }
+                rListOffset <<= 1;
+            }
+        }
+    }
+    setArrayIndex(rb, address);
+    pc+=2;
+}
+
+void ARM7TDMI::THUMBconditionalBranch(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Conditional Branch=",pc);
+    #endif
+    setSNCycles(16);
+    int16_t offset = static_cast<int8_t>(instruction & 0xFF) * 2 + 4;
+    bool condMet = false;
+
+    cycleTicks = 2*s + n;
+    condMet = checkCond((instruction & 0xF00) << 20);
+    if(condMet)
+        pc += offset;
+    else
+        cycleTicks = s;
 
     pc+=2;
+}
+void ARM7TDMI::THUMBunconditionalBranch(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Unconditional Branch=",pc);
+    #endif
+    setSNCycles(16);
+    cycleTicks = 2*s + n;
+    int16_t offset = (static_cast<int16_t>(instruction & 0x7FF) << 5) >> 4;
+    pc += offset;
+    pc+=2;
+}
+void ARM7TDMI::THUMBlongBranchWithLink(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%X Long Branch With Link=",pc);
+    #endif
+    setSNCycles(16);
+    int32_t offset = instruction & 0x7FF;
+    
+    if(instruction & 0x800) { // instr 2
+        cycleTicks = 2*s+n;
+        uint32_t oldPC = (pc + 2) | 1;
+        pc=getArrayIndex(14)+(offset << 1);
+        setArrayIndex(14,oldPC);
+    } else { // instr 1
+        cycleTicks = s;
+        offset = (offset << 21) >> 9;
+        setArrayIndex(14,pc+4+offset);
+    }
+
+    pc+=2;
+}
+void ARM7TDMI::THUMBsoftwareInterrupt(uint16_t instruction) {
+    #if defined(PRINT_INSTR)
+        printf("at pc=%XTHUMB Software Interrupt=",pc);
+    #endif
+    setSNCycles(16);
+    cycleTicks = 2*s + n;
+    handleException(SoftwareInterrupt,2,Supervisor);
 }

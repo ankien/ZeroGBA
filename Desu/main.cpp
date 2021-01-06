@@ -52,7 +52,7 @@ void runProgram(char* fileName) {
             return;
         } else { // GBA interpreter
             gba.arm7tdmi->fillARM();
-            //gba.arm7tdmi->fillTHUMB();
+            gba.arm7tdmi->fillTHUMB();
 
             while(true) {
                 

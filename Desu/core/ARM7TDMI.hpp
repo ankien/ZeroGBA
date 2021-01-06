@@ -130,6 +130,11 @@ struct ARM7TDMI {
 
     void THUMBpushPopRegisters(uint16_t);
     void THUMBmultipleLoadStore(uint16_t);
+
+    void THUMBconditionalBranch(uint16_t);
+    void THUMBunconditionalBranch(uint16_t);
+    void THUMBlongBranchWithLink(uint16_t);
+    void THUMBsoftwareInterrupt(uint16_t);
 };
 
 // Bits 27-20 + 7-4
