@@ -42,11 +42,13 @@ void ARM7TDMI::fillTHUMB() {
             thumbTable[i] = &ARM7TDMI::THUMBsoftwareInterrupt;
         else if((i & 0b11111111) == 0b10110000)
             thumbTable[i] = &ARM7TDMI::THUMBaddOffsetToSP;
+        else if((i & 0b11111100) == 0b01000000)
+            thumbTable[i] = &ARM7TDMI::THUMBaluOperations;
         else if((i & 0b11111100) == 0b01000100)
             thumbTable[i] = &ARM7TDMI::THUMBhiRegOpsBranchEx;
         else if((i & 0b11110110) == 0b10110100)
             thumbTable[i] = &ARM7TDMI::THUMBpushPopRegisters;
-        else if((i & 0b11111000) == 0b11110000)
+        else if((i & 0b11110000) == 0b11110000)
             thumbTable[i] = &ARM7TDMI::THUMBlongBranchWithLink;
         else if((i & 0b11111000) == 0b11100000)
             thumbTable[i] = &ARM7TDMI::THUMBunconditionalBranch;
@@ -528,6 +530,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint32_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
+    bool pcIsRn = rn == 15;
 
     setSNCycles(32);
 
@@ -543,12 +546,12 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                 case 0: // register operand w/ immediate shift
                 {
                     uint8_t Is = (instruction & 0xF80) >> 7;
-                    if((rn == 15) || (rm == 15))
+                    if(pcIsRn || (rm == 15))
                         pc+=8;
 
                     op2 = ALUshift(getArrayIndex(rm),Is,shiftType,1);
 
-                    if((rn == 15) || (rm == 15))
+                    if(pcIsRn || (rm == 15))
                         pc-=8;
                     break;
                 }
@@ -585,8 +588,11 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         s = 0;
     }    
 
+    if(pcIsRn)
+        rn = pc + 8;
+    else
+        rn = getArrayIndex(rn);
     // good tip to remember: signed and unsigned integer ops produce the same binary
-    rn = getArrayIndex(rn);
     uint32_t result;
     switch(opcode) { // could optimize this since we don't need the actual opcode value
         case 0x0: // AND
@@ -849,7 +855,6 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     setArrayIndex( rd, readWordRotate(address));
                     break;
                 default:
-                    int flug = (*systemMemory)[address];
                     setArrayIndex( rd, (*systemMemory)[address]);
             }
     }
@@ -1242,7 +1247,7 @@ void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
 }
 void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
     #if defined(PRINT_INSTR)
-        printf("at pc=%X Move Shifted Reg=",pc);
+        printf("at pc=%X Add Subtract=",pc);
     #endif
     setSNCycles(16);
     cycleTicks = s;
@@ -1398,7 +1403,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
         }
         case 0xE: // BIC
             cycleTicks = s;
-            result = rd & (~rs);
+            result = rdValue & (~rs);
             setArrayIndex(rd,result);
             break;
         case 0xF: // MVN
@@ -1473,7 +1478,7 @@ void ARM7TDMI::THUMBloadPCRelative(uint16_t instruction) {
     #endif
     setSNCycles(16);
     cycleTicks=s + n + 1;
-    setArrayIndex((instruction & 0x700) >> 8,readWord((pc+4) & ~2) + (instruction & 0xFF) * 4);
+    setArrayIndex((instruction & 0x700) >> 8,readWord(((pc+4) & ~2) + (instruction & 0xFF) * 4));
     pc+=2;
 }
 void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
@@ -1741,8 +1746,6 @@ void ARM7TDMI::THUMBconditionalBranch(uint16_t instruction) {
         pc += offset;
     else
         cycleTicks = s;
-
-    pc+=2;
 }
 void ARM7TDMI::THUMBunconditionalBranch(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1752,7 +1755,6 @@ void ARM7TDMI::THUMBunconditionalBranch(uint16_t instruction) {
     cycleTicks = 2*s + n;
     int16_t offset = (static_cast<int16_t>(instruction & 0x7FF) << 5) >> 4;
     pc += offset;
-    pc+=2;
 }
 void ARM7TDMI::THUMBlongBranchWithLink(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1760,8 +1762,9 @@ void ARM7TDMI::THUMBlongBranchWithLink(uint16_t instruction) {
     #endif
     setSNCycles(16);
     int32_t offset = instruction & 0x7FF;
+    bool instrTwo = instruction & 0x800;
     
-    if(instruction & 0x800) { // instr 2
+    if(instrTwo) { // instr 2
         cycleTicks = 2*s+n;
         uint32_t oldPC = (pc + 2) | 1;
         pc=getArrayIndex(14)+(offset << 1);
@@ -1771,8 +1774,9 @@ void ARM7TDMI::THUMBlongBranchWithLink(uint16_t instruction) {
         offset = (offset << 21) >> 9;
         setArrayIndex(14,pc+4+offset);
     }
-
-    pc+=2;
+    
+    if(!instrTwo)
+        pc+=2;
 }
 void ARM7TDMI::THUMBsoftwareInterrupt(uint16_t instruction) {
     #if defined(PRINT_INSTR)

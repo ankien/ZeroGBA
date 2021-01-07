@@ -8,7 +8,7 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 // file logging is faster but has limitations
-//#define PRINT_INSTR
+#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -303,7 +303,7 @@ inline uint32_t ARM7TDMI::subCarry(uint32_t op1, uint32_t op2, bool setFlags) {
 inline uint32_t ARM7TDMI::add(uint32_t op1, uint32_t op2, bool setFlags) {
     uint32_t result = op1 + op2;
     if(s) {
-        carryFlag = (*reinterpret_cast<uint64_t*>(&op1) + op2) > 0xFFFFFFFF;
+        carryFlag = (static_cast<uint64_t>(op1) + op2) > 0xFFFFFFFF;
         op1 >>= 31; op2 >>= 31;
         overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1;
     }
@@ -312,7 +312,7 @@ inline uint32_t ARM7TDMI::add(uint32_t op1, uint32_t op2, bool setFlags) {
 inline uint32_t ARM7TDMI::addCarry(uint32_t op1, uint32_t op2, bool setFlags){
     uint32_t result = op1 + op2 + carryFlag;
     if(setFlags) {
-        carryFlag = (*reinterpret_cast<uint64_t*>(&op1) + op2 + carryFlag) > 0xFFFFFFFF;
+        carryFlag = (static_cast<uint64_t>(op1) + op2 + carryFlag) > 0xFFFFFFFF;
         op1 >>= 31; op2 >>= 31;
         overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1; // todo: check if overflow calc for carry opcodes are correct
     }

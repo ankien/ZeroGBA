@@ -16,7 +16,7 @@ GBA::GBA() {
     arm7tdmi->systemMemory = memory;
     // skip the bios, todo: implement everything in order to load it correctly
     arm7tdmi->pc = 0x8000000;
-    arm7tdmi->setModeArrayIndex(arm7tdmi->User,'S',0x03007F00);
+    arm7tdmi->setModeArrayIndex(arm7tdmi->System,'S',0x03007F00);
     arm7tdmi->setModeArrayIndex(arm7tdmi->IRQ,'S',0x03007FA0);
     arm7tdmi->setModeArrayIndex(arm7tdmi->Supervisor,'S',0x3007FE0);
     arm7tdmi->setModeArrayIndex(arm7tdmi->System,14,0x6000001F);
