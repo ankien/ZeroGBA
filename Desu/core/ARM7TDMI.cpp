@@ -496,6 +496,7 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     if(instruction & 0x1000000)
         setArrayIndex(14,pc+4);
     pc += 8 + signedOffset;
+    pc &= ~2;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -510,6 +511,7 @@ void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
         rn--;
     }
     pc = rn;
+    pc &= ~2;
 }
 void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1298,14 +1300,14 @@ void ARM7TDMI::THUMBmoveCompareAddSubtract(uint16_t instruction) {
             setArrayIndex(rd,result);
             break;
         case 0x0800: // cmp
-            result = sub(rd,nn,s);
+            result = sub(getArrayIndex(rd),nn,s);
             break;
         case 0x1000: // add
-            result = add(rd,nn,s);
+            result = add(getArrayIndex(rd),nn,s);
             setArrayIndex(rd,result);
             break;
         case 0x1800: // sub
-            result = sub(rd,nn,s);
+            result = sub(getArrayIndex(rd),nn,s);
             setArrayIndex(rd,result);
             break;
     }
@@ -1443,7 +1445,7 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
         }
     } else {
         if(rs == 15)
-            rsValue+=2;
+            rsValue+=4;
     }
     
 
@@ -1462,13 +1464,14 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
             break;
         case 0x300: // BX
             cycleTicks+=2*s+n;
-            if(!(rsValue & 1))
+            if(rsValue & 1)
                 state = 0;
             setArrayIndex(15,rsValue);
     }
 
-    pc+=2;
-    if((opcode == 0x300) && pc == 15)
+    if(opcode != 0x300)
+        pc+=2;
+    else
         pc &= ~2;
 }
 
@@ -1719,8 +1722,8 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
             cycleTicks += 2 * n;
             for(uint8_t i = 0; i < 8; i++) {
                 if(instruction & rListOffset) {
-                    address -= 4;
                     storeValue(getArrayIndex(i), address);
+                    address += 4;
                     if(i > 0)
                         cycleTicks += s;
                 }
@@ -1744,8 +1747,10 @@ void ARM7TDMI::THUMBconditionalBranch(uint16_t instruction) {
     condMet = checkCond((instruction & 0xF00) << 20);
     if(condMet)
         pc += offset;
-    else
+    else {
         cycleTicks = s;
+        pc+=2;
+    }
 }
 void ARM7TDMI::THUMBunconditionalBranch(uint16_t instruction) {
     #if defined(PRINT_INSTR)

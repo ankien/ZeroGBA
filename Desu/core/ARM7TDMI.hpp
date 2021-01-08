@@ -8,7 +8,7 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 // file logging is faster but has limitations
-#define PRINT_INSTR
+//#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -47,8 +47,8 @@ struct ARM7TDMI {
             irqDisable; // 1 : 0 = enable, 1 = disable
     uint32_t reserved; // 19 : never used?
     bool stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
-         overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's compliment, set bit) 
-         carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, (AKA unsigned overflow flag), for arithmetic ops, 1 if overflow in result of 32-bit register
+         overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's complement, set bit) 
+         carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, (AKA unsigned overflow flag, but not in the case of sub!)
          zeroFlag, // Z, 1 : 0 = not zero, 1 = zero
          signFlag; // N, 1 : 0 = not signed, 1 = signed (31 bit is filled)
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
@@ -285,7 +285,7 @@ inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t 
 inline uint32_t ARM7TDMI::sub(uint32_t op1, uint32_t op2, bool setFlags) {
     uint32_t result = op1 - op2;
     if(setFlags) {
-        carryFlag = op1 < op2;
+        carryFlag = op1 >= op2;
         op1 >>= 31; op2 >>= 31;
         overflowFlag = (op1 ^ op2) ? (result >> 31) ^ op1 : 0; // if rn and op2 bits 31 are diff, check for overflow
     }
@@ -294,7 +294,7 @@ inline uint32_t ARM7TDMI::sub(uint32_t op1, uint32_t op2, bool setFlags) {
 inline uint32_t ARM7TDMI::subCarry(uint32_t op1, uint32_t op2, bool setFlags) {
     uint32_t result = op1 - op2 + carryFlag - 1;
     if(setFlags) {
-        carryFlag = op1 < (op2 + carryFlag - 1);
+        carryFlag = op1 > (op2 + carryFlag - 1);
         op1 >>= 31; op2 >>= 31;
         overflowFlag = (op1 ^ op2) ? (result >> 31) ^ op1 : 0;
     }
