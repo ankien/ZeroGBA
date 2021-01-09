@@ -496,7 +496,6 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     if(instruction & 0x1000000)
         setArrayIndex(14,pc+4);
     pc += 8 + signedOffset;
-    pc &= ~2;
 }
 void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -511,7 +510,6 @@ void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
         rn--;
     }
     pc = rn;
-    pc &= ~2;
 }
 void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1240,7 +1238,7 @@ void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
             setArrayIndex(rd,ALUshift(rs,offset,1,1));
             break;
         case 0x1000: // ASR
-            setArrayIndex(rd,ALUshift(rs,offset,0x10,1));
+            setArrayIndex(rd,ALUshift(rs,offset,0b10,1));
             break;
     }
 
@@ -1254,7 +1252,7 @@ void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
     setSNCycles(16);
     cycleTicks = s;
     uint32_t rs = getArrayIndex((instruction & 0x38) >> 3);
-    uint8_t rd = instruction & 0x3;
+    uint8_t rd = instruction & 0x7;
 
     uint32_t result;
     switch(instruction & 0x600) {
@@ -1321,7 +1319,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
     #endif
     setSNCycles(16);
     uint32_t rs = getArrayIndex((instruction & 0x38) >> 3);
-    uint8_t rd = instruction & 0x3;
+    uint8_t rd = instruction & 0x7;
     uint32_t rdValue = getArrayIndex(rd);
 
     uint32_t result;
@@ -1464,15 +1462,13 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
             break;
         case 0x300: // BX
             cycleTicks+=2*s+n;
-            if(rsValue & 1)
+            if(!(rsValue & 1))
                 state = 0;
             setArrayIndex(15,rsValue);
     }
 
     if(opcode != 0x300)
         pc+=2;
-    else
-        pc &= ~2;
 }
 
 void ARM7TDMI::THUMBloadPCRelative(uint16_t instruction) {

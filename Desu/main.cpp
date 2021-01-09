@@ -62,6 +62,11 @@ void runProgram(char* fileName) {
                     else
                         gba.interpretARM();
 
+                    if(gba.arm7tdmi->state)
+                        gba.arm7tdmi->pc &= ~1;
+                    else
+                        gba.arm7tdmi->pc &= ~2;
+
                     if((gba.cyclesSinceHBlank >= 960) && (gba.cyclesPassed <= 197120)) { // scan and draw line from framebuffer
                         gba.lcd->fetchScanline(); // hblank then prep next line
                         gba.cyclesSinceHBlank -= 1232; // stub hblank
