@@ -8,7 +8,7 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 // file logging is faster but has limitations
-#define PRINT_INSTR
+//#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -40,7 +40,7 @@ struct ARM7TDMI {
     uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und - SP
     uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und - LR
     uint32_t pc; // R15
-    // CPSR bitfield implementation
+    // CPSR bitfield implementation, least significant bit to most
     uint8_t mode; // 5 : see enum modes
     bool    state, // 1 : 0 = ARM, 1 = THUMB
             fiqDisable, // 1 : 0 = enable, 1 = disable

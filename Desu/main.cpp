@@ -58,9 +58,10 @@ void runProgram(char* fileName) {
                 
                 while(gba.cyclesPassed < 280896) {
                     // for debug breakpoints
-                    //if(gba.arm7tdmi->pc == 0x080002FE)
-                        //printf("Hello! I am a culprit instruction.\n");
-
+                    if(gba.arm7tdmi->pc == 0x08031424)
+                        printf("Hello! I am a culprit instruction.\n");
+                    uint32_t oldPC = gba.arm7tdmi->pc;
+                    
                     if(gba.arm7tdmi->state)
                         gba.interpretTHUMB();
                     else

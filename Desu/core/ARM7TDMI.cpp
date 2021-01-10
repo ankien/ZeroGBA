@@ -534,6 +534,15 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
 
     setSNCycles(32);
 
+    // forcefully set flags for certain opcodes
+    switch(opcode) {
+        case 0xA:
+        case 0xB:
+        case 0x9:
+        case 0x8:
+            s = 1;
+    }
+
     // shifting
     switch(I) {
 
@@ -549,7 +558,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     if(pcIsRn || (rm == 15))
                         pc+=8;
 
-                    op2 = ALUshift(getArrayIndex(rm),Is,shiftType,1);
+                    op2 = ALUshift(getArrayIndex(rm),Is,shiftType,s);
 
                     if(pcIsRn || (rm == 15))
                         pc-=8;
@@ -561,7 +570,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     uint8_t Rs = (instruction & 0xF00) >> 8;
                     if((rn == 15) || (rm == 15))
                         pc+=12;
-                    op2 = shift(getArrayIndex(rm),(uint8_t)getArrayIndex(Rs),shiftType);
+                    op2 = ALUshift(getArrayIndex(rm),(uint8_t)getArrayIndex(Rs),shiftType,s);
                     if((rn == 15) || (rm == 15))
                         pc-=12;
                 
@@ -573,7 +582,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         default: // immediate is second operand
             uint32_t Imm = instruction & 0xFF;
             uint8_t rotate = (instruction & 0xF00) >> 8;
-            op2 = shift(Imm,rotate*2,0b11);
+            op2 = ALUshift(Imm,rotate*2,0b11,s); // this should be ALUshift! but it's buggy for some reason
             break;
     }
 
