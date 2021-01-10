@@ -47,8 +47,10 @@ void LCD::fetchScanline() {
             case 3: // bitmap mode for still images
             {
                 uint16_t lineStart = VCOUNT * 240;
-                for(uint8_t i = 0; i < 240; i++)
-                    pixelBuffer[lineStart + i] = systemMemory->vram[(lineStart + i) * 2] | (systemMemory->vram[(lineStart + i) * 2 + 1] << 8);
+                for(uint8_t i = 0; i < 240; i++) {
+                    uint32_t vramIndex = (lineStart + i) * 2;
+                    pixelBuffer[lineStart + i] = systemMemory->vram[vramIndex] | (systemMemory->vram[vramIndex + 1] << 8);
+                }
                 break;
             }
             case 4: // bitmap mode

@@ -658,7 +658,8 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
 
     if(s)
         setZeroAndSign(result);
-    pc+=4;
+    if(rd != 15)
+        pc+=4;
 }
 void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -668,22 +669,22 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     cycleTicks = s;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
     bool s = instruction & 0x100000;
-    uint64_t rd = (instruction & 0xF0000) >> 16;
-    uint64_t rn = (instruction & 0xF000) >> 12;
-    uint64_t rs = (instruction & 0xF00) >> 8;
-    uint64_t rm = instruction & 0xF;
+    uint8_t rd = (instruction & 0xF0000) >> 16;
+    uint8_t rn = (instruction & 0xF000) >> 12;
+    uint8_t rs = (instruction & 0xF00) >> 8;
+    uint8_t rm = instruction & 0xF;
 
-    rd = getArrayIndex(rd); // hi
-    rn = getArrayIndex(rn); // lo
-    rs = getArrayIndex(rs);
-    rm = getArrayIndex(rm);
+    uint64_t rdValue = getArrayIndex(rd); // hi
+    uint64_t rnValue = getArrayIndex(rn); // lo
+    uint64_t rsValue = getArrayIndex(rs);
+    uint64_t rmValue = getArrayIndex(rm);
 
     uint8_t m;
-    if(((rs >> 8) == 0xFFFFFF) || ((rs >> 8) == 0))
+    if(((rsValue >> 8) == 0xFFFFFF) || ((rsValue >> 8) == 0))
         m = 1;
-    else if(((rs >> 16) == 0xFFFF) || ((rs >> 16) == 0))
+    else if(((rsValue >> 16) == 0xFFFF) || ((rsValue >> 16) == 0))
         m = 2;
-    else if(((rs >> 24) == 0xFF) || ((rs >> 24) == 0))
+    else if(((rsValue >> 24) == 0xFF) || ((rsValue >> 24) == 0))
         m = 3;
     else
         m = 4;
@@ -692,36 +693,36 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     switch(opcode) {
         case 0b0000: // MUL
             cycleTicks += m;
-            result = rm * rs;
+            result = rmValue * rsValue;
             setArrayIndex(rd,result);
             break;
         case 0b0001: // MLA
             cycleTicks += m + 1;
-            result = (rm * rs) + rn;
+            result = (rmValue * rsValue) + rnValue;
             setArrayIndex(rd,result);
             break;
         case 0b0100: // UMULL
             cycleTicks += m + 1;
-            result = rm * rs;
+            result = rmValue * rsValue;
             setArrayIndex(rd,result >> 32);
             setArrayIndex(rn,result);
             break;
         case 0b0101: // UMLAL
             cycleTicks += m + 2;
-            result = (rm * rs) + ((rd << 32) | rn);
+            result = (rmValue * rsValue) + ((rdValue << 32) | rnValue);
             setArrayIndex(rd,result >> 32);
             setArrayIndex(rn,result);
             break;
         case 0b0110: // SMULL
             cycleTicks += m + 1;
-            result = rm * rs;
+            result = rmValue * rsValue;
             setArrayIndex(rd,result >> 32);
             setArrayIndex(rn,result);
             break;
         case 0b0111: // SMLAL
             cycleTicks += m + 2;
-            int64_t hiLo = ((rd << 32) | rn);
-            result = (rm * rs) + hiLo;
+            int64_t hiLo = ((rdValue << 32) | rnValue);
+            result = (rmValue * rsValue) + hiLo;
             setArrayIndex(rd,result >> 32);
             setArrayIndex(rn,result);
             break;
@@ -730,7 +731,8 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     if(s)
         setZeroAndSign(result);
 
-    pc+=4;
+    if(rd != 15)
+        pc+=4;
 }
 
 void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
@@ -740,57 +742,55 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
     setSNCycles(32);
     cycleTicks = s;
     bool psr = instruction & 0x400000;
+    bool msr = instruction & 0x200000;
 
-    switch(instruction & 0x200000) {
-        case 0: // MRS
-        {
-            uint8_t rd = (instruction & 0xF000) >> 12;
-            switch(mode) {
-                case 16:
-                case 31:
-                    if(!psr)
-                        setArrayIndex(rd,getCPSR());
-                    break;
-                default:
-                    switch(psr) {
-                        case 0:
-                            setArrayIndex(rd,getCPSR());
-                            break;
-                        default:
-                            setArrayIndex(rd,getArrayIndex('S'));
-                    }
-            } break;
+    if(msr) {
+        uint32_t op;
+        switch(instruction & 0x2000000) {
+            case 0: // Reg
+                op = getArrayIndex(instruction & 0xF);
+                break;
+            default: // Imm
+                uint32_t Imm = instruction & 0xF;
+                uint8_t rotate = (instruction & 0xF00) >> 8;
+                op = shift(Imm, rotate * 2, 0b11);
         }
-        default: // MSR
-            uint32_t op;
-            switch(instruction & 0x2000000) {
-                case 0: // Reg
-                    op = getArrayIndex(instruction & 0xF);
-                    break;
-                default: // Imm
-                    uint32_t Imm = instruction & 0xF;
-                    uint8_t rotate = (instruction & 0xF00) >> 8;
-                    op = shift(Imm,rotate*2,0b11);
-            }
 
-            if(!(instruction & 0x80000))
-                op &= 0xFFFFFF;
-            if(!(instruction & 0x40000))
-                op &= 0xFF00FFFF;
-            if(!(instruction & 0x20000))
-                op &= 0xFFFF0FFF;
-            if(!(instruction & 0x10000))
-                op &= 0xFFFFF000;
+        if(!(instruction & 0x80000))
+            op &= 0xFFFFFF;
+        if(!(instruction & 0x40000))
+            op &= 0xFF00FFFF;
+        if(!(instruction & 0x20000))
+            op &= 0xFFFF0FFF;
+        if(!(instruction & 0x10000))
+            op &= 0xFFFFF000;
 
-            switch(psr) {
-                case 0:
-                    setCPSR(op);
-                    break;
-                default:
-                    setArrayIndex('S',op);
-            }
+        switch(psr) {
+            case 0:
+                setCPSR(op);
+                break;
+            default:
+                setArrayIndex('S', op);
+        }
+    } else {
+        uint8_t rd = (instruction & 0xF000) >> 12;
+        switch(mode) {
+            case 16:
+            case 31:
+                if(!psr)
+                    setArrayIndex(rd, getCPSR());
+                break;
+            default:
+                switch(psr) {
+                    case 0:
+                        setArrayIndex(rd, getCPSR());
+                        break;
+                    default:
+                        setArrayIndex(rd, getArrayIndex('S'));
+                }
+        }
     }
-
+    
     pc+=4;
 }
 
@@ -803,6 +803,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
     bool b = instruction & 0x400000;
+    bool ldr = instruction & 0x100000;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getArrayIndex(rn);
@@ -832,7 +833,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
         }
     }
 
-    switch(instruction & 0x100000) {
+    switch(ldr) {
         case 0: // STR
             cycleTicks = 2*n;
             switch(b) {
@@ -852,10 +853,10 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                 cycleTicks = s + n + 1;
             switch(b) {
                 case 0:
-                    setArrayIndex( rd, readWordRotate(address));
+                    setArrayIndex(rd, readWordRotate(address));
                     break;
                 default:
-                    setArrayIndex( rd, (*systemMemory)[address]);
+                    setArrayIndex(rd, (*systemMemory)[address]);
             }
     }
 
@@ -872,7 +873,8 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
     if((instruction & 0x200000) || !p) // write-back address
         setArrayIndex(rn,address);
 
-    pc+=4;
+    if(rd != 15)
+        pc+=4;
 }
 void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -967,7 +969,6 @@ void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
     }
 
     setArrayIndex(rd,readHalfWordRotate(address));
-    uint16_t fug = readHalfWord(address);
 
     if(!p) {
         switch(u) {
@@ -982,7 +983,8 @@ void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
     if((instruction & 0x200000) || !p) // write-back address
         setArrayIndex(rn,address);
 
-    pc+=4;
+    if(rd != 15)
+        pc+=4;
 }
 void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1037,7 +1039,8 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
     if((instruction & 0x200000) || !p) // write-back address
         setArrayIndex(rn,address);
 
-    pc+=4;
+    if(rd != 15)
+        pc+=4;
 }
 void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1092,7 +1095,8 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
     if((instruction & 0x200000) || !p) // write-back address
         setArrayIndex(rn,address);
 
-    pc+=4;
+    if(rd != 15)
+        pc+=4;
 }
 void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1108,6 +1112,7 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint16_t rListBinary = instruction & 0xFFFF;
     uint32_t address = getArrayIndex(rn);
     uint16_t rnInList = rListBinary & (1 << rn);
+    bool pcInList = 0;
     uint8_t oldMode = 0;
     int8_t offset;
     std::vector<uint8_t> rListVector;
@@ -1121,8 +1126,11 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
 
     uint16_t bitPos = 1;
     for(uint8_t i = 0; i < 16; i++) {
-        if(rListBinary & bitPos)
+        if(rListBinary & bitPos) {
             rListVector.emplace_back(i);
+            if(i == 15)
+                pcInList = 1;
+        }
         bitPos <<= 1;
     }
 
@@ -1193,7 +1201,8 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     if(w && !(l && rnInList)) 
         setArrayIndex(rn,address);
     
-    pc+=4;
+    if(!pcInList)
+        pc+=4;
 }
 void ARM7TDMI::ARMswap(uint32_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1216,7 +1225,8 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
         storeValue(getArrayIndex(rm),rnValue);
     }
 
-    pc+=4;
+    if(rd != 15)
+        pc+=4;
 }
 
 void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
@@ -1243,7 +1253,8 @@ void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
     }
 
     setZeroAndSign(getArrayIndex(rd));
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1280,7 +1291,8 @@ void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
     }
 
     setZeroAndSign(result);
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBmoveCompareAddSubtract(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1311,7 +1323,8 @@ void ARM7TDMI::THUMBmoveCompareAddSubtract(uint16_t instruction) {
     }
 
     setZeroAndSign(result);
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1413,7 +1426,8 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
     }
 
     setZeroAndSign(result);
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1467,7 +1481,7 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
             setArrayIndex(15,rsValue);
     }
 
-    if(opcode != 0x300)
+    if((opcode != 0x300) && (rd != 15))
         pc+=2;
 }
 
@@ -1477,8 +1491,10 @@ void ARM7TDMI::THUMBloadPCRelative(uint16_t instruction) {
     #endif
     setSNCycles(16);
     cycleTicks=s + n + 1;
-    setArrayIndex((instruction & 0x700) >> 8,readWord(((pc+4) & ~2) + (instruction & 0xFF) * 4));
-    pc+=2;
+    uint8_t rd = (instruction & 0x700) >> 8;
+    setArrayIndex(rd,readWord(((pc+4) & ~2) + (instruction & 0xFF) * 4));
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1509,7 +1525,8 @@ void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
             setArrayIndex(rd,(*systemMemory)[rb+ro]);
     }
 
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1539,7 +1556,8 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
             setArrayIndex(rd,static_cast<int32_t>(static_cast<int16_t>(readHalfWord(rb+ro))));
     }
 
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBloadStoreImmOffset(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1569,7 +1587,8 @@ void ARM7TDMI::THUMBloadStoreImmOffset(uint16_t instruction) {
             break;
     }
 
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBloadStoreHalfword(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1591,7 +1610,8 @@ void ARM7TDMI::THUMBloadStoreHalfword(uint16_t instruction) {
             break;
     }
 
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 void ARM7TDMI::THUMBloadStoreSPRelative(uint16_t instruction) {
     #if defined(PRINT_INSTR)
@@ -1609,7 +1629,8 @@ void ARM7TDMI::THUMBloadStoreSPRelative(uint16_t instruction) {
         storeValue(getArrayIndex(rd),getArrayIndex(13)+nn);
     }
 
-    pc+=2;
+    if(rd != 15)
+        pc+=2;
 }
 
 void ARM7TDMI::THUMBgetRelativeAddress(uint16_t instruction) {
@@ -1623,8 +1644,9 @@ void ARM7TDMI::THUMBgetRelativeAddress(uint16_t instruction) {
     if(instruction & 0x800) // ADD SP
         setArrayIndex(rd,getArrayIndex(13) + nn);
     else // ADD PC
-        setArrayIndex(rd,((pc+4) & ~2) + nn);;
-    pc+=2;
+        setArrayIndex(rd,((pc+4) & ~2) + nn);
+    if(rd != 15)
+        pc+=2;
 }
 
 void ARM7TDMI::THUMBaddOffsetToSP(uint16_t instruction) {
@@ -1648,12 +1670,15 @@ void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
     setSNCycles(16);
     cycleTicks = 0;
     uint8_t rListBinary = instruction & 0xFF;
-    uint8_t rListOffset = 1;
+    uint8_t rListOffset;
     bool pclrBit = instruction & 0x100;
+    bool pop = instruction & 0x800;
     uint32_t address = getArrayIndex(13);
 
-    if(instruction & 0x800) { // POP, AKA load from memory
+    if(pop) { // POP, AKA load from memory
         cycleTicks += n + 1;
+
+        rListOffset = 1;
         for(uint8_t i = 0; i < 8; i++) {
             if(instruction & rListOffset) {
                 setArrayIndex(i,readWord(address));
@@ -1675,19 +1700,21 @@ void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
             storeValue(getArrayIndex(14),address);
         }
         
-        for(uint8_t i = 0; i < 8; i++) {
+        rListOffset = 0x80;
+        for(int8_t i = 7; i > -1; i--) {
             if(instruction & rListOffset) {
                 address-=4;
                 storeValue(getArrayIndex(i),address);
                 if(i > 0)
                     cycleTicks += s;
             }
-            rListOffset <<= 1;
+            rListOffset >>= 1;
         }
     }
 
     setArrayIndex(13,address);
-    pc+=2;
+    if(!pclrBit || !pop)
+        pc+=2;
 }
 void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
     #if defined(PRINT_INSTR)
