@@ -11,11 +11,7 @@
 
 // For windows subsystem compatibility
 // https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem?view=msvc-160
-/*
-int _stdcall WinMain (struct HINSTANCE__*,struct HINSTANCE__*,char*,int) {
-    return main (__argc, __argv);
-}
-*/
+//int _stdcall WinMain (struct HINSTANCE__*,struct HINSTANCE__*,char*,int) { return main (__argc, __argv); }
 
 struct {
     uint8_t jit : 1; // not implemented
@@ -57,11 +53,13 @@ void runProgram(char* fileName) {
             while(true) {
                 
                 while(gba.cyclesPassed < 280896) {
-                    // for debug breakpoints
-                    if(gba.arm7tdmi->pc == 0x08031424)
-                        printf("Hello! I am a culprit instruction.\n");
-                    uint32_t oldPC = gba.arm7tdmi->pc;
-                    
+                    // for debug breakpoints, 0x080313f4
+                    //if(gba.arm7tdmi->pc == 0x08031320)
+                        //printf("Hello! I am a culprit instruction.\n");
+                    //if(gba.arm7tdmi->reg[0] == 0x01A7E619)
+                        //printf("Hello! I am a culprit register.\n");
+                    uint32_t oldPC = gba.arm7tdmi->pc; // for debugging
+
                     if(gba.arm7tdmi->state)
                         gba.interpretTHUMB();
                     else

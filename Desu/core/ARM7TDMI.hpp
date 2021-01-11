@@ -8,7 +8,7 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 // file logging is faster but has limitations
-//#define PRINT_INSTR
+#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -81,7 +81,7 @@ struct ARM7TDMI {
     bool checkCond(uint32_t);
     // ALU Helpers: shift for registers, ALUshift affects carry flags
     uint32_t shift(uint32_t, uint8_t, uint8_t);
-    uint32_t ALUshift(uint32_t, uint8_t, uint8_t,bool);
+    uint32_t ALUshift(uint32_t, uint8_t, uint8_t,bool,bool);
     uint32_t sub(uint32_t,uint32_t,bool);
     uint32_t subCarry(uint32_t,uint32_t,bool);
     uint32_t add(uint32_t,uint32_t,bool);
@@ -235,51 +235,46 @@ inline uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shi
         case 0b01: // lsr
             return value >> shiftAmount;
         case 0b10: // asr
-            if(value & 0x80000000)
-                return (value >> shiftAmount) | (0xFFFFFFFF << shiftAmount);
-            return value >> shiftAmount;
+            return static_cast<int32_t>(value) >> shiftAmount;
         case 0b11: // ror
             uint32_t dupeVal = value >> (shiftAmount % 32);
             return dupeVal | (value << ((32 - shiftAmount) % 32));
     }
 }
-inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType, bool setFlags) {
+inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType, bool setFlags, bool registerShiftByImmediate) {
+    if((shiftAmount == 0) && registerShiftByImmediate)
+        shiftType = 0;
     switch(shiftType) {
         case 0b00: // lsl
-            if(shiftAmount == 0)
+            if((shiftAmount == 0) && registerShiftByImmediate)
                 return value;
             value <<= shiftAmount - 1;
             if(setFlags)
                 carryFlag = 0x80000000 & value;
             return value << 1; 
         case 0b01: // lsr
-            if(shiftAmount == 0) {
-                if(setFlags)
-                    carryFlag = value & 0x80000000;
-                return 0;
-            }
+            if(shiftAmount == 0)
+                return value;
             value >>= shiftAmount - 1;
             if(setFlags)
                 carryFlag = 1 & value;
             return value >> 1;
         case 0b10: // asr
             if(shiftAmount == 0)
-                shiftAmount = 32;
+                return value;
             if(setFlags)
-                carryFlag = 1 & (value >> (shiftAmount - 1));
-            if(value & 0x80000000)
-                return (value >> shiftAmount) | (0xFFFFFFFF << shiftAmount);
-            return value >> shiftAmount;
+                carryFlag = 1 & (static_cast<int32_t>(value) >> (shiftAmount - 1));
+            return static_cast<int32_t>(value) >> shiftAmount;
         case 0b11: // ror
-            {
+        {
             if(shiftAmount == 0)
-                shiftAmount = 1;
+                return value;
             uint32_t dupeVal = value >> (shiftAmount % 32);
             value = dupeVal | (value << ((32 - shiftAmount) % 32));
             if(setFlags)
                 carryFlag = value & 0x80000000;
             return value;
-            }
+        }
     }
 }
 inline uint32_t ARM7TDMI::sub(uint32_t op1, uint32_t op2, bool setFlags) {

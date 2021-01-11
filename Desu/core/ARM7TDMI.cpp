@@ -558,7 +558,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     if(pcIsRn || (rm == 15))
                         pc+=8;
 
-                    op2 = ALUshift(getArrayIndex(rm),Is,shiftType,s);
+                    op2 = ALUshift(getArrayIndex(rm),Is,shiftType,s,1);
 
                     if(pcIsRn || (rm == 15))
                         pc-=8;
@@ -570,7 +570,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                     uint8_t Rs = (instruction & 0xF00) >> 8;
                     if((rn == 15) || (rm == 15))
                         pc+=12;
-                    op2 = ALUshift(getArrayIndex(rm),(uint8_t)getArrayIndex(Rs),shiftType,s);
+                    op2 = ALUshift(getArrayIndex(rm),getArrayIndex(Rs) & 0xFF,shiftType,s,0);
                     if((rn == 15) || (rm == 15))
                         pc-=12;
                 
@@ -582,7 +582,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         default: // immediate is second operand
             uint32_t Imm = instruction & 0xFF;
             uint8_t rotate = (instruction & 0xF00) >> 8;
-            op2 = ALUshift(Imm,rotate*2,0b11,s); // this should be ALUshift! but it's buggy for some reason
+            op2 = ALUshift(Imm,rotate*2,0b11,s,0);
             break;
     }
 
@@ -762,7 +762,7 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
             default: // Imm
                 uint32_t Imm = instruction & 0xF;
                 uint8_t rotate = (instruction & 0xF00) >> 8;
-                op = shift(Imm, rotate * 2, 0b11);
+                op = ALUshift(Imm, rotate * 2, 0b11,1,0);
         }
 
         if(!(instruction & 0x80000))
@@ -828,7 +828,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
             uint8_t Is = (instruction & 0xF80) >> 7;
             uint8_t shiftType = (instruction & 0x60) >> 5;
             uint8_t rm = instruction & 0xF;
-            offset = ALUshift(getArrayIndex(rm),Is,shiftType,1);
+            offset = ALUshift(getArrayIndex(rm),Is,shiftType,1,1);
             
     }
 
@@ -1251,13 +1251,13 @@ void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
     rs = getArrayIndex(rs);
     switch(instruction & 0x1800) {
         case 0x0000: // LSL
-            setArrayIndex(rd,ALUshift(rs,offset,0,1));
+            setArrayIndex(rd,ALUshift(rs,offset,0,1,1));
             break;
         case 0x0800: // LSR
-            setArrayIndex(rd,ALUshift(rs,offset,1,1));
+            setArrayIndex(rd,ALUshift(rs,offset,1,1,1));
             break;
         case 0x1000: // ASR
-            setArrayIndex(rd,ALUshift(rs,offset,0b10,1));
+            setArrayIndex(rd,ALUshift(rs,offset,0b10,1,1));
             break;
     }
 
@@ -1358,17 +1358,17 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
             break;
         case 0x2: // LSL
             cycleTicks = s + 1;
-            result = ALUshift(rdValue,rs & 0xFF,0,1);
+            result = ALUshift(rdValue,rs & 0xFF,0,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x3: // LSR
             cycleTicks = s + 1;
-            result = ALUshift(rdValue,rs & 0xFF,1,1);
+            result = ALUshift(rdValue,rs & 0xFF,1,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x4: // ASR
             cycleTicks = s + 1;
-            result = ALUshift(rdValue,rs & 0xFF,2,1);
+            result = ALUshift(rdValue,rs & 0xFF,2,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x5: // ADC
@@ -1383,7 +1383,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
             break;
         case 0x7: // ROR
             cycleTicks = s + 1;
-            result = ALUshift(rdValue,rs & 0xFF,3,1);
+            result = ALUshift(rdValue,rs & 0xFF,3,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x8: // TST
