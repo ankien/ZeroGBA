@@ -504,7 +504,10 @@ void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     setSNCycles(32);
     cycleTicks = (2*s) + n;
     uint32_t rn = instruction & 0xF;
-    rn = getArrayIndex(rn);
+    if(rn == 15)
+        rn = pc+8;
+    else
+        rn = getArrayIndex(rn);
     if(rn & 1) {
         state = 1;
         rn--;
@@ -517,7 +520,8 @@ void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
     #endif
     setSNCycles(32);
     cycleTicks = (2*s) + n;
-    handleException(SoftwareInterrupt,4,Supervisor);
+    //handleException(SoftwareInterrupt,4,Supervisor); Stubbed for now
+    pc+=4;
 }
 
 void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
@@ -1291,11 +1295,11 @@ void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
             break;
         }
         case 0x400: // add imm
-            result = add(rs,instruction & 0xFF,true);
+            result = add(rs,(instruction & 0x1C0) >> 6,true);
             setArrayIndex(rd,result);
             break;
         case 0x600: // sub imm
-            result = sub(rs,instruction & 0xFF,true);
+            result = sub(rs,(instruction & 0x1C0) >> 6,true);
             setArrayIndex(rd,result);
     }
 
@@ -1373,7 +1377,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
             break;
         case 0x5: // ADC
             cycleTicks = s;
-            result = addCarry(rdValue,rs,s);
+            result = addCarry(rdValue,rs,1);
             setArrayIndex(rd,result);
             break;
         case 0x6: // SBC
@@ -1397,11 +1401,11 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
             break;
         case 0xA: // CMP
             cycleTicks = s;
-            result = sub(rdValue,rs,s);
+            result = sub(rdValue,rs,1);
             break;
         case 0xB: // CMN
             cycleTicks = s;
-            result = add(rdValue,rs,s);
+            result = add(rdValue,rs,1);
             break;
         case 0xC: // ORR
             cycleTicks = s;
@@ -1611,11 +1615,11 @@ void ARM7TDMI::THUMBloadStoreHalfword(uint16_t instruction) {
     switch(instruction & 0x800) {
         case 0x000: // STRH
             cycleTicks = 2*n;
-            setArrayIndex(rd,readHalfWordRotate(rb+nn));
+            storeValue(static_cast<uint16_t>(getArrayIndex(rd)),rb+nn);
             break;
         case 0x800: // LDRH
             cycleTicks = s + n + 1;
-            storeValue(static_cast<uint16_t>(getArrayIndex(rd)),rb+nn);
+            setArrayIndex(rd,readHalfWordRotate(rb+nn));
             break;
     }
 
@@ -1790,8 +1794,8 @@ void ARM7TDMI::THUMBunconditionalBranch(uint16_t instruction) {
     #endif
     setSNCycles(16);
     cycleTicks = 2*s + n;
-    int16_t offset = (static_cast<int16_t>(instruction & 0x7FF) << 5) >> 4;
-    pc += offset;
+    int16_t offset = static_cast<int16_t>((instruction & 0x7FF) << 5) >> 4;
+    pc += 4 + offset;
 }
 void ARM7TDMI::THUMBlongBranchWithLink(uint16_t instruction) {
     #if defined(PRINT_INSTR)

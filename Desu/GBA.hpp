@@ -12,6 +12,7 @@ struct GBA {
     int16_t cyclesSinceHBlank = 0;
 
     /// Hardware ///
+    // todo: convert these to namespaces because they are only declared once
     GBAMemory* memory;
     ARM7TDMI* arm7tdmi;
     // todo: eventually make ppu rendering, keypad, and apu dedicated to their own threads somehow

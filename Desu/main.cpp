@@ -53,8 +53,8 @@ void runProgram(char* fileName) {
             while(true) {
                 
                 while(gba.cyclesPassed < 280896) {
-                    // for debug breakpoints, 0x080313f4
-                    //if(gba.arm7tdmi->pc == 0x08031320)
+                    // for debug breakpoints
+                    //if(gba.arm7tdmi->pc == 0x080004D0)
                         //printf("Hello! I am a culprit instruction.\n");
                     //if(gba.arm7tdmi->reg[0] == 0x01A7E619)
                         //printf("Hello! I am a culprit register.\n");
@@ -71,13 +71,19 @@ void runProgram(char* fileName) {
                     else
                         gba.arm7tdmi->pc &= ~2;
 
-                    if((gba.cyclesSinceHBlank >= 960) && (gba.cyclesPassed <= 197120)) { // scan and draw line from framebuffer
-                        gba.lcd->fetchScanline(); // hblank then prep next line
-                        gba.cyclesSinceHBlank -= 1232; // stub hblank
+                    if((gba.cyclesSinceHBlank >= 960) && !(gba.memory->IORegisters[4] & 0x2)) { // scan and draw line from framebuffer
+                        gba.lcd->fetchScanline(); // draw visible line
+                        gba.memory->IORegisters[4] |= 0x2; // turn on hblank
+                    } else if(gba.cyclesSinceHBlank >= 1232) {
+                        gba.memory->IORegisters[4] &= ~0x2; // turn off hblank
+                        gba.cyclesSinceHBlank -= 1232;
                     }
-                }
 
-                gba.memory->IORegisters[4] |= 0x1; // set vblank flag
+                    if(gba.cyclesPassed >= 197120)
+                        gba.memory->IORegisters[4] |= 0x1; // set vblank
+                    else
+                        gba.memory->IORegisters[4] &= ~0x1;; // disable vblank
+                }
 
                 if(gba.cyclesPassed > 280896)
                     gba.cyclesPassed -= 280896;

@@ -8,7 +8,7 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 // file logging is faster but has limitations
-#define PRINT_INSTR
+//#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -48,7 +48,7 @@ struct ARM7TDMI {
     uint32_t reserved; // 19 : never used?
     bool stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
          overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's complement, set bit) 
-         carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, (AKA unsigned overflow flag, but not in the case of sub!)
+         carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, addition overflow is carry; sub underflow is borrow
          zeroFlag, // Z, 1 : 0 = not zero, 1 = zero
          signFlag; // N, 1 : 0 = not signed, 1 = signed (31 bit is filled)
     uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
@@ -237,8 +237,8 @@ inline uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shi
         case 0b10: // asr
             return static_cast<int32_t>(value) >> shiftAmount;
         case 0b11: // ror
-            uint32_t dupeVal = value >> (shiftAmount % 32);
-            return dupeVal | (value << ((32 - shiftAmount) % 32));
+            shiftAmount &= 0x1F;
+            return (value >> shiftAmount) | (value << (32 - shiftAmount));
     }
 }
 inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType, bool setFlags, bool registerShiftByImmediate) {
@@ -269,8 +269,8 @@ inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t 
         {
             if(shiftAmount == 0)
                 return value;
-            uint32_t dupeVal = value >> (shiftAmount % 32);
-            value = dupeVal | (value << ((32 - shiftAmount) % 32));
+            shiftAmount &= 0x1F;
+            value = (value >> shiftAmount) | (value << (32 - shiftAmount));
             if(setFlags)
                 carryFlag = value & 0x80000000;
             return value;
@@ -289,7 +289,7 @@ inline uint32_t ARM7TDMI::sub(uint32_t op1, uint32_t op2, bool setFlags) {
 inline uint32_t ARM7TDMI::subCarry(uint32_t op1, uint32_t op2, bool setFlags) {
     uint32_t result = op1 - op2 + carryFlag - 1;
     if(setFlags) {
-        carryFlag = op1 > (op2 + carryFlag - 1);
+        carryFlag = op1 >= (static_cast<uint64_t>(op2) - carryFlag + 1);
         op1 >>= 31; op2 >>= 31;
         overflowFlag = (op1 ^ op2) ? (result >> 31) ^ op1 : 0;
     }
@@ -307,7 +307,7 @@ inline uint32_t ARM7TDMI::add(uint32_t op1, uint32_t op2, bool setFlags) {
 inline uint32_t ARM7TDMI::addCarry(uint32_t op1, uint32_t op2, bool setFlags){
     uint32_t result = op1 + op2 + carryFlag;
     if(setFlags) {
-        carryFlag = result < op1;
+        carryFlag = result < (static_cast<uint64_t>(op1) + carryFlag);
         op1 >>= 31; op2 >>= 31;
         overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1; // todo: check if overflow calc for carry opcodes are correct
     }
