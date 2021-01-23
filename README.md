@@ -3,5 +3,3 @@ The long-term goal is to boot most commercial games with stable 60 fps framerate
 <h1>Current Progress</h1>
 <img src="/Desu/non-code/pandaBoot.png" width="700">
 Booted a Mode 3 test rom!
-<h3>Tests Passed</h3>
-<a href="https://github.com/jsmolka/gba-suite">gba-suite</a>: thumb.gba<br>
