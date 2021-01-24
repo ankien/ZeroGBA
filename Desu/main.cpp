@@ -1,8 +1,9 @@
 #include <cctype>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <filesystem>
-#include <Windows.h>
+#include <SDL.h>
 #include "GBA.hpp"
 
 // because SDL defines main for some reason
@@ -47,42 +48,42 @@ void runProgram(char* fileName) {
             // no implementation yet
             return;
         } else { // GBA interpreter
-            gba.arm7tdmi->fillARM();
-            gba.arm7tdmi->fillTHUMB();
+            gba.arm7tdmi.fillARM();
+            gba.arm7tdmi.fillTHUMB();
 
-            while(true) {
+            while(gba.keypad.running) {
                 
                 while(gba.cyclesPassed < 280896) {
                     // for debug breakpoints
-                    //if(gba.arm7tdmi->pc == 0x080004D0)
+                    //if(gba.arm7tdmi.pc == 0x080004D0)
                         //printf("Hello! I am a culprit instruction.\n");
-                    //if(gba.arm7tdmi->reg[0] == 0x01A7E619)
+                    //if(gba.arm7tdmi.reg[0] == 0x01A7E619)
                         //printf("Hello! I am a culprit register.\n");
-                    uint32_t oldPC = gba.arm7tdmi->pc; // for debugging
+                    uint32_t oldPC = gba.arm7tdmi.pc; // for debugging
 
-                    if(gba.arm7tdmi->state)
+                    if(gba.arm7tdmi.state)
                         gba.interpretTHUMB();
                     else
                         gba.interpretARM();
 
                     // align addresses
-                    if(gba.arm7tdmi->state)
-                        gba.arm7tdmi->pc &= ~1;
+                    if(gba.arm7tdmi.state)
+                        gba.arm7tdmi.pc &= ~1;
                     else
-                        gba.arm7tdmi->pc &= ~2;
+                        gba.arm7tdmi.pc &= ~2;
 
                     if((gba.cyclesSinceHBlank >= 960) && !(gba.memory->IORegisters[4] & 0x2)) { // scan and draw line from framebuffer
-                        gba.lcd->fetchScanline(); // draw visible line
+                        gba.lcd.fetchScanline(); // draw visible line
                         gba.memory->IORegisters[4] |= 0x2; // turn on hblank
                     } else if(gba.cyclesSinceHBlank >= 1232) {
-                        gba.memory->IORegisters[4] &= ~0x2; // turn off hblank
+                        gba.memory->IORegisters[4] ^= 0x2; // turn off hblank
                         gba.cyclesSinceHBlank -= 1232;
                     }
 
                     if(gba.cyclesPassed >= 197120)
                         gba.memory->IORegisters[4] |= 0x1; // set vblank
                     else
-                        gba.memory->IORegisters[4] &= ~0x1;; // disable vblank
+                        gba.memory->IORegisters[4] ^= 0x1;; // disable vblank
                 }
 
                 if(gba.cyclesPassed > 280896)
@@ -90,10 +91,13 @@ void runProgram(char* fileName) {
                 else
                     gba.cyclesPassed = 0;
 
-                gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system, todo: implement an event scheduler
-                gba.lcd->draw();
-                // modding isn't accurate on super slow computers but it'll do, todo: implement nanosecond accurate delay
-                Sleep(16 - ((gba.lcd->currMillseconds - gba.lcd->millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
+                gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system
+                gba.lcd.draw();
+
+                // Poll inputs
+                gba.keypad.pollInputs();
+
+                SDL_Delay(16 - ((gba.lcd.currMillseconds - gba.lcd.millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }
         }
 
@@ -102,7 +106,6 @@ void runProgram(char* fileName) {
 }
 
 int main(int argc, char* argv[]) {
-    //timeBeginPeriod(1); // enable for high resolution clock, I don't personally notice a difference
     if(parseArguments(argc,argv))
         runProgram(argv[argc - 1]);
     else

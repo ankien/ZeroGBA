@@ -12,49 +12,55 @@ GBA::GBA() {
     memory->gamePak = (uint8_t*)calloc(0x3000000,sizeof(uint8_t));
     memory->gPakSram = (uint8_t*)calloc(0x10000,sizeof(uint8_t));
 
-    arm7tdmi = new ARM7TDMI();
-    arm7tdmi->systemMemory = memory;
+    arm7tdmi.systemMemory = memory;
     // skip the bios, todo: implement everything in order to load it correctly
-    arm7tdmi->pc = 0x8000000;
-    arm7tdmi->setArrayIndex(0,0xCA5);
-    arm7tdmi->setCPSR(0x1F);
-    arm7tdmi->setModeArrayIndex(arm7tdmi->System,13,0x3007F00);
-    arm7tdmi->setModeArrayIndex(arm7tdmi->IRQ,13,0x3007FA0);
-    arm7tdmi->setModeArrayIndex(arm7tdmi->Supervisor,13,0x3007FE0);
-    arm7tdmi->setModeArrayIndex(arm7tdmi->System,14,0x8000000);
+    arm7tdmi.pc = 0x8000000;
+    arm7tdmi.setArrayIndex(0,0xCA5);
+    arm7tdmi.setCPSR(0x1F);
+    arm7tdmi.setModeArrayIndex(arm7tdmi.System,13,0x3007F00);
+    arm7tdmi.setModeArrayIndex(arm7tdmi.IRQ,13,0x3007FA0);
+    arm7tdmi.setModeArrayIndex(arm7tdmi.Supervisor,13,0x3007FE0);
+    arm7tdmi.setModeArrayIndex(arm7tdmi.System,14,0x8000000);
 
-    lcd = new LCD(memory);
+    lcd.systemMemory = memory;
+
+    keypad.systemMemory = memory;
+    keypad.window = lcd.window;
+    keypad.width = (lcd.WIDTH * lcd.SCALE); keypad.height = (lcd.HEIGHT * lcd.SCALE);
+    memory->IORegisters[0x130] = 0xFF;
+    memory->IORegisters[0x131] = 3;
+    //memory->IORegisters[0x132] = ;
 }
 
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
 // i think i can fake the pipeline
 void GBA::interpretARM() {
-    uint32_t instruction = ((*memory)[arm7tdmi->pc + 3] << 24) |
-        ((*memory)[arm7tdmi->pc + 2] << 16) |
-        ((*memory)[arm7tdmi->pc + 1] << 8) |
-        (*memory)[arm7tdmi->pc];
+    uint32_t instruction = ((*memory)[arm7tdmi.pc + 3] << 24) |
+        ((*memory)[arm7tdmi.pc + 2] << 16) |
+        ((*memory)[arm7tdmi.pc + 1] << 8) |
+        (*memory)[arm7tdmi.pc];
 
-    if(arm7tdmi->checkCond(instruction & 0xF0000000)) {
-        uint16_t armIndex = arm7tdmi->fetchARMIndex(instruction);
-        (arm7tdmi->*(arm7tdmi->armTable[armIndex]))(instruction);
+    if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
+        uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
+        (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
         #if defined(PRINT_INSTR)
             printf(" %X\n",instruction); // debug
         #endif
-        cyclesPassed += arm7tdmi->cycleTicks;
-        cyclesSinceHBlank += arm7tdmi->cycleTicks;
+        cyclesPassed += arm7tdmi.cycleTicks;
+        cyclesSinceHBlank += arm7tdmi.cycleTicks;
     } else
-        arm7tdmi->pc+=4;
+        arm7tdmi.pc+=4;
 }
 
 void GBA::interpretTHUMB() {
-    uint16_t instruction = ((*memory)[arm7tdmi->pc+1] << 8) |
-                            (*memory)[arm7tdmi->pc];
+    uint16_t instruction = ((*memory)[arm7tdmi.pc+1] << 8) |
+                            (*memory)[arm7tdmi.pc];
 
-    uint8_t thumbIndex = arm7tdmi->fetchTHUMBIndex(instruction);
-    (arm7tdmi->*(arm7tdmi->thumbTable[thumbIndex]))(instruction);
+    uint8_t thumbIndex = arm7tdmi.fetchTHUMBIndex(instruction);
+    (arm7tdmi.*(arm7tdmi.thumbTable[thumbIndex]))(instruction);
     #if defined(PRINT_INSTR)
         printf(" %X\n",instruction); // debug
     #endif
-    cyclesPassed += arm7tdmi->cycleTicks;
-    cyclesSinceHBlank += arm7tdmi->cycleTicks;
+    cyclesPassed += arm7tdmi.cycleTicks;
+    cyclesSinceHBlank += arm7tdmi.cycleTicks;
 }

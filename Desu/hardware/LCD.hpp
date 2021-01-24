@@ -25,7 +25,7 @@ struct LCD {
     // pixel format: xbbbbbgggggrrrrr, x unused
     uint16_t* pixelBuffer;
     
-    LCD(GBAMemory*);
+    LCD();
 
     // not really a "fetch/getter", loads shit like BGs and OBJs
     // into a single line of the framebuffer

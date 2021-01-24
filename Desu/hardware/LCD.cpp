@@ -1,8 +1,6 @@
 #include "LCD.hpp"
 
-LCD::LCD(GBAMemory* systemMemory) {
-    this->systemMemory = systemMemory;
-
+LCD::LCD() {
     // SDL + OpenGL setup
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER);
 
@@ -25,7 +23,6 @@ LCD::LCD(GBAMemory* systemMemory) {
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,5);
     SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL,1);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     // initialize pixel buffer
     pixelBuffer = new uint16_t[38400];

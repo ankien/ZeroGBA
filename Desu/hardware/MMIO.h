@@ -103,3 +103,5 @@
 #define BLDALPHA_EVB (systemMemory->IORegisters[0x52] & 0x1F)
 
 #define BLDY_EVY (systemMemory->IORegisters[0x54] & 0x1F)
+
+/// Keypad ///
