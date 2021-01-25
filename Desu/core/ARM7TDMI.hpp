@@ -12,7 +12,7 @@
 
 struct ARM7TDMI {
     // cycles per instruction
-    int32_t cycleTicks;
+    static const int32_t cycleTicks = 10; // stubbing this for now, todo: implement correct cycle timings
     uint8_t s;
     uint8_t n;
 
@@ -30,7 +30,7 @@ struct ARM7TDMI {
 
     /// Registers ///
     // CPSR & SPSR = program status registers
-    // registers are banked
+    // todo: eventually implement actual register banking for that perf
     uint32_t reg[8]; // R0-7
     uint32_t r8[2]; // sys/user-fiq
     uint32_t r9[2]; // sys/user-fiq
@@ -62,7 +62,6 @@ struct ARM7TDMI {
     uint8_t fetchTHUMBIndex(uint16_t);
 
     // memory helper functions
-    void setSNCycles(uint8_t); // todo: implement waitstate cycles, currently using a scalable workaround
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
     // memory getters, rotates are for misaligned ldr+swp
@@ -79,8 +78,8 @@ struct ARM7TDMI {
     uint32_t getCPSR();
     void setCPSR(uint32_t);
     bool checkCond(uint32_t);
-    // ALU Helpers: shift for registers, ALUshift affects carry flags
-    uint32_t shift(uint32_t, uint8_t, uint8_t);
+    // ALU Helpers: shift for registers, ALUshift affects carry flag
+    uint32_t ror(uint32_t, uint8_t);
     uint32_t ALUshift(uint32_t, uint8_t, uint8_t,bool,bool);
     uint32_t sub(uint32_t,uint32_t,bool);
     uint32_t subCarry(uint32_t,uint32_t,bool);
@@ -146,32 +145,6 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
-inline void ARM7TDMI::setSNCycles(uint8_t accessWidth) {
-    switch(pc >> 24) {
-        case 0x02:
-            if(accessWidth == 32)
-                s = 6, n = 6;
-            else
-                s = 3, n = 3;
-            break;
-        case 0x08:
-        case 0x09:
-        case 0x0A:
-        case 0x0B:
-        case 0x0C:
-        case 0x0D:
-            if(accessWidth == 32)
-                s = 8, n = 8;
-            else
-                s = 5, n = 5;
-            break;
-        case 0x0E:
-            s = 5, n = 5;
-            break;
-        default:
-            s = 1, n = 1;
-    }
-}
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
     (*systemMemory)[address] = value;
     (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
@@ -189,7 +162,7 @@ inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
 inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
     uint16_t halfWord = readHalfWord(address);
     uint8_t rorAmount = (address & 1) << 3;
-    return shift(halfWord,rorAmount,3);
+    return ror(halfWord,rorAmount);
 }
 inline uint32_t ARM7TDMI::readWord(uint32_t address) {
     return (*systemMemory)[address] |
@@ -200,7 +173,7 @@ inline uint32_t ARM7TDMI::readWord(uint32_t address) {
 inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
     uint32_t word = readWord(address);
     uint8_t rorAmount = (address & 3) << 3;
-    return shift(word,rorAmount,3);
+    return ror(word,rorAmount);
 }
 
 inline uint32_t ARM7TDMI::getCPSR() {
@@ -228,47 +201,78 @@ inline void ARM7TDMI::setCPSR(uint32_t num) {
     signFlag = (num & 0x80000000) >> 31;
 }
 
-inline uint32_t ARM7TDMI::shift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType) {
-    switch(shiftType) {
-        case 0b00: // lsl
-            return value << shiftAmount; 
-        case 0b01: // lsr
-            return value >> shiftAmount;
-        case 0b10: // asr
-            return static_cast<int32_t>(value) >> shiftAmount;
-        case 0b11: // ror
-            shiftAmount &= 0x1F;
-            return (value >> shiftAmount) | (value << (32 - shiftAmount));
-    }
+inline uint32_t ARM7TDMI::ror(uint32_t value, uint8_t shiftAmount) {
+    shiftAmount &= 0x1F;
+    return (value >> shiftAmount) | (value << (32 - shiftAmount));
 }
 inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t shiftType, bool setFlags, bool registerShiftByImmediate) {
-    if((shiftAmount == 0) && registerShiftByImmediate)
-        shiftType = 0;
+    
     switch(shiftType) {
         case 0b00: // lsl
-            if((shiftAmount == 0) && registerShiftByImmediate)
+            if(shiftAmount == 0)
                 return value;
+            if(!registerShiftByImmediate) {
+                if(shiftAmount == 32) {
+                    carryFlag = 1 & value;
+                    return 0;
+                }
+                if(shiftAmount > 32) {
+                    carryFlag = 0;
+                    return carryFlag;
+                }
+            }
             value <<= shiftAmount - 1;
             if(setFlags)
                 carryFlag = 0x80000000 & value;
             return value << 1; 
         case 0b01: // lsr
-            if(shiftAmount == 0)
-                return value;
+            if(registerShiftByImmediate) {
+                if(shiftAmount == 0)
+                    shiftAmount = 32;
+            } else {
+                if(shiftAmount == 0)
+                    return value;
+                if(shiftAmount == 32) {
+                    carryFlag = 0x80000000 & value;
+                    return 0;
+                }
+                if(shiftAmount > 32) {
+                    carryFlag = 0;
+                    return carryFlag;
+                }
+            }
             value >>= shiftAmount - 1;
             if(setFlags)
                 carryFlag = 1 & value;
             return value >> 1;
         case 0b10: // asr
-            if(shiftAmount == 0)
-                return value;
+        {
+            if(registerShiftByImmediate)
+                if(shiftAmount == 0)
+                    shiftAmount = 32;
+            else
+                if(shiftAmount == 0)
+                    return value;
+            if(shiftAmount >= 32) {
+                carryFlag = 0x80000000 & value;
+                return static_cast<int32_t>(value) >> 31;
+            }
+            int32_t result = static_cast<int32_t>(value) >> (shiftAmount - 1);
             if(setFlags)
-                carryFlag = 1 & (static_cast<int32_t>(value) >> (shiftAmount - 1));
-            return static_cast<int32_t>(value) >> shiftAmount;
+                carryFlag = 1 & result;
+            return result >> 1;
+        }
         case 0b11: // ror
         {
-            if(shiftAmount == 0)
-                return value;
+            if(registerShiftByImmediate) {
+                if(shiftAmount == 0) {
+                    uint32_t result = ALUshift(value,1,1,setFlags,registerShiftByImmediate);
+                    return carryFlag ? 0x80000000 | result : result;
+                }
+            } else {
+                if(shiftAmount == 0)
+                    return value;
+            }
             shiftAmount &= 0x1F;
             value = (value >> shiftAmount) | (value << (32 - shiftAmount));
             if(setFlags)

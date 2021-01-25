@@ -464,22 +464,18 @@ void ARM7TDMI::ARMundefinedInstruction(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Undefined Instruction=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = (2*s) + 1 + n;
     pc+=4;
 }
 void ARM7TDMI::ARMemptyInstruction(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Undecoded Instruction=",pc);
     #endif
-    cycleTicks = 1; // arbitrary cycle increment, this instr isn't supposed to happen
     pc+=4;
 }
 void ARM7TDMI::THUMBemptyInstruction(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Undecoded Instruction=",pc);
     #endif
-    cycleTicks = 1; // arbitrary cycle increment, this instr isn't supposed to happen
     pc+=2;
 }
 
@@ -487,8 +483,6 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Branch=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = (2*s) + n;
     // Implementation dependent sign extend
     int32_t signedOffset = instruction & 0xFFFFFF;
     signedOffset <<= 8;
@@ -501,8 +495,6 @@ void ARM7TDMI::ARMbranchExchange(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Branch Exchange=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = (2*s) + n;
     uint32_t rn = instruction & 0xF;
     if(rn == 15)
         rn = pc+8;
@@ -518,8 +510,6 @@ void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X SWI=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = (2*s) + n;
     //handleException(SoftwareInterrupt,4,Supervisor); Stubbed for now
     pc+=4;
 }
@@ -535,8 +525,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
     bool pcIsRn = rn == 15;
-
-    setSNCycles(32);
 
     // forcefully set flags for certain opcodes
     switch(opcode) {
@@ -570,7 +558,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                 }
 
                 default: // register operand w/ register shift
-                    cycleTicks = 1;
                     uint8_t Rs = (instruction & 0xF00) >> 8;
                     if((rn == 15) || (rm == 15))
                         pc+=12;
@@ -589,11 +576,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             op2 = ALUshift(Imm,rotate*2,0b11,s,0);
             break;
     }
-
-    if(rd == 15)
-        cycleTicks += (2*s) + n;
-    else
-        cycleTicks += s;
 
     // when writing to R15
     if((s) && (rd == 15)) {
@@ -678,8 +660,6 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Multiply and MulAcc=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = s;
     uint8_t opcode = (instruction & 0x1E00000) >> 21;
     bool s = instruction & 0x100000;
     uint8_t rd = (instruction & 0xF0000) >> 16;
@@ -705,35 +685,33 @@ void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
     uint64_t result;
     switch(opcode) {
         case 0b0000: // MUL
-            cycleTicks += m;
             result = rmValue * rsValue;
             setArrayIndex(rd,result);
             break;
         case 0b0001: // MLA
-            cycleTicks += m + 1;
             result = (rmValue * rsValue) + rnValue;
             setArrayIndex(rd,result);
             break;
         case 0b0100: // UMULL
-            cycleTicks += m + 1;
+            
             result = rmValue * rsValue;
             setArrayIndex(rd,result >> 32);
             setArrayIndex(rn,result);
             break;
         case 0b0101: // UMLAL
-            cycleTicks += m + 2;
+            
             result = (rmValue * rsValue) + ((rdValue << 32) | rnValue);
             setArrayIndex(rd,result >> 32);
             setArrayIndex(rn,result);
             break;
         case 0b0110: // SMULL
-            cycleTicks += m + 1;
+            
             result = rmValue * rsValue;
             setArrayIndex(rd,result >> 32);
             setArrayIndex(rn,result);
             break;
         case 0b0111: // SMLAL
-            cycleTicks += m + 2;
+            
             int64_t hiLo = ((rdValue << 32) | rnValue);
             result = (rmValue * rsValue) + hiLo;
             setArrayIndex(rd,result >> 32);
@@ -752,8 +730,8 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X PSR Transfer=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = s;
+    
+    
     bool psr = instruction & 0x400000;
     bool msr = instruction & 0x200000;
 
@@ -811,7 +789,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Single Data Transfer=",pc);
     #endif
-    setSNCycles(32);
+    
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -848,7 +826,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
 
     switch(ldr) {
         case 0: // STR
-            cycleTicks = 2*n;
+            
             switch(b) {
                 case 0:
                     storeValue(getArrayIndex(rd),address);
@@ -860,10 +838,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                 (*systemMemory)[address] = (*systemMemory)[address]+12;
             break;
         default: // LDR
-            if(rd == 15)
-                cycleTicks = 2*(s+n) + 1;
-            else
-                cycleTicks = s + n + 1;
+                
             switch(b) {
                 case 0:
                     setArrayIndex(rd, readWordRotate(address));
@@ -893,8 +868,8 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X STRH=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = 2*n;
+    
+    
     uint32_t offset;
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
@@ -953,12 +928,6 @@ void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getArrayIndex(rn);
-    
-    setSNCycles(32);
-    if(rd == 15)
-        cycleTicks = 2*(s+n) + 1;
-    else
-        cycleTicks = s + n + 1;
 
     if(rn == 15)
         address += 8;
@@ -1010,12 +979,6 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getArrayIndex(rn);
 
-    setSNCycles(32);
-    if(rd == 15)
-        cycleTicks = 2*(s+n) + 1;
-    else
-        cycleTicks = s + n + 1;
-
     if(rn == 15)
         address += 8;
 
@@ -1066,12 +1029,6 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t address = getArrayIndex(rn);
 
-    setSNCycles(32);
-    if(rd == 15)
-        cycleTicks = 2*(s+n) + 1;
-    else
-        cycleTicks = s + n + 1;
-
     if(rn == 15)
         address += 8;
 
@@ -1115,7 +1072,7 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Block Data Transfer=",pc);
     #endif
-    setSNCycles(32);
+    
     bool p = instruction & 0x1000000;
     bool u = instruction & 0x800000;
     bool s = instruction & 0x400000;
@@ -1168,11 +1125,6 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     }
 
     if(l) { // LDM
-    
-        if(rn == 15)
-            cycleTicks = (rListVector.size() + 1) * s + n + 1;
-        else
-            cycleTicks = rListVector.size() * s + n + 1;
 
         for(uint8_t num : rListVector) {
             if(p)
@@ -1183,7 +1135,7 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
         }
     } else { // STM
 
-        cycleTicks = (rListVector.size() - 1) * s + 2 * n;
+        
         
         for(uint8_t num : rListVector) {
             
@@ -1221,8 +1173,8 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Swap=",pc);
     #endif
-    setSNCycles(32);
-    cycleTicks = s + 2*n + 1;
+    
+    
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint8_t rm = instruction & 0xF;
@@ -1246,8 +1198,8 @@ void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Move Shifted Reg=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = s;
+    
+    
     uint8_t offset = (instruction & 0x7C0) >> 6;
     uint32_t rs = (instruction & 0x38) >> 3;
     uint8_t rd = instruction & 0x7;
@@ -1273,8 +1225,8 @@ void ARM7TDMI::THUMBaddSubtract(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Add Subtract=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = s;
+    
+    
     uint32_t rs = getArrayIndex((instruction & 0x38) >> 3);
     uint8_t rd = instruction & 0x7;
 
@@ -1311,8 +1263,8 @@ void ARM7TDMI::THUMBmoveCompareAddSubtract(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Move/Compare/Add/Subtract=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = s;
+    
+    
     uint8_t rd = (instruction &  0x700) >> 8;
     uint8_t nn = instruction & 0xFF;
     uint32_t result;
@@ -1343,7 +1295,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X ALU Operation=",pc);
     #endif
-    setSNCycles(16);
+    
     uint32_t rs = getArrayIndex((instruction & 0x38) >> 3);
     uint8_t rd = instruction & 0x7;
     uint32_t rdValue = getArrayIndex(rd);
@@ -1351,64 +1303,64 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
     uint32_t result;
     switch((instruction & 0x3C0) >> 6) {
         case 0x0: // AND
-            cycleTicks = s;
+            
             result = rdValue & rs;
             setArrayIndex(rd,result);
             break;
         case 0x1: // EOR
-            cycleTicks = s;
+            
             result = rdValue ^ rs;
             setArrayIndex(rd,result);
             break;
         case 0x2: // LSL
-            cycleTicks = s + 1;
+            
             result = ALUshift(rdValue,rs & 0xFF,0,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x3: // LSR
-            cycleTicks = s + 1;
+            
             result = ALUshift(rdValue,rs & 0xFF,1,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x4: // ASR
-            cycleTicks = s + 1;
+            
             result = ALUshift(rdValue,rs & 0xFF,2,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x5: // ADC
-            cycleTicks = s;
+            
             result = addCarry(rdValue,rs,1);
             setArrayIndex(rd,result);
             break;
         case 0x6: // SBC
-            cycleTicks = s;
+            
             result = subCarry(rdValue,rs,1);
             setArrayIndex(rd,result);
             break;
         case 0x7: // ROR
-            cycleTicks = s + 1;
+            
             result = ALUshift(rdValue,rs & 0xFF,3,1,0);
             setArrayIndex(rd,result);
             break;
         case 0x8: // TST
-            cycleTicks = s;
+            
             result = rdValue & rs;
             break;
         case 0x9: // NEG
-            cycleTicks = s;
+            
             result = ~rs + 1;
             setArrayIndex(rd,result);
             break;
         case 0xA: // CMP
-            cycleTicks = s;
+            
             result = sub(rdValue,rs,1);
             break;
         case 0xB: // CMN
-            cycleTicks = s;
+            
             result = add(rdValue,rs,1);
             break;
         case 0xC: // ORR
-            cycleTicks = s;
+            
             result = rdValue | rs;
             setArrayIndex(rd,result);
             break;
@@ -1422,18 +1374,18 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
                     m++;
             }
             
-            cycleTicks = s + m;
+            
             result = rdValue * rs;
             setArrayIndex(rd,result);
             break;
         }
         case 0xE: // BIC
-            cycleTicks = s;
+            
             result = rdValue & (~rs);
             setArrayIndex(rd,result);
             break;
         case 0xF: // MVN
-            cycleTicks = s;
+            
             result = ~rs;
             setArrayIndex(rd,result);
     }
@@ -1446,7 +1398,7 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Hi Register Operation=",pc);
     #endif
-    setSNCycles(16);
+    
     uint16_t opcode = instruction & 0x300;
     uint8_t rs = (instruction & 0x38) >> 3;
     uint8_t rd = instruction & 0x7;
@@ -1459,15 +1411,12 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
     uint32_t rsValue = getArrayIndex(rs);
     uint32_t rdValue = getArrayIndex(rd);
 
-    cycleTicks = 0;
+    
     if(opcode != 0x300) {
         if(rd == 15)
             rdValue += 4;
-        if(rs == 15) {
+        if(rs == 15)
             rsValue += 4;
-            if((opcode == 0) || (opcode == 0x200))
-                cycleTicks += s + n;
-        }
     } else {
         if(rs == 15)
             rsValue+=4;
@@ -1476,19 +1425,19 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
 
     switch(opcode) {
         case 0x000: // ADD
-            cycleTicks+=s;
+            
             setArrayIndex(rd,add(rdValue,rsValue,0));
             break;
         case 0x100: // CMP
-            cycleTicks+=s;
+            
             sub(rdValue,rsValue,1);
             break;
         case 0x200: // MOV
-            cycleTicks+=s;
+            
             setArrayIndex(rd,rsValue);
             break;
         case 0x300: // BX
-            cycleTicks+=2*s+n;
+            
             if(!(rsValue & 1))
                 state = 0;
             setArrayIndex(15,rsValue);
@@ -1502,8 +1451,8 @@ void ARM7TDMI::THUMBloadPCRelative(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load PC-Relative=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks=s + n + 1;
+    
+    
     uint8_t rd = (instruction & 0x700) >> 8;
     setArrayIndex(rd,readWord(((pc+4) & ~2) + (instruction & 0xFF) * 4));
     if(rd != 15)
@@ -1513,28 +1462,28 @@ void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load Store Reg Offset=",pc);
     #endif
-    setSNCycles(16);
+    
     uint32_t rd = instruction & 0x7;
     uint32_t rb = getArrayIndex((instruction & 0x38) >> 3);
     uint32_t ro = getArrayIndex((instruction & 0x1C0) >> 6);
 
     switch(instruction & 0xC00) {
         case 0x000: // STR
-            cycleTicks = 2*n;
+            
             rd = getArrayIndex(rd);
             storeValue(rd,rb+ro);
             break;
         case 0x400: // STRB
-            cycleTicks = 2*n;
+            
             rd = getArrayIndex(rd);
             (*systemMemory)[rb+ro] = *reinterpret_cast<uint8_t*>(&rd);
             break;
         case 0x800: // LDR
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,readWordRotate(rb+ro));
             break;
         case 0xC00: // LDRB
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,(*systemMemory)[rb+ro]);
     }
 
@@ -1545,27 +1494,27 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load Store Sign Extended Byte/Halfword=",pc);
     #endif
-    setSNCycles(16);
+    
     uint32_t rd = instruction & 0x7;
     uint32_t rb = getArrayIndex((instruction & 0x38) >> 3);
     uint32_t ro = getArrayIndex((instruction & 0x7C0) >> 6);
 
     switch(instruction & 0xC00) {
         case 0x000: // STRH
-            cycleTicks = 2*n;
+            
             rd = getArrayIndex(rd);
             storeValue(*reinterpret_cast<uint16_t*>(&rd),rb+ro);
             break;
         case 0x400: // LDSB
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,(*systemMemory)[rb+ro]);
             break;
         case 0x800: // LDRH
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,readHalfWordRotate(rb+ro));
             break;
         case 0xC00: // LDSH
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,static_cast<int32_t>(static_cast<int16_t>(readHalfWord(rb+ro))));
     }
 
@@ -1576,26 +1525,26 @@ void ARM7TDMI::THUMBloadStoreImmOffset(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load Store Immediate Offset=",pc);
     #endif
-    setSNCycles(16);
+    
     uint8_t rd = instruction & 0x7;
     uint32_t rb = getArrayIndex((instruction & 0x38) >> 3);
     uint32_t nn = (instruction & 0x7C0) >> 6;
 
     switch(instruction & 0x1800) {
         case 0x0000: // STR
-            cycleTicks = 2*n;
+            
             storeValue(getArrayIndex(rd),rb+(nn << 2));
             break;
         case 0x0800: // LDR
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,readWordRotate(rb+(nn << 2)));
             break;
         case 0x1000: // STRB
-            cycleTicks = s + n + 1;
+            
             (*systemMemory)[rb+nn] = getArrayIndex(rd);
             break;
         case 0x1800: // LDRB
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,(*systemMemory)[rb+nn]);
             break;
     }
@@ -1607,18 +1556,18 @@ void ARM7TDMI::THUMBloadStoreHalfword(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load Store Halfword=",pc);
     #endif
-    setSNCycles(16);
+    
     uint8_t rd = instruction & 0x7;
     uint32_t rb = getArrayIndex((instruction & 0x38) >> 3);
     uint32_t nn = (instruction & 0x7C0) >> 5;
 
     switch(instruction & 0x800) {
         case 0x000: // STRH
-            cycleTicks = 2*n;
+            
             storeValue(static_cast<uint16_t>(getArrayIndex(rd)),rb+nn);
             break;
         case 0x800: // LDRH
-            cycleTicks = s + n + 1;
+            
             setArrayIndex(rd,readHalfWordRotate(rb+nn));
             break;
     }
@@ -1630,15 +1579,15 @@ void ARM7TDMI::THUMBloadStoreSPRelative(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load Store SP Relative=",pc);
     #endif
-    setSNCycles(16);
+    
     uint8_t rd = (instruction & 0x700) >> 8;
     uint16_t nn = (instruction & 0xFF) << 2;
 
     if(instruction & 0x800) { // LDR
-        cycleTicks = 2*n;
+        
         setArrayIndex(rd,readWordRotate(getArrayIndex(13)+nn));
     } else { // STR
-        cycleTicks = s + n + 1;
+        
         storeValue(getArrayIndex(rd),getArrayIndex(13)+nn);
     }
 
@@ -1650,8 +1599,8 @@ void ARM7TDMI::THUMBgetRelativeAddress(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Get Relative Address=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = s;
+    
+    
     uint16_t nn = (instruction & 0xFF) << 2;
     uint8_t rd = (instruction & 0x700) >> 8;
     if(instruction & 0x800) // ADD SP
@@ -1666,8 +1615,8 @@ void ARM7TDMI::THUMBaddOffsetToSP(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Add Offset To SP=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = s;
+    
+    
     uint16_t nn = (instruction & 0x7F) << 2;
     if(instruction & 0x80) // - offset
         setArrayIndex(13,getArrayIndex(13) - nn);
@@ -1680,8 +1629,8 @@ void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Push/Pop Registers=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = 0;
+    
+    
     uint8_t rListBinary = instruction & 0xFF;
     uint8_t rListOffset;
     bool pclrBit = instruction & 0x100;
@@ -1689,14 +1638,14 @@ void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
     uint32_t address = getArrayIndex(13);
 
     if(pop) { // POP, AKA load from memory
-        cycleTicks += n + 1;
+        
 
         rListOffset = 1;
         for(uint8_t i = 0; i < 8; i++) {
             if(instruction & rListOffset) {
                 setArrayIndex(i,readWord(address));
                 address+=4;
-                cycleTicks += s;
+                
             }
             rListOffset <<= 1;
         }
@@ -1704,10 +1653,10 @@ void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
         if(pclrBit) {
             setArrayIndex(15,readWord(address));
             address+=4;
-            cycleTicks += s + n;
+            
         }
     } else { // PUSH, AKA store to memory
-        cycleTicks += 2*n;
+        
         if(pclrBit) {
             address-=4;
             storeValue(getArrayIndex(14),address);
@@ -1718,8 +1667,6 @@ void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
             if(instruction & rListOffset) {
                 address-=4;
                 storeValue(getArrayIndex(i),address);
-                if(i > 0)
-                    cycleTicks += s;
             }
             rListOffset >>= 1;
         }
@@ -1733,8 +1680,8 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Multiple Load Store=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = 0;
+    
+    
     uint8_t rListBinary = instruction & 0xFF;
     uint8_t rListOffset = 1;
     uint8_t rb = (instruction & 0x700) >> 8;
@@ -1745,23 +1692,22 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
         address += 0x40;
     } else {
         if(instruction & 0x800) { // LDMIA
-            cycleTicks += n + 1;
+            
             for(uint8_t i = 0; i < 8; i++) {
                 if(instruction & rListOffset) {
                     setArrayIndex(i, readWord(address));
                     address += 4;
-                    cycleTicks += s;
+                    
                 }
                 rListOffset <<= 1;
             }
         } else { // STMIA
-            cycleTicks += 2 * n;
+            
             for(uint8_t i = 0; i < 8; i++) {
                 if(instruction & rListOffset) {
                     storeValue(getArrayIndex(i), address);
                     address += 4;
-                    if(i > 0)
-                        cycleTicks += s;
+                        
                 }
                 rListOffset <<= 1;
             }
@@ -1775,16 +1721,16 @@ void ARM7TDMI::THUMBconditionalBranch(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Conditional Branch=",pc);
     #endif
-    setSNCycles(16);
+    
     int16_t offset = static_cast<int8_t>(instruction & 0xFF) * 2 + 4;
     bool condMet = false;
 
-    cycleTicks = 2*s + n;
+    
     condMet = checkCond((instruction & 0xF00) << 20);
     if(condMet)
         pc += offset;
     else {
-        cycleTicks = s;
+        
         pc+=2;
     }
 }
@@ -1792,8 +1738,8 @@ void ARM7TDMI::THUMBunconditionalBranch(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Unconditional Branch=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = 2*s + n;
+    
+    
     int16_t offset = static_cast<int16_t>((instruction & 0x7FF) << 5) >> 4;
     pc += 4 + offset;
 }
@@ -1801,17 +1747,17 @@ void ARM7TDMI::THUMBlongBranchWithLink(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Long Branch With Link=",pc);
     #endif
-    setSNCycles(16);
+    
     int32_t offset = instruction & 0x7FF;
     bool instrTwo = instruction & 0x800;
     
     if(instrTwo) { // instr 2
-        cycleTicks = 2*s+n;
+        
         uint32_t oldPC = (pc + 2) | 1;
         pc=getArrayIndex(14)+(offset << 1);
         setArrayIndex(14,oldPC);
     } else { // instr 1
-        cycleTicks = s;
+        
         offset = (offset << 21) >> 9;
         setArrayIndex(14,pc+4+offset);
     }
@@ -1823,7 +1769,7 @@ void ARM7TDMI::THUMBsoftwareInterrupt(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%XTHUMB Software Interrupt=",pc);
     #endif
-    setSNCycles(16);
-    cycleTicks = 2*s + n;
+    
+    
     handleException(SoftwareInterrupt,2,Supervisor);
 }

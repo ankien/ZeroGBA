@@ -15,7 +15,7 @@
 //int _stdcall WinMain (struct HINSTANCE__*,struct HINSTANCE__*,char*,int) { return main (__argc, __argv); }
 
 struct {
-    uint8_t jit : 1; // not implemented
+    uint8_t jit : 1; // not implemented lol
 } runtimeOptions;
 
 // todo: not really urgent, but change this to use regex
@@ -52,11 +52,11 @@ void runProgram(char* fileName) {
             gba.arm7tdmi.fillTHUMB();
 
             while(gba.keypad.running) {
-                
+
                 while(gba.cyclesPassed < 280896) {
                     // for debug breakpoints
-                    //if(gba.arm7tdmi.pc == 0x080004D0)
-                        //printf("Hello! I am a culprit instruction.\n");
+                    if(gba.arm7tdmi.pc == 0x08000B80)
+                        printf("Hello! I am a culprit instruction.\n");
                     //if(gba.arm7tdmi.reg[0] == 0x01A7E619)
                         //printf("Hello! I am a culprit register.\n");
                     uint32_t oldPC = gba.arm7tdmi.pc; // for debugging
@@ -94,7 +94,6 @@ void runProgram(char* fileName) {
                 gba.cyclesSinceHBlank = gba.cyclesPassed; // keep other cycle counters in sync with system
                 gba.lcd.draw();
 
-                // Poll inputs
                 gba.keypad.pollInputs();
 
                 SDL_Delay(16 - ((gba.lcd.currMillseconds - gba.lcd.millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw

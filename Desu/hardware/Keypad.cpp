@@ -18,35 +18,35 @@ void Keypad::pollInputs() {
         if(event.type == SDL_KEYDOWN) {
             switch(event.key.keysym.scancode) {
                 case SDL_SCANCODE_UP:
-                    systemMemory->IORegisters[0x130] ^= 0x40;
+                    systemMemory->IORegisters[0x130] &= 0xBF;
                     break;
                 case SDL_SCANCODE_DOWN:
-                    systemMemory->IORegisters[0x130] ^= 0x80;
+                    systemMemory->IORegisters[0x130] &= 0x7F;
                     break;
                 case SDL_SCANCODE_LEFT:
-                    systemMemory->IORegisters[0x130] ^= 0x20;
+                    systemMemory->IORegisters[0x130] &= 0xDF;
                     break;
                 case SDL_SCANCODE_RIGHT:
-                    systemMemory->IORegisters[0x130] ^= 0x10;
+                    systemMemory->IORegisters[0x130] &= 0xEF;
                     break;
                 case SDL_SCANCODE_SPACE:
-                    systemMemory->IORegisters[0x130] ^= 0x1;
+                    systemMemory->IORegisters[0x130] &= 0xFE;
                     break;
                 case SDL_SCANCODE_S:
-                    systemMemory->IORegisters[0x130] ^= 0x2;
+                    systemMemory->IORegisters[0x130] &= 0xFD;
                     break;
                 case SDL_SCANCODE_A:
-                    systemMemory->IORegisters[0x131] ^= 0x2;
+                    systemMemory->IORegisters[0x131] &= 0xFD;
                     break;
                 case SDL_SCANCODE_D:
-                    systemMemory->IORegisters[0x131] ^= 0x1;
+                    systemMemory->IORegisters[0x131] &= 0xFE;
                     break;
                 case SDL_SCANCODE_RETURN:
                     enterDown = true;
-                    systemMemory->IORegisters[0x130] ^= 0x8;
+                    systemMemory->IORegisters[0x130] &= 0xF7;
                     break;
                 case SDL_SCANCODE_RSHIFT:
-                    systemMemory->IORegisters[0x130] ^= 0x4;
+                    systemMemory->IORegisters[0x130] &= 0xFB;
                     break;
                 case SDL_SCANCODE_LALT:
                     altDown = true;
