@@ -55,7 +55,7 @@ void runProgram(char* fileName) {
 
                 while(gba.cyclesPassed < 280896) {
                     // for debug breakpoints
-                    if(gba.arm7tdmi.pc == 0x08000B80)
+                    if(gba.arm7tdmi.pc == 0x08000EA0)
                         printf("Hello! I am a culprit instruction.\n");
                     //if(gba.arm7tdmi.reg[0] == 0x01A7E619)
                         //printf("Hello! I am a culprit register.\n");
@@ -96,7 +96,8 @@ void runProgram(char* fileName) {
 
                 gba.keypad.pollInputs();
 
-                SDL_Delay(16 - ((gba.lcd.currMillseconds - gba.lcd.millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
+                if(gba.keypad.notSkippingFrames)
+                    SDL_Delay(16 - ((gba.lcd.currMillseconds - gba.lcd.millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }
         }
 

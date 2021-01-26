@@ -8,7 +8,7 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 // file logging is faster but has limitations
-//#define PRINT_INSTR
+#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -86,6 +86,7 @@ struct ARM7TDMI {
     uint32_t add(uint32_t,uint32_t,bool);
     uint32_t addCarry(uint32_t,uint32_t,bool);
     void setZeroAndSign(uint32_t);
+    void setZeroAndSign(uint64_t);
 
     // For unimplemented/undefined instructions
     void ARMundefinedInstruction(uint32_t);
@@ -247,12 +248,13 @@ inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t 
             return value >> 1;
         case 0b10: // asr
         {
-            if(registerShiftByImmediate)
+            if(registerShiftByImmediate) {
                 if(shiftAmount == 0)
                     shiftAmount = 32;
-            else
+            } else {
                 if(shiftAmount == 0)
                     return value;
+            }
             if(shiftAmount >= 32) {
                 carryFlag = 0x80000000 & value;
                 return static_cast<int32_t>(value) >> 31;
@@ -266,8 +268,9 @@ inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t 
         {
             if(registerShiftByImmediate) {
                 if(shiftAmount == 0) {
-                    uint32_t result = ALUshift(value,1,1,setFlags,registerShiftByImmediate);
-                    return carryFlag ? 0x80000000 | result : result;
+                    bool oldCarry = carryFlag;
+                    uint32_t result = ALUshift(value,1,3,setFlags,registerShiftByImmediate);
+                    return oldCarry ? 0x80000000 | result : 0x7FFFFFFF | result;
                 }
             } else {
                 if(shiftAmount == 0)
@@ -320,4 +323,8 @@ inline uint32_t ARM7TDMI::addCarry(uint32_t op1, uint32_t op2, bool setFlags){
 inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
     (arg == 0) ?  zeroFlag = 1 : zeroFlag = 0;
     (arg & 0x80000000) ? signFlag = 1 : signFlag = 0;
+}
+inline void ARM7TDMI::setZeroAndSign(uint64_t arg) {
+    (arg == 0) ?  zeroFlag = 1 : zeroFlag = 0;
+    (arg & 0x8000000000000000) ? signFlag = 1 : signFlag = 0;
 }

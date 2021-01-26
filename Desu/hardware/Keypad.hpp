@@ -3,9 +3,9 @@
 #include <glew.h>
 #include <cstdint>
 #include "MMIO.h"
-#include "../hardware/GBAMemory.hpp"
+#include "GBAMemory.hpp"
 
-// currently for keypad AND controls
+// for keypad hardware AND emulator controls
 struct Keypad {
 
     GBAMemory* systemMemory;
@@ -14,8 +14,11 @@ struct Keypad {
     bool enterDown = false;
     bool altDown = false;
     bool running = true;
+    bool notSkippingFrames = true;
     SDL_Event event;
-    SDL_Window* window; SDL_DisplayMode displayMode; int width, height;
+    SDL_Window* window;
+    SDL_DisplayMode displayMode;
+    int width, height;
     
     void toggleFullscreen(SDL_Window*);
     void pollInputs();

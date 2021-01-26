@@ -83,7 +83,7 @@
 #define MOSAIC_BG_HSIZE (systemMemory->IORegisters[0x4C] & 0xF)
 #define MOSAIC_BG_VSIZE ((systemMemory->IORegisters[0x4C] & 0xF0) >> 4)
 #define MOSAIC_OBJ_HSIZE (systemMemory->IORegisters[0x4D] & 0xF)
-#define MOSAIC_OBJ_HSIZE ((systemMemory->IORegisters[0x4D] & 0xF0) >> 4)
+#define MOSAIC_OBJ_VSIZE ((systemMemory->IORegisters[0x4D] & 0xF0) >> 4)
 
 #define BLDCNT_BG0_TP1 (systemMemory->IORegisters[0x50] & 0x1)
 #define BLDCNT_BG1_TP1 (systemMemory->IORegisters[0x50] & 0x2)

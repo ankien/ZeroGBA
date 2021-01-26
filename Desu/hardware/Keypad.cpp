@@ -54,6 +54,11 @@ void Keypad::pollInputs() {
                 case SDL_SCANCODE_RALT:
                     altDown = true;
                     break;
+                case SDL_SCANCODE_ESCAPE:
+                    running = false;
+                    break;
+                case SDL_SCANCODE_TAB:
+                    notSkippingFrames = false;
             }
 
             if(altDown && enterDown)
@@ -99,6 +104,8 @@ void Keypad::pollInputs() {
                 case SDL_SCANCODE_RALT:
                     altDown = false;
                     break;
+                case SDL_SCANCODE_TAB:
+                    notSkippingFrames = true;
             }
         }
     }

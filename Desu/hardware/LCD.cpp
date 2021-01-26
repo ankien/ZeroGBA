@@ -4,7 +4,7 @@ LCD::LCD() {
     // SDL + OpenGL setup
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER);
 
-    SDL_Window* window = SDL_CreateWindow(
+    window = SDL_CreateWindow(
         "Placeholder Title", 
         SDL_WINDOWPOS_CENTERED, 
         SDL_WINDOWPOS_CENTERED, 
@@ -12,8 +12,6 @@ LCD::LCD() {
         HEIGHT*SCALE, 
         SDL_WINDOW_OPENGL
     );
-    
-    this->window = window;
 
     SDL_GL_CreateContext(window);
     glewInit();
