@@ -10,4 +10,7 @@ Booted ARMWrestler! (visual CPU test suite)
 <p><b>Start: </b>Enter/Return</p><br/>
 <p><b>D-pad: </b>Arrow Keys</p><br/>
 <p><b>L Button: </b>A</p><br/>
-<p><b>R Button: </b>D</p><br/>
+<p><b>R Button: </b>D</p><br/><br/>
+<p><b>Close Window: </b>Esc, or window X bar</p><br/>
+<p><b>Frame Skip: </b>Tab</p><br/>
+<p><b>Fullscreen: </b>Alt+Enter</p><br/>
