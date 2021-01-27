@@ -16,7 +16,7 @@ void ARM7TDMI::fillARM() {
             armTable[i] = &ARM7TDMI::ARMundefinedInstruction; // undefined opcode
         else if((i & 0b110000000000) == 0b010000000000)
             armTable[i] = &ARM7TDMI::ARMsingleDataTransfer;
-        else if((i & 0b110110010000) == 0b000100000000) 
+        else if((i & 0b110110010000) == 0b000100000000)
             armTable[i] = &ARM7TDMI::ARMpsrTransfer;
         else if((i & 0b111100001111) == 0b000000001001)
             armTable[i] = &ARM7TDMI::ARMmultiplyAndMultiplyAccumulate;
@@ -718,6 +718,10 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X PSR Transfer=",pc);
     #endif
+    if(((instruction & 0xF0000) != 0xF0000) && ((instruction & 0xF000) != 0xF000)) {
+        return ARMswap(instruction);
+    }
+
     bool psr = instruction & 0x400000;
     bool msr = instruction & 0x200000;
 
@@ -1157,19 +1161,20 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint8_t rm = instruction & 0xF;
 
+    uint32_t rnValue = getArrayIndex(rn);
+
     // swap byte
     if(instruction & 0x400000) {
-        uint32_t rnValue = getArrayIndex(rn);
-        setArrayIndex(rd,(*systemMemory)[rnValue]);
+        uint32_t rnAddrValue = (*systemMemory)[rnValue];
         (*systemMemory)[rnValue] = getArrayIndex(rm);
+        setArrayIndex(rd,rnAddrValue);
     } else { // swap word
-        uint32_t rnValue = getArrayIndex(rn);
-        setArrayIndex(rd,readWordRotate(rnValue));
+        uint32_t rnAddrValue = readWordRotate(rnValue);
         storeValue(getArrayIndex(rm),rnValue);
+        setArrayIndex(rd,rnAddrValue);
     }
 
-    if(rd != 15)
-        pc+=4;
+    pc+=4;
 }
 
 void ARM7TDMI::THUMBmoveShiftedRegister(uint16_t instruction) {
@@ -1247,14 +1252,14 @@ void ARM7TDMI::THUMBmoveCompareAddSubtract(uint16_t instruction) {
             setArrayIndex(rd,result);
             break;
         case 0x0800: // cmp
-            result = sub(getArrayIndex(rd),nn,s);
+            result = sub(getArrayIndex(rd),nn,1);
             break;
         case 0x1000: // add
-            result = add(getArrayIndex(rd),nn,s);
+            result = add(getArrayIndex(rd),nn,1);
             setArrayIndex(rd,result);
             break;
         case 0x1800: // sub
-            result = sub(getArrayIndex(rd),nn,s);
+            result = sub(getArrayIndex(rd),nn,1);
             setArrayIndex(rd,result);
             break;
     }

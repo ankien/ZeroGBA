@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <filesystem>
 #include <SDL.h>
 #include <glew.h>
 #include "core/ARM7TDMI.hpp"
@@ -24,4 +25,11 @@ struct GBA {
 
     void interpretARM();
     void interpretTHUMB();
+
+    // Control helpers
+    struct {
+        uint8_t jit : 1; // not implemented lol
+    } runtimeOptions;
+    bool parseArguments(uint64_t argc, char* argv[]);
+    void run(char*);
 };

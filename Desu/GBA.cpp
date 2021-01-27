@@ -51,7 +51,6 @@ void GBA::interpretARM() {
     } else
         arm7tdmi.pc+=4;
 }
-
 void GBA::interpretTHUMB() {
     uint16_t instruction = ((*memory)[arm7tdmi.pc+1] << 8) |
                             (*memory)[arm7tdmi.pc];
@@ -63,4 +62,91 @@ void GBA::interpretTHUMB() {
     #endif
     cyclesPassed += arm7tdmi.cycleTicks;
     cyclesSinceHBlank += arm7tdmi.cycleTicks;
+}
+
+// todo: not really urgent, but change this to use regex
+// also, could turn it into a lambda since we only need it once
+bool GBA::parseArguments(uint64_t argc, char* argv[]) {
+    if(argc < 2)
+        return 0;
+    
+    if(argc > 2)
+        for(uint64_t i = 1; i < (argc - 1); i++) {
+            if(strcmp(argv[i], "-j") == 0);
+                // do shit
+            else
+                return 0;
+        }
+
+    return 1;
+}
+void GBA::run(char* fileName) {
+    std::string fileExtension = std::filesystem::path(fileName).extension().string();
+    std::transform(fileExtension.begin(),fileExtension.end(),fileExtension.begin(),[](char c){return std::tolower(c);});
+    
+    if(fileExtension == ".gba") {
+       // load GBA game
+        if(!memory->loadRom(fileName))
+            return;
+
+        if(runtimeOptions.jit) { // GBA JIT
+            // no implementation yet
+            return;
+        } else { // GBA interpreter
+            arm7tdmi.fillARM();
+            arm7tdmi.fillTHUMB();
+            // set runtime options here
+
+            while(keypad.running) {
+
+                while(cyclesPassed < 280896) {
+                    // for debug breakpoints
+                    if(arm7tdmi.pc == 0x08000FF8)
+                        printf("Hello! I am a culprit instruction.\n");
+                    //if(arm7tdmi.reg[0] == 0x01A7E619)
+                        //printf("Hello! I am a culprit register.\n");
+                    uint32_t oldPC = arm7tdmi.pc; // for debugging
+
+                    if(arm7tdmi.state)
+                        interpretTHUMB();
+                    else
+                        interpretARM();
+
+                    // align addresses
+                    if(arm7tdmi.state)
+                        arm7tdmi.pc &= ~1;
+                    else
+                        arm7tdmi.pc &= ~2;
+
+                    if((cyclesSinceHBlank >= 960) && !(memory->IORegisters[4] & 0x2)) { // scan and draw line from framebuffer
+                        lcd.fetchScanline(); // draw visible line
+                        memory->IORegisters[4] |= 0x2; // turn on hblank
+                    } else if(cyclesSinceHBlank >= 1232) {
+                        memory->IORegisters[4] ^= 0x2; // turn off hblank
+                        cyclesSinceHBlank -= 1232;
+                    }
+
+                    if(cyclesPassed >= 197120)
+                        memory->IORegisters[4] |= 0x1; // set vblank
+                    else
+                        memory->IORegisters[4] ^= 0x1;; // disable vblank
+                }
+
+                if(cyclesPassed > 280896)
+                    cyclesPassed -= 280896;
+                else
+                    cyclesPassed = 0;
+
+                cyclesSinceHBlank = cyclesPassed; // keep other cycle counters in sync with system
+                lcd.draw();
+
+                keypad.pollInputs();
+
+                if(keypad.notSkippingFrames)
+                    SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
+            }
+        }
+
+    } else
+        std::cout << "Invalid ROM\n";
 }

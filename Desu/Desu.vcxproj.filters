@@ -75,6 +75,9 @@
     <None Include="shaders\GBA.vert">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="..\README.md">
+      <Filter>Non-code</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="non-code\pandaBoot.png">

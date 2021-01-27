@@ -8,13 +8,11 @@
 
 // debug console print, reeeally slow, like 1 fps slow
 // file logging is faster but has limitations
-#define PRINT_INSTR
+//#define PRINT_INSTR
 
 struct ARM7TDMI {
     // cycles per instruction
     static const int32_t cycleTicks = 10; // stubbing this for now, todo: implement correct cycle timings
-    uint8_t s;
-    uint8_t n;
 
     // lookup tables, array size is the different number of instructions
     void (ARM7TDMI::*armTable[4096])(uint32_t);

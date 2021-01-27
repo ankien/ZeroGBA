@@ -71,10 +71,13 @@ void LCD::fetchScanline() {
 }
 
 void LCD::draw() {
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5_A1,WIDTH,HEIGHT,0,GL_BGRA,GL_UNSIGNED_SHORT_1_5_5_5_REV,pixelBuffer);
-    glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+    // skip frames if shit's faster than it should be
+    if(fps < 70) {
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5_A1,WIDTH,HEIGHT,0,GL_BGRA,GL_UNSIGNED_SHORT_1_5_5_5_REV,pixelBuffer);
+        glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 
-    SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(window);
+    }
 
     fps++;
 
