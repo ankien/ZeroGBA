@@ -1,3 +1,5 @@
+#pragma once
+
 /// LCD ///
 #define DISPCNT_MODE (systemMemory->IORegisters[0] & 0x7)
 #define DISPCNT_CGB (systemMemory->IORegisters[0] & 0x8)

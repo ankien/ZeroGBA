@@ -799,7 +799,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
             uint8_t Is = (instruction & 0xF80) >> 7;
             uint8_t shiftType = (instruction & 0x60) >> 5;
             uint8_t rm = instruction & 0xF;
-            offset = ALUshift(getArrayIndex(rm),Is,shiftType,1,1);
+            offset = ALUshift(getArrayIndex(rm),Is,shiftType,0,1);
             
     }
 
@@ -847,7 +847,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
         }
     }
 
-    if((instruction & 0x200000) || !p) // write-back address
+    if(((instruction & 0x200000) || !p) && ((rd != rn) || !ldr)) // write-back address
         setArrayIndex(rn,address);
 
     if(rd != 15)
@@ -949,7 +949,7 @@ void ARM7TDMI::ARMhdsDataLDRH(uint32_t instruction) {
         }
     }
 
-    if((instruction & 0x200000) || !p) // write-back address
+    if(((instruction & 0x200000) || !p) && (rd != rn)) // write-back address
         setArrayIndex(rn,address);
 
     if(rd != 15)
@@ -999,7 +999,7 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
         }
     }
 
-    if((instruction & 0x200000) || !p) // write-back address
+    if(((instruction & 0x200000) || !p) && (rd != rn)) // write-back address
         setArrayIndex(rn,address);
 
     if(rd != 15)
@@ -1049,7 +1049,7 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
         }
     }
 
-    if((instruction & 0x200000) || !p) // write-back address
+    if(((instruction & 0x200000) || !p) && (rd != rn)) // write-back address
         setArrayIndex(rn,address);
 
     if(rd != 15)

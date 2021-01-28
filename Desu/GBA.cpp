@@ -101,7 +101,7 @@ void GBA::run(char* fileName) {
 
                 while(cyclesPassed < 280896) {
                     // for debug breakpoints
-                    if(arm7tdmi.pc == 0x08000FF8)
+                    if(arm7tdmi.pc == 0x08001DB8)
                         printf("Hello! I am a culprit instruction.\n");
                     //if(arm7tdmi.reg[0] == 0x01A7E619)
                         //printf("Hello! I am a culprit register.\n");

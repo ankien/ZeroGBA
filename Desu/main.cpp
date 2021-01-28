@@ -12,9 +12,9 @@ int _stdcall WinMain (struct HINSTANCE__*,struct HINSTANCE__*,char*,int) { retur
 
 int main(int argc, char* argv[]) {
     GBA gba;
-    if(gba.parseArguments(argc,argv)) {
+    if(gba.parseArguments(argc,argv))
         gba.run(argv[argc - 1]);
-    } else
+    else
         std::cout << "Error with arguments - format: [executable] [-options] [rom]\n";
     return 0;
 }

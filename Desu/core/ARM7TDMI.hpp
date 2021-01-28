@@ -15,6 +15,7 @@ struct ARM7TDMI {
     static const int32_t cycleTicks = 10; // stubbing this for now, todo: implement correct cycle timings
 
     // lookup tables, array size is the different number of instructions
+    // todo: use templates to generate these tables at compile time
     void (ARM7TDMI::*armTable[4096])(uint32_t);
     void (ARM7TDMI::*thumbTable[256])(uint16_t);
 
@@ -159,7 +160,7 @@ inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
            (*systemMemory)[address + 1] << 8;
 }
 inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
-    uint16_t halfWord = readHalfWord(address);
+    uint16_t halfWord = readHalfWord(address & ~1);
     uint8_t rorAmount = (address & 1) << 3;
     return ror(halfWord,rorAmount);
 }
@@ -170,7 +171,7 @@ inline uint32_t ARM7TDMI::readWord(uint32_t address) {
            (*systemMemory)[address + 3] << 24;
 }
 inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
-    uint32_t word = readWord(address);
+    uint32_t word = readWord(address & ~3);
     uint8_t rorAmount = (address & 3) << 3;
     return ror(word,rorAmount);
 }
