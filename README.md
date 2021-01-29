@@ -12,7 +12,7 @@ Passed ARMWrestler! (visual CPU test suite)<br>
 <p><b>Start: </b>Enter/Return</p>
 <p><b>D-pad: </b>Arrow Keys</p>
 <p><b>L Button: </b>A</p>
-<p><b>R Button: </b>D</p>
+<p><b>R Button: </b>D</p><br>
 
 <h3>Emulator Controls</h3>
 <p><b>Close Window: </b>Esc, or the window X bar</p>
