@@ -1067,7 +1067,9 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint16_t rListBinary = instruction & 0xFFFF;
     uint32_t address = getArrayIndex(rn);
-    uint16_t rnInList = rListBinary & (1 << rn);
+    uint32_t baseAddress = address;
+    bool rnInList = rListBinary & (1 << rn);
+    bool rnFirstInList = 0;
     bool pcInList = 0;
     uint8_t oldMode = 0;
     int8_t offset;
@@ -1083,6 +1085,8 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint16_t bitPos = 1;
     for(uint8_t i = 0; i < 16; i++) {
         if(rListBinary & bitPos) {
+            if(!rnFirstInList && rListVector.empty() && (i == rn))
+                rnFirstInList = 1;
             rListVector.emplace_back(i);
             if(i == 15)
                 pcInList = 1;
@@ -1100,13 +1104,11 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     }
 
     if(s) { // If s bit is set and rn is in transfer list
-        if(rListBinary & rnInList) {
-            if(l)
-                setCPSR(getArrayIndex('S'));
-            else {
-                oldMode = mode;
-                mode = User;
-            }
+        if(l && pcInList) // LDM with R15 in transfer list
+            setCPSR(getArrayIndex('S'));
+        else { // R15 not in list
+            oldMode = mode;
+            mode = User;
         }
     }
 
@@ -1130,23 +1132,19 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
                 storeValue(getArrayIndex(num),address+12);
             else
                 storeValue(getArrayIndex(num),address);
-                
-            // if base register is not the first store you do, and wb bit is enabled, wb to base register(line 1055) and new base address
-            if((num == rn) && (rn != rListVector[0]) && w)
-            storeValue(address,address);
             
             if(!p)
                 address += offset;
         }
 
+        if(rnFirstInList)
+            storeValue(baseAddress,baseAddress);
     }
 
-    if(oldMode) {
+    if(oldMode)
         mode = oldMode;
-        w = 0;
-    }
     
-    // if STM wb bit is set, write-back; if LDM wb bit is set and rn not in list, write-back
+    // if STM wb bit is set, write-back; don't if LDM and rn is in list
     if(w && !(l && rnInList)) 
         setArrayIndex(rn,address);
     
@@ -1434,7 +1432,7 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
     #endif
     uint32_t rd = instruction & 0x7;
     uint32_t rb = getArrayIndex((instruction & 0x38) >> 3);
-    uint32_t ro = getArrayIndex((instruction & 0x7C0) >> 6);
+    uint32_t ro = getArrayIndex((instruction & 0xC0) >> 6);
 
     switch(instruction & 0xC00) {
         case 0x000: // STRH
@@ -1442,7 +1440,7 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
             storeValue(*reinterpret_cast<uint16_t*>(&rd),rb+ro);
             break;
         case 0x400: // LDSB
-            setArrayIndex(rd,(*systemMemory)[rb+ro]);
+            setArrayIndex(rd,static_cast<int8_t>((*systemMemory)[rb+ro]));
             break;
         case 0x800: // LDRH
             setArrayIndex(rd,readHalfWordRotate(rb+ro));

@@ -8,6 +8,7 @@ uniform sampler2D ourTexture;
 void main() {
     // https://byuu.net/video/color-emulation/
     
+// todo: fix this shit
 //    vec4 texColor = texture(ourTexture,texCoord);
 
 //    texColor.rgb = pow(texColor.rgb, vec3(4.0));

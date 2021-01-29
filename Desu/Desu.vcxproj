@@ -26,6 +26,7 @@
     <ClInclude Include="hardware\LCD.hpp" />
     <ClInclude Include="hardware\MMIO.h" />
     <ClInclude Include="hardware\Timer.hpp" />
+    <ClInclude Include="Scheduler.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\ARM7TDMI.cpp" />
@@ -35,6 +36,7 @@
     <ClCompile Include="hardware\LCD.cpp" />
     <ClCompile Include="hardware\Timer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Scheduler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />

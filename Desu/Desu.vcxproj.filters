@@ -11,10 +11,6 @@
     <Filter Include="Non-code">
       <UniqueIdentifier>{9393d6c7-074c-4fa3-8152-c411450d0f87}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Systems">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Hardware">
       <UniqueIdentifier>{cd56e99c-2070-464a-97a7-2650e70b0547}</UniqueIdentifier>
     </Filter>
@@ -25,9 +21,6 @@
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GBA.cpp">
-      <Filter>Systems</Filter>
     </ClCompile>
     <ClCompile Include="hardware\GBAMemory.cpp">
       <Filter>Hardware</Filter>
@@ -44,11 +37,14 @@
     <ClCompile Include="core\ARM7TDMI.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="GBA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Scheduler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GBA.hpp">
-      <Filter>Systems</Filter>
-    </ClInclude>
     <ClInclude Include="hardware\GBAMemory.hpp">
       <Filter>Hardware</Filter>
     </ClInclude>
@@ -66,6 +62,12 @@
     </ClInclude>
     <ClInclude Include="core\ARM7TDMI.hpp">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GBA.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scheduler.hpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

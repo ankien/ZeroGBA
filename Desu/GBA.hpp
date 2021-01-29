@@ -7,6 +7,7 @@
 #include "hardware/GBAMemory.hpp"
 #include "hardware/LCD.hpp"
 #include "hardware/Keypad.hpp"
+#include "Scheduler.hpp" // todo: implement this bad boy
 
 struct GBA {
     /// Cycle scheduler variables ///
@@ -23,6 +24,7 @@ struct GBA {
 
     GBA();
 
+    // todo: implement a cached interpreter (fetch a batch of instructions before interpretation)
     void interpretARM();
     void interpretTHUMB();
 
