@@ -107,6 +107,7 @@ struct ARM7TDMI {
     void ARMhdsDataLDRH(uint32_t);
     void ARMhdsDataLDRSB(uint32_t);
     void ARMhdsDataLDRSH(uint32_t);
+    // todo: optimize this instruction with a straight memcpy
     void ARMblockDataTransfer(uint32_t);
     void ARMswap(uint32_t);
 
@@ -146,18 +147,13 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
 }
 
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
-    (*systemMemory)[address] = value;
-    (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
+    reinterpret_cast<uint16_t*>(&(*systemMemory)[address])[0] = value;
 }
 inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
-    (*systemMemory)[address] = value;
-    (*systemMemory)[address + 1] = (value & 0xFF00) >> 8;
-    (*systemMemory)[address + 2] = (value & 0xFF0000) >> 16;
-    (*systemMemory)[address + 3] = (value & 0xFF000000) >> 24;
+    reinterpret_cast<uint32_t*>(&(*systemMemory)[address])[0] = value;
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
-    return (*systemMemory)[address] |
-           (*systemMemory)[address + 1] << 8;
+    return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address]);
 }
 inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
     uint16_t halfWord = readHalfWord(address & ~1);
@@ -165,10 +161,7 @@ inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
     return ror(halfWord,rorAmount);
 }
 inline uint32_t ARM7TDMI::readWord(uint32_t address) {
-    return (*systemMemory)[address] |
-           (*systemMemory)[address + 1] << 8 |
-           (*systemMemory)[address + 2] << 16 |
-           (*systemMemory)[address + 3] << 24;
+    return *reinterpret_cast<uint32_t*>(&(*systemMemory)[address]);
 }
 inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
     uint32_t word = readWord(address & ~3);

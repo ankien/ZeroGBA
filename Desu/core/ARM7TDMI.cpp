@@ -1432,7 +1432,7 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
     #endif
     uint32_t rd = instruction & 0x7;
     uint32_t rb = getArrayIndex((instruction & 0x38) >> 3);
-    uint32_t ro = getArrayIndex((instruction & 0xC0) >> 6);
+    uint32_t ro = getArrayIndex((instruction & 0x1C0) >> 6);
 
     switch(instruction & 0xC00) {
         case 0x000: // STRH

@@ -15,6 +15,8 @@ struct GBAMemory {
     uint8_t* oam;
     uint8_t* gamePak;
     uint8_t* gPakSram;
+    // This is the "address that's returned when there's an unmapped store/read
+    // todo: handle unused memory reads correctly
     uint8_t unusedMemoryAccess;
 
     // for getting and setting memory
