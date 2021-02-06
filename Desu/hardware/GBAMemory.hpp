@@ -2,19 +2,20 @@
 #include <cstdint>
 #include <fstream>
 #include <filesystem>
+#include <cstdio>
 #include "MMIO.h" // for getting mmio fields
 
 struct GBAMemory {
 
-    uint8_t* bios;
-    uint8_t* wramOnBoard;
-    uint8_t* wramOnChip;
-    uint8_t* IORegisters;
-    uint8_t* pram;
-    uint8_t* vram;
-    uint8_t* oam;
-    uint8_t* gamePak;
-    uint8_t* gPakSram;
+    uint8_t bios[0x4000];
+    uint8_t wramOnBoard[0x40000];
+    uint8_t wramOnChip[0x8000];
+    uint8_t IORegisters[0x3FF];
+    uint8_t pram[0x400];
+    uint8_t vram[0x18000];
+    uint8_t oam[0x400];
+    uint8_t gamePak[0x3000000];
+    uint8_t gPakSram[0x10000];
     // This is the "address that's returned when there's an unmapped store/read
     // todo: handle unused memory reads correctly
     uint8_t unusedMemoryAccess;

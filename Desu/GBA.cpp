@@ -2,15 +2,6 @@
 
 GBA::GBA() {
     memory = new GBAMemory();
-    memory->bios = (uint8_t*)calloc(0x4000,sizeof(uint8_t));
-    memory->wramOnBoard = (uint8_t*)calloc(0x40000,sizeof(uint8_t));
-    memory->wramOnChip = (uint8_t*)calloc(0x8000,sizeof(uint8_t));
-    memory->IORegisters = (uint8_t*)calloc(0x3FF,sizeof(uint8_t));
-    memory->pram = (uint8_t*)calloc(0x400,sizeof(uint8_t));
-    memory->vram = (uint8_t*)calloc(0x18000,sizeof(uint8_t));
-    memory->oam = (uint8_t*)calloc(0x400,sizeof(uint8_t));
-    memory->gamePak = (uint8_t*)calloc(0x3000000,sizeof(uint8_t));
-    memory->gPakSram = (uint8_t*)calloc(0x10000,sizeof(uint8_t));
 
     arm7tdmi.systemMemory = memory;
     // skip the bios, todo: implement everything in order to load it correctly
@@ -101,8 +92,8 @@ void GBA::run(char* fileName) {
 
                 while(cyclesPassed < 280896) {
                     // for debug breakpoints
-                    //if(arm7tdmi.pc == 0x08031672)
-                        //printf("Hello! I am a culprit instruction.\n");
+                    if(arm7tdmi.pc == 0x080000F4)
+                        printf("Hello! I am a culprit instruction.\n");
                     //if(arm7tdmi.reg[1] == 0x6164B7AA)
                         //printf("Hello! I am a culprit register.\n");
                     uint32_t oldPC = arm7tdmi.pc; // for debugging
@@ -140,8 +131,10 @@ void GBA::run(char* fileName) {
                 cyclesSinceHBlank = cyclesPassed; // keep other cycle counters in sync with system
                 lcd.draw();
 
+                // todo: implement JIT polling and run ahead - https://byuu.net/input
                 keypad.pollInputs();
 
+                // todo: make the delay (16 ms) dynamically fluctuate for 60 fps target
                 if(keypad.notSkippingFrames)
                     SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
             }

@@ -16,7 +16,6 @@ struct GBA {
 
     /// Hardware ///
     ARM7TDMI arm7tdmi{};
-    // todo: change this into a stack var
     GBAMemory* memory;
     LCD lcd{};
     Keypad keypad{};

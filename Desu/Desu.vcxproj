@@ -97,8 +97,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\devlibs\SDL2\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\devlibs\SDL2\lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -116,18 +116,19 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\devlibs\glew-2.1.0\include\GL;C:\devlibs\SDL2\include;C:\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\include;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\include\GL</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Desu\dependencies\sdl\include;$(SolutionDir)Desu\dependencies\glew\include;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Kernel32.lib;Winmm.lib;opengl32.lib;glu32.lib;SDL2.lib;SDL2main.lib;glew32.lib;glew32s.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\devlibs\SDL2\lib\x86;C:\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; glew32.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Desu\dependencies\sdl\lib;$(SolutionDir)Desu\dependencies\glew\lib;</AdditionalLibraryDirectories>
       <EntryPointSymbol>
       </EntryPointSymbol>
     </Link>
@@ -139,18 +140,19 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\devlibs\glew-2.1.0\include\GL;C:\devlibs\SDL2\include;C:\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\glm\glm;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\include;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\include\GL</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Desu\dependencies\sdl\include;$(SolutionDir)Desu\dependencies\glew\include;$(SolutionDir)Desu\dependencies\glm;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\devlibs\SDL2\lib\x86;C:\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\glew-2.1.0\lib\Release\Win32;C:\Users\Andrew. K\Desktop\devlibs\SDL2-2.0.12\lib\x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Kernel32.lib;Winmm.lib;opengl32.lib;glu32.lib;SDL2.lib;SDL2main.lib;glew32.lib;glew32s.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Desu\dependencies\sdl\lib\x86;$(SolutionDir)Desu\dependencies\glew\lib\Release\Win32;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; SDL2main.lib; glew32.lib; glew32s.lib;</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
     </Link>
