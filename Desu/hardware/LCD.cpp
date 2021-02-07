@@ -84,7 +84,7 @@ void LCD::draw() {
     // If a second has passed
     currMillseconds = SDL_GetTicks();
     if(currMillseconds / 1000 != millisecondsElapsed / 1000) {
-        std::string title = std::to_string(fps)+" FPS desu!";
+        std::string title = std::to_string(fps)+" fps - Desu";
         SDL_SetWindowTitle(window,title.c_str());
         fps = 0;
         millisecondsElapsed = currMillseconds;

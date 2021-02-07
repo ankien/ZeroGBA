@@ -125,7 +125,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; glew32.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Desu\dependencies\sdl\lib;$(SolutionDir)Desu\dependencies\glew\lib;</AdditionalLibraryDirectories>

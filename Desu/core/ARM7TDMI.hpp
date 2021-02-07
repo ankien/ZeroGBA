@@ -29,16 +29,17 @@ struct ARM7TDMI {
 
     /// Registers ///
     // CPSR & SPSR = program status registers
-    // todo: eventually implement actual register banking for that perf
-    uint32_t reg[8]; // R0-7
-    uint32_t r8[2]; // sys/user-fiq
-    uint32_t r9[2]; // sys/user-fiq
-    uint32_t r10[2]; // sys/user-fiq
-    uint32_t r11[2]; // sys/user-fiq
-    uint32_t r12[2]; // sys/user-fiq
-    uint32_t r13[6]; // sys/user, fiq, svc, abt, irq, und - SP
-    uint32_t r14[6]; // sys/user, fiq, svc, abt, irq, und - LR
-    uint32_t pc; // R15
+    // current regs
+    uint32_t r[16]; // R0-15; r13 - SP, r14 - LR, r15 - PC
+
+    // banked regs
+    uint32_t sysUserReg[7]; // r8-14
+    uint32_t fiqReg[8]; // r8-14 + SPSR
+    uint32_t svcReg[3]; // r13-14 + SPSR
+    uint32_t abtReg[3]; // r13-14 + SPSR
+    uint32_t irqReg[3]; // r13-14 + SPSR
+    uint32_t undReg[3]; // r13-14 + SPSR
+    
     // CPSR bitfield implementation, least significant bit to most
     uint8_t mode; // 5 : see enum modes
     bool    state, // 1 : 0 = ARM, 1 = THUMB
@@ -50,13 +51,13 @@ struct ARM7TDMI {
          carryFlag, // C, 1 : 0 = borrow/no carry, 1 = carry/no borrow, addition overflow is carry; sub underflow is borrow
          zeroFlag, // Z, 1 : 0 = not zero, 1 = zero
          signFlag; // N, 1 : 0 = not signed, 1 = signed (31 bit is filled)
-    uint32_t spsr[6]; // N/A, fiq, svc, abt, irq, und
-
-    /// Helper functions ///
-    // todo: implement exception stuff at 0x3007F00
-    void handleException(uint8_t, uint32_t, uint8_t);
+    
+    // Used to fill LUTs
     void fillARM();
     void fillTHUMB();
+    
+    // ARM/THUMB helper functions
+    void handleException(uint8_t, uint32_t, uint8_t);
     uint16_t fetchARMIndex(uint32_t);
     uint8_t fetchTHUMBIndex(uint16_t);
 
@@ -69,11 +70,14 @@ struct ARM7TDMI {
     uint32_t readWord(uint32_t);
     uint32_t readWordRotate(uint32_t);
 
-    // more helpers
-    uint32_t getModeArrayIndex(uint8_t, uint8_t);
-    void setModeArrayIndex(uint8_t, uint8_t, uint32_t);
-    uint32_t getArrayIndex(uint8_t);
-    void setArrayIndex(uint8_t, uint32_t);
+    // register helpers
+    void switchMode(uint8_t);
+    uint32_t getBankedReg(uint8_t, uint8_t);
+    void setBankedReg(uint8_t, uint8_t, uint32_t);
+    uint32_t getReg(uint8_t);
+    void setReg(uint8_t, uint32_t);
+    uint32_t getSPSR(uint8_t);
+    void setSPSR(uint8_t,uint32_t);
     uint32_t getCPSR();
     void setCPSR(uint32_t);
     bool checkCond(uint32_t);
@@ -137,6 +141,81 @@ struct ARM7TDMI {
     void THUMBsoftwareInterrupt(uint16_t);
 };
 
+/// Helper Methods ///
+
+inline void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
+    //setModeArrayIndex(newMode,14,r[15]+nn);
+    //setModeArrayIndex(newMode,'S',getCPSR());
+    state = 0;
+    mode = newMode;
+    irqDisable = 1;
+    
+    if((mode == Reset) || (mode == FIQ))
+        fiqDisable = 1;
+
+    switch(mode) {
+
+        case Supervisor:
+
+            switch(exception) {
+
+                case Reset:
+                    r[15] = 0x0;
+                    break;
+                case AddressExceeds26Bit:
+                    r[15] = 0x14;
+                    break;
+                case SoftwareInterrupt:
+                    r[15] = 0x8;
+                    break;
+            }
+            break;
+
+        case Undefined:
+            
+            switch(exception) {
+                
+                case UndefinedInstruction:
+                    r[15] = 0x4;
+                    break;
+            }
+            break;
+
+        case Abort:
+
+            switch(exception) {
+
+                case DataAbort:
+                    r[15] = 0x10;
+                    break;
+                case PrefetchAbort:
+                    r[15] = 0xC;
+                    break;
+            }
+            break;
+
+        case IRQ:
+            
+            switch(exception) {
+
+                case NormalInterrupt:
+                    r[15] = 0x18;
+                    break;
+            }
+            break;
+
+        case FIQ:
+            
+            switch(exception) {
+
+                case FastInterrupt:
+                    r[15] = 0x1C;
+                    break;
+            }
+    }
+
+
+}
 // Bits 27-20 + 7-4
 inline uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
     return ((instruction >> 16) & 0xFF0) | ((instruction >> 4) & 0xF);
@@ -169,6 +248,194 @@ inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
     return ror(word,rorAmount);
 }
 
+inline void ARM7TDMI::switchMode(uint8_t newMode) {
+    // bank current regs
+    switch(mode) {
+        case User:
+        case System:
+            for(uint8_t i = 8; i < 15; i++)
+                sysUserReg[i-8] = r[i];
+            break;
+        case FIQ:
+            for(uint8_t i = 8; i < 15; i++)
+                fiqReg[i-8] = r[i];
+            fiqReg[7] = getCPSR();
+            break;
+        case Supervisor:
+            for(uint8_t i = 13; i < 15; i++)
+                svcReg[i-13] = r[i];
+            svcReg[2] = getCPSR();
+            break;
+        case Abort:
+            for(uint8_t i = 13; i < 15; i++)
+                abtReg[i-13] = r[i];
+            abtReg[2] = getCPSR();
+            break;
+        case IRQ:
+            for(uint8_t i = 13; i < 15; i++)
+                irqReg[i-13] = r[i];
+            irqReg[2] = getCPSR();
+            break;
+        case Undefined:
+            for(uint8_t i = 13; i < 15; i++)
+                undReg[i-13] = r[i];
+            undReg[2] = getCPSR();
+    }
+
+    mode = newMode;
+
+    // get new regs
+    switch(newMode) {
+        case User:
+        case System:
+            for(uint8_t i = 8; i < 15; i++)
+                r[i] = sysUserReg[i-8];
+            break;
+        case FIQ:
+            for(uint8_t i = 8; i < 15; i++)
+                r[i] = fiqReg[i-8];
+            setCPSR(fiqReg[7]);
+            break;
+        case Supervisor:
+            for(uint8_t i = 13; i < 15; i++)
+                r[i] = svcReg[i-13];
+            setCPSR(svcReg[2]);
+            break;
+        case Abort:
+            for(uint8_t i = 13; i < 15; i++)
+                r[i] = abtReg[i-13];
+            setCPSR(abtReg[2]);
+            break;
+        case IRQ:
+            for(uint8_t i = 13; i < 15; i++)
+                r[i] = irqReg[i-13];
+            setCPSR(irqReg[2]);
+            break;
+        case Undefined:
+            for(uint8_t i = 13; i < 15; i++)
+                r[i] = undReg[i-13];
+            setCPSR(undReg[2]);
+            break;
+    }
+}
+inline uint32_t ARM7TDMI::getBankedReg(uint8_t mode, uint8_t reg) {
+    switch(mode) {
+        case User:
+        case System:
+            return reg > 7 ? sysUserReg[reg-8] : r[reg];
+            break;
+        case FIQ:
+            return reg > 7 ? fiqReg[reg-8] : r[reg];
+            break;
+        case Supervisor:
+            return reg > 12 ? svcReg[reg-13] : r[reg];
+            break;
+        case Abort:
+            return reg > 12 ? abtReg[reg-13] : r[reg];
+            break;
+        case IRQ:
+            return reg > 12 ? irqReg[reg-13] : r[reg];
+            break;
+        case Undefined:
+            return reg > 12 ? undReg[reg-13] : r[reg];
+    }
+}
+inline void ARM7TDMI::setBankedReg(uint8_t mode, uint8_t reg, uint32_t arg) {
+    switch(mode) {
+        case User:
+        case System:
+            reg > 7 ? sysUserReg[reg-8] = arg : r[reg] = arg;
+            break;
+        case FIQ:
+            reg > 7 ? fiqReg[reg-8] = arg : r[reg] = arg;
+            break;
+        case Supervisor:
+            reg > 12 ? svcReg[reg-13] = arg : r[reg] = arg;
+            break;
+        case Abort:
+            reg > 12 ? abtReg[reg-13] = arg : r[reg] = arg;
+            break;
+        case IRQ:
+            reg > 12 ? irqReg[reg-13] = arg : r[reg] = arg;
+            break;
+        case Undefined:
+            reg > 12 ? undReg[reg-13] = arg : r[reg] = arg;
+    }
+}
+inline uint32_t ARM7TDMI::getReg(uint8_t reg) {
+    return r[reg];
+}
+inline void ARM7TDMI::setReg(uint8_t reg, uint32_t arg) {
+    r[reg] = arg;
+}
+inline bool ARM7TDMI::checkCond(uint32_t cond) {
+    switch(cond) {
+        case 0x00000000:
+            return zeroFlag;
+        case 0x10000000:
+            return !zeroFlag;
+        case 0x20000000:
+            return carryFlag;
+        case 0x30000000:
+            return !carryFlag;
+        case 0x40000000:
+            return signFlag;
+        case 0x50000000:
+            return !signFlag;
+        case 0x60000000:
+            return overflowFlag;
+        case 0x70000000:
+            return !overflowFlag;
+        case 0x80000000:
+            return carryFlag && (!zeroFlag);
+        case 0x90000000:
+            return(!carryFlag) && zeroFlag;
+        case 0xA0000000:
+            return signFlag == overflowFlag;
+        case 0xB0000000:
+            return signFlag != overflowFlag;
+        case 0xC0000000:
+            return (!zeroFlag) && (signFlag == overflowFlag);
+        case 0xD0000000:
+            return zeroFlag || (signFlag != overflowFlag);
+        case 0xE0000000:
+            return 1;
+    }
+    return 0;
+}
+inline uint32_t ARM7TDMI::getSPSR(uint8_t mode) {
+    switch(mode) {
+        case FIQ:
+            return fiqReg[7];
+        case Supervisor:
+            return svcReg[2];
+        case Abort:
+            return abtReg[2];
+        case IRQ:
+            return irqReg[2];
+        case Undefined:
+            return undReg[2];
+    }
+}
+inline void ARM7TDMI::setSPSR(uint8_t mode,uint32_t arg) {
+    switch(mode) {
+        case FIQ:
+            fiqReg[7] = arg;
+            break;
+        case Supervisor:
+            svcReg[2] = arg;
+            break;
+        case Abort:
+            abtReg[2] = arg;
+            break;
+        case IRQ:
+            irqReg[2] = arg;
+            break;
+        case Undefined:
+            undReg[2] = arg;
+            break;
+    }
+}
 inline uint32_t ARM7TDMI::getCPSR() {
     return mode |
            (state << 5) |

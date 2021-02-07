@@ -5,13 +5,13 @@ GBA::GBA() {
 
     arm7tdmi.systemMemory = memory;
     // skip the bios, todo: implement everything in order to load it correctly
-    arm7tdmi.pc = 0x8000000;
-    arm7tdmi.setArrayIndex(0,0xCA5);
+    arm7tdmi.r[15] = 0x8000000;
+    arm7tdmi.setReg(0,0xCA5);
     arm7tdmi.setCPSR(0x1F);
-    arm7tdmi.setModeArrayIndex(arm7tdmi.System,13,0x3007F00);
-    arm7tdmi.setModeArrayIndex(arm7tdmi.IRQ,13,0x3007FA0);
-    arm7tdmi.setModeArrayIndex(arm7tdmi.Supervisor,13,0x3007FE0);
-    arm7tdmi.setModeArrayIndex(arm7tdmi.System,14,0x8000000);
+    arm7tdmi.setReg(13,0x3007F00);
+    arm7tdmi.setReg(14,0x8000000);
+    arm7tdmi.setBankedReg(arm7tdmi.IRQ,13,0x3007FA0);
+    arm7tdmi.setBankedReg(arm7tdmi.Supervisor,13,0x3007FE0);
 
     lcd.systemMemory = memory;
 
@@ -26,10 +26,10 @@ GBA::GBA() {
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
 // i think i can fake the pipeline
 void GBA::interpretARM() {
-    uint32_t instruction = ((*memory)[arm7tdmi.pc + 3] << 24) |
-        ((*memory)[arm7tdmi.pc + 2] << 16) |
-        ((*memory)[arm7tdmi.pc + 1] << 8) |
-        (*memory)[arm7tdmi.pc];
+    uint32_t instruction = ((*memory)[arm7tdmi.r[15] + 3] << 24) |
+        ((*memory)[arm7tdmi.r[15] + 2] << 16) |
+        ((*memory)[arm7tdmi.r[15] + 1] << 8) |
+        (*memory)[arm7tdmi.r[15]];
 
     if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
@@ -40,11 +40,11 @@ void GBA::interpretARM() {
         cyclesPassed += arm7tdmi.cycleTicks;
         cyclesSinceHBlank += arm7tdmi.cycleTicks;
     } else
-        arm7tdmi.pc+=4;
+        arm7tdmi.r[15]+=4;
 }
 void GBA::interpretTHUMB() {
-    uint16_t instruction = ((*memory)[arm7tdmi.pc+1] << 8) |
-                            (*memory)[arm7tdmi.pc];
+    uint16_t instruction = ((*memory)[arm7tdmi.r[15]+1] << 8) |
+                            (*memory)[arm7tdmi.r[15]];
 
     uint8_t thumbIndex = arm7tdmi.fetchTHUMBIndex(instruction);
     (arm7tdmi.*(arm7tdmi.thumbTable[thumbIndex]))(instruction);
@@ -92,11 +92,11 @@ void GBA::run(char* fileName) {
 
                 while(cyclesPassed < 280896) {
                     // for debug breakpoints
-                    if(arm7tdmi.pc == 0x080000F4)
-                        printf("Hello! I am a culprit instruction.\n");
+                    //if(arm7tdmi.r[15] == 0x08000F94)
+                        //printf("Hello! I am a culprit instruction.\n");
                     //if(arm7tdmi.reg[1] == 0x6164B7AA)
                         //printf("Hello! I am a culprit register.\n");
-                    uint32_t oldPC = arm7tdmi.pc; // for debugging
+                    uint32_t oldPC = arm7tdmi.r[15]; // for debugging
 
                     if(arm7tdmi.state)
                         interpretTHUMB();
@@ -105,9 +105,9 @@ void GBA::run(char* fileName) {
 
                     // align addresses
                     if(arm7tdmi.state)
-                        arm7tdmi.pc &= ~1;
+                        arm7tdmi.r[15] &= ~1;
                     else
-                        arm7tdmi.pc &= ~2;
+                        arm7tdmi.r[15] &= ~2;
 
                     if((cyclesSinceHBlank >= 960) && !(memory->IORegisters[4] & 0x2)) { // scan and draw line from framebuffer
                         lcd.fetchScanline(); // draw visible line
