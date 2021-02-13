@@ -8,13 +8,13 @@
 struct GBAMemory {
 
     uint8_t bios[0x4000];
-    uint8_t wramOnBoard[0x40000];
-    uint8_t wramOnChip[0x8000];
+    uint8_t wramOnBoard[0x40000]; // AKA EWRAM
+    uint8_t wramOnChip[0x8000]; // AKA IWRAM
     uint8_t IORegisters[0x3FF];
     uint8_t pram[0x400];
     uint8_t vram[0x18000];
     uint8_t oam[0x400];
-    uint8_t gamePak[0x3000000];
+    uint8_t gamePak[0x1000000];
     uint8_t gPakSram[0x10000];
     // This is the "address that's returned when there's an unmapped store/read
     // todo: handle unused memory reads correctly

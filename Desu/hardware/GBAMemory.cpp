@@ -7,36 +7,31 @@ uint8_t& GBAMemory::operator[](uint32_t i) {
                 return unusedMemoryAccess;
             return bios[i];
         case 0x02:
-            if(i > 0x0203FFFF)
-                return unusedMemoryAccess;
-            return wramOnBoard[i-0x2000000];
+            return wramOnBoard[(i-0x2000000) % 0x40000];
         case 0x03:
-            if(i > 0x03007FFF)
-                return unusedMemoryAccess;
-            return wramOnChip[i-0x3000000];
+            return wramOnChip[(i-0x3000000) % 0x8000];
         case 0x04:
             if(i > 0x040003FE)
                 return unusedMemoryAccess;
             return IORegisters[i-0x4000000];
         case 0x05:
-            if(i > 0x050003FF)
-                return unusedMemoryAccess;
-            return pram[i-0x5000000];
+            return pram[(i-0x5000000) % 0x400];
         case 0x06:
-            if(i > 0x06017FFF)
-                return unusedMemoryAccess;
-            return vram[i-0x6000000];
+            i = (i-0x6000000) % 0x20000;
+            if(i > 0x17FFF)
+                i -= 0x8000;
+            return vram[i];
         case 0x07:
-            if(i > 0x070003FF)
-                return unusedMemoryAccess;
-            return oam[i-0x7000000];
+            return oam[(i-0x7000000) % 0x400];
         case 0x08:
         case 0x09:
+            return gamePak[i-0x8000000];
         case 0x0A:
         case 0x0B:
+            return gamePak[i-0xA000000];
         case 0x0C:
         case 0x0D:
-            return gamePak[i-0x8000000];
+            return gamePak[i-0xC000000];
         case 0x0E:
             if(i > 0x0E00FFFF)
                 return unusedMemoryAccess;

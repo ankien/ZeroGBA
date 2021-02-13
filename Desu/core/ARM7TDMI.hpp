@@ -15,7 +15,7 @@ struct ARM7TDMI {
     static const int32_t cycleTicks = 10; // stubbing this for now, todo: implement correct cycle timings
 
     // lookup tables, array size is the different number of instructions
-    // todo: use templates to generate these tables at compile time
+    // todo: use templates to generate these tables, and their constexpr arguments at compile time
     void (ARM7TDMI::*armTable[4096])(uint32_t);
     void (ARM7TDMI::*thumbTable[256])(uint16_t);
 
@@ -62,6 +62,7 @@ struct ARM7TDMI {
     uint8_t fetchTHUMBIndex(uint16_t);
 
     // memory helper functions
+    void storeValue(uint8_t, uint32_t);
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
     // memory getters, rotates are for misaligned ldr+swp
@@ -225,6 +226,26 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
+inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
+    switch(address >> 24) {
+        case 0x05:
+            storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address & ~1);
+            break;
+        case 0x06:
+            if(systemMemory->IORegisters[0] < 3) { // bitmap mode writes
+                if(address < 0x6014000)
+                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address & ~1);
+            } else {
+                if(address < 0x6010000)
+                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address & ~1);
+            }
+            return;
+        case 0x07:
+            return;
+        default:
+            (*systemMemory)[address] = value;
+    }
+}
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
     reinterpret_cast<uint16_t*>(&(*systemMemory)[address])[0] = value;
 }

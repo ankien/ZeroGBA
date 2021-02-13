@@ -466,10 +466,10 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     storeValue(getReg(rd),address);
                     break;
                 default:
-                    (*systemMemory)[address] = getReg(rd);
+                    storeValue(static_cast<uint8_t>(getReg(rd)),address);
             }
             if(rd == 15)
-                (*systemMemory)[address] = (*systemMemory)[address]+12;
+                storeValue(static_cast<uint8_t>((*systemMemory)[address]+12),address);
             break;
         default: // LDR
                 
@@ -533,7 +533,7 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     storeValue(static_cast<uint16_t>(getReg(rd)),address);
 
     if(rd == 15)
-        (*systemMemory)[address] = (*systemMemory)[address]+12;
+        storeValue(static_cast<uint8_t>((*systemMemory)[address]+12),address);
 
     if(!p) {
         switch(u) {
@@ -809,7 +809,7 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
     // swap byte
     if(instruction & 0x400000) {
         uint32_t rnAddrValue = (*systemMemory)[rnValue];
-        (*systemMemory)[rnValue] = getReg(rm);
+        storeValue(static_cast<uint8_t>(getReg(rm)),rnValue);
         setReg(rd,rnAddrValue);
     } else { // swap word
         uint32_t rnAddrValue = readWordRotate(rnValue);
@@ -1059,7 +1059,7 @@ void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
             break;
         case 0x400: // STRB
             rd = getReg(rd);
-            (*systemMemory)[rb+ro] = *reinterpret_cast<uint8_t*>(&rd);
+            storeValue(*reinterpret_cast<uint8_t*>(&rd),rb+ro);
             break;
         case 0x800: // LDR
             setReg(rd,readWordRotate(rb+ro));
@@ -1113,7 +1113,7 @@ void ARM7TDMI::THUMBloadStoreImmOffset(uint16_t instruction) {
             setReg(rd,readWordRotate(rb+(nn << 2)));
             break;
         case 0x1000: // STRB
-            (*systemMemory)[rb+nn] = getReg(rd);
+            storeValue(static_cast<uint8_t>(getReg(rd)),rb+nn);
             break;
         case 0x1800: // LDRB
             setReg(rd,(*systemMemory)[rb+nn]);

@@ -26,10 +26,7 @@ GBA::GBA() {
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
 // i think i can fake the pipeline
 void GBA::interpretARM() {
-    uint32_t instruction = ((*memory)[arm7tdmi.r[15] + 3] << 24) |
-        ((*memory)[arm7tdmi.r[15] + 2] << 16) |
-        ((*memory)[arm7tdmi.r[15] + 1] << 8) |
-        (*memory)[arm7tdmi.r[15]];
+    uint32_t instruction = arm7tdmi.readWord(arm7tdmi.r[15]);
 
     if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
@@ -43,8 +40,7 @@ void GBA::interpretARM() {
         arm7tdmi.r[15]+=4;
 }
 void GBA::interpretTHUMB() {
-    uint16_t instruction = ((*memory)[arm7tdmi.r[15]+1] << 8) |
-                            (*memory)[arm7tdmi.r[15]];
+    uint16_t instruction = arm7tdmi.readHalfWord(arm7tdmi.r[15]);
 
     uint8_t thumbIndex = arm7tdmi.fetchTHUMBIndex(instruction);
     (arm7tdmi.*(arm7tdmi.thumbTable[thumbIndex]))(instruction);
@@ -92,9 +88,9 @@ void GBA::run(char* fileName) {
 
                 while(cyclesPassed < 280896) {
                     // for debug breakpoints
-                    //if(arm7tdmi.r[15] == 0x08000F94)
+                    //if(arm7tdmi.r[15] == 0x08000310)
                         //printf("Hello! I am a culprit instruction.\n");
-                    //if(arm7tdmi.reg[1] == 0x6164B7AA)
+                    //if(arm7tdmi.r[12] == 0x1)
                         //printf("Hello! I am a culprit register.\n");
                     uint32_t oldPC = arm7tdmi.r[15]; // for debugging
 
