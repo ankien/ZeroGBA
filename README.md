@@ -23,3 +23,4 @@ Passed ARMWrestler! (visual CPU test suite)<br>
 <h2>Tests Passed</h2>
 <a href="https://github.com/DenSinH/FuzzARM">FuzzARM</a>: ALL<br>
 <a href="https://github.com/destoer/armwrestler-gba-fixed">ARMWrestler</a>: ALL
+<a href="https://github.com/jsmolka/gba-tests">gba-tests</a>: memory
