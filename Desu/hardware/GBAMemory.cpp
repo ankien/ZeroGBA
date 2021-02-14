@@ -3,16 +3,12 @@
 uint8_t& GBAMemory::operator[](uint32_t i) {
     switch(i >> 24) {
         case 0x00:
-            if(i > 0x00003FFF)
-                return unusedMemoryAccess;
             return bios[i];
         case 0x02:
             return wramOnBoard[(i-0x2000000) % 0x40000];
         case 0x03:
             return wramOnChip[(i-0x3000000) % 0x8000];
         case 0x04:
-            if(i > 0x040003FE)
-                return unusedMemoryAccess;
             return IORegisters[i-0x4000000];
         case 0x05:
             return pram[(i-0x5000000) % 0x400];
@@ -33,8 +29,6 @@ uint8_t& GBAMemory::operator[](uint32_t i) {
         case 0x0D:
             return gamePak[i-0xC000000];
         case 0x0E:
-            if(i > 0x0E00FFFF)
-                return unusedMemoryAccess;
             return gPakSram[i-0xE000000];
         default:
             return unusedMemoryAccess;

@@ -4,14 +4,7 @@ GBA::GBA() {
     memory = new GBAMemory();
 
     arm7tdmi.systemMemory = memory;
-    // skip the bios, todo: implement everything in order to load it correctly
-    arm7tdmi.r[15] = 0x8000000;
-    arm7tdmi.setReg(0,0xCA5);
     arm7tdmi.setCPSR(0x1F);
-    arm7tdmi.setReg(13,0x3007F00);
-    arm7tdmi.setReg(14,0x8000000);
-    arm7tdmi.setBankedReg(arm7tdmi.IRQ,13,0x3007FA0);
-    arm7tdmi.setBankedReg(arm7tdmi.Supervisor,13,0x3007FE0);
 
     lcd.systemMemory = memory;
 
@@ -20,7 +13,6 @@ GBA::GBA() {
     keypad.width = (lcd.WIDTH * lcd.SCALE); keypad.height = (lcd.HEIGHT * lcd.SCALE);
     memory->IORegisters[0x130] = 0xFF;
     memory->IORegisters[0x131] = 3;
-    //memory->IORegisters[0x132] = ;
 }
 
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
@@ -87,9 +79,11 @@ void GBA::run(char* fileName) {
             while(keypad.running) {
 
                 while(cyclesPassed < 280896) {
-                    // for debug breakpoints
-                    //if(arm7tdmi.r[15] == 0x08000310)
-                        //printf("Hello! I am a culprit instruction.\n");
+                    // for debug breakpoints, mgba is 4 ahead
+                    // arm: t223, mgba: t225
+                    // thumb: t118, mgba: t230
+                    if(arm7tdmi.r[15] == 0x08001F20)
+                        printf("Hello! I am a culprit instruction.\n");
                     //if(arm7tdmi.r[12] == 0x1)
                         //printf("Hello! I am a culprit register.\n");
                     uint32_t oldPC = arm7tdmi.r[15]; // for debugging

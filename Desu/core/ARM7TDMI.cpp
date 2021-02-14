@@ -361,7 +361,7 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
                 op = getReg(instruction & 0xF);
                 break;
             default: // Imm
-                uint32_t Imm = instruction & 0xF;
+                uint32_t Imm = instruction & 0xFF;
                 uint8_t rotate = (instruction & 0xF00) >> 8;
                 op = ALUshift(Imm, rotate * 2, 0b11,1,0);
         }

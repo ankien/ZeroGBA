@@ -62,6 +62,8 @@ struct ARM7TDMI {
     uint8_t fetchTHUMBIndex(uint16_t);
 
     // memory helper functions
+    bool writeable(uint32_t);
+    bool readable(uint32_t); // checks if the address is readable and not unused I/O with defined behavior
     void storeValue(uint8_t, uint32_t);
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
@@ -226,7 +228,21 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
+inline bool ARM7TDMI::writeable(uint32_t address) {
+    switch(address) {
+        case 0x4000006:
+        case 0x4000007:
+        case 0x4000130:
+        case 0x4000131:
+            return false;
+    }
+    return true;
+}
+inline bool ARM7TDMI::readable(uint32_t address) {
+    
+}
 inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
+    if(writeable(address))
     switch(address >> 24) {
         case 0x05:
             storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address & ~1);
@@ -247,10 +263,12 @@ inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
     }
 }
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
-    reinterpret_cast<uint16_t*>(&(*systemMemory)[address])[0] = value;
+    if(writeable(address))
+        reinterpret_cast<uint16_t*>(&(*systemMemory)[address])[0] = value;
 }
 inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
-    reinterpret_cast<uint32_t*>(&(*systemMemory)[address])[0] = value;
+    if(writeable(address))
+        reinterpret_cast<uint32_t*>(&(*systemMemory)[address])[0] = value;
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
     return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address]);
@@ -549,8 +567,8 @@ inline uint32_t ARM7TDMI::ALUshift(uint32_t value, uint8_t shiftAmount, uint8_t 
             if(registerShiftByImmediate) {
                 if(shiftAmount == 0) {
                     bool oldCarry = carryFlag;
-                    uint32_t result = ALUshift(value,1,3,setFlags,registerShiftByImmediate);
-                    return oldCarry ? 0x80000000 | result : 0x7FFFFFFF | result;
+                    uint32_t result = ALUshift(value,1,1,setFlags,registerShiftByImmediate);
+                    return oldCarry ? 0x80000000 | result : result;
                 }
             } else {
                 if(shiftAmount == 0)
