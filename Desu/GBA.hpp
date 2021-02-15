@@ -1,8 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <filesystem>
+#include <cstdio>
 #include <SDL.h>
-#include <glew.h>
 #include "core/ARM7TDMI.hpp"
 #include "hardware/GBAMemory.hpp"
 #include "hardware/LCD.hpp"

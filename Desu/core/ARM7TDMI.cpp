@@ -131,7 +131,8 @@ void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X SWI=",r[15]);
     #endif
-    //handleException(SoftwareInterrupt,4,Supervisor); stub for Div
+    //handleException(SoftwareInterrupt,4,Supervisor);
+    //stub for Div
     int32_t signedNum = static_cast<int32_t>(getReg(0));
     int32_t signedDenom = static_cast<int32_t>(getReg(1));
     uint32_t unsignedNum = getReg(0);
@@ -346,9 +347,8 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X PSR Transfer=",r[15]);
     #endif
-    if(((instruction & 0xF0000) != 0xF0000) && ((instruction & 0xF000) != 0xF000)) {
+    if(((instruction & 0xF0000) != 0xF0000) && ((instruction & 0xF000) != 0xF000))
         return ARMswap(instruction);
-    }
 
     bool psr = instruction & 0x400000;
     bool msr = instruction & 0x200000;
@@ -1313,7 +1313,8 @@ void ARM7TDMI::THUMBsoftwareInterrupt(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%XTHUMB Software Interrupt=",r[15]);
     #endif
-    //handleException(SoftwareInterrupt,2,Supervisor); stub for Div
+    //handleException(SoftwareInterrupt,2,Supervisor);
+    // stub for Div
     int32_t signedNum = static_cast<int32_t>(getReg(0));
     int32_t signedDenom = static_cast<int32_t>(getReg(1));
     uint32_t unsignedNum = getReg(0);

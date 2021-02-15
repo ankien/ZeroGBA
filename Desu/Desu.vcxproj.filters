@@ -80,5 +80,8 @@
     <None Include="..\README.md">
       <Filter>Non-code</Filter>
     </None>
+    <None Include="..\.gitignore">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

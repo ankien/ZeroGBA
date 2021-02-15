@@ -6,6 +6,13 @@ GBA::GBA() {
     arm7tdmi.systemMemory = memory;
     arm7tdmi.setCPSR(0x1F);
 
+    // Skip BIOS (for debugging)
+    arm7tdmi.r[15] = 0x8000000;
+    arm7tdmi.setReg(13,0x3007F00);
+    arm7tdmi.setReg(14,0x8000000);
+    arm7tdmi.setBankedReg(arm7tdmi.IRQ,13,0x3007FA0);
+    arm7tdmi.setBankedReg(arm7tdmi.Supervisor,13,0x3007FE0);
+
     lcd.systemMemory = memory;
 
     keypad.systemMemory = memory;
@@ -74,7 +81,11 @@ void GBA::run(char* fileName) {
         } else { // GBA interpreter
             arm7tdmi.fillARM();
             arm7tdmi.fillTHUMB();
-            // set runtime options here
+            #if defined(TRACE)
+                static uint64_t traceAmount = 0;
+                FILE* traceFile = fopen("log.txt","wb");
+            #endif
+
 
             while(keypad.running) {
 
@@ -82,11 +93,28 @@ void GBA::run(char* fileName) {
                     // for debug breakpoints, mgba is 4 ahead
                     // arm: t223, mgba: t225
                     // thumb: t118, mgba: t230
-                    if(arm7tdmi.r[15] == 0x08001F20)
-                        printf("Hello! I am a culprit instruction.\n");
-                    //if(arm7tdmi.r[12] == 0x1)
+                    //if(arm7tdmi.r[15] == 0x08001f3c)
+                        //printf("Hello! I am a culprit instruction.\n");
+                    //for(int i = 0; i < 16; i++)
+                    //if(arm7tdmi.r[i] == 0x1e06067e)
                         //printf("Hello! I am a culprit register.\n");
                     uint32_t oldPC = arm7tdmi.r[15]; // for debugging
+
+                    #if defined(TRACE)
+                        if(traceAmount < TRACE) {
+                            for(uint8_t j = 0; j < 16; j++) {
+                                if(j == 15)
+                                    fprintf(traceFile,"%08X ",arm7tdmi.r[j]+4);
+                                else
+                                    fprintf(traceFile,"%08X ",arm7tdmi.r[j]);
+                            }
+                            fprintf(traceFile,"cpsr: %08X\n",arm7tdmi.getCPSR());
+                            traceAmount++;
+                        } else {
+                            fclose(traceFile);
+                            exit(0);
+                        }
+                    #endif
 
                     if(arm7tdmi.state)
                         interpretTHUMB();

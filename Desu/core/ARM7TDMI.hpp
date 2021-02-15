@@ -6,10 +6,6 @@
 #include <algorithm>
 #include "../hardware/GBAMemory.hpp"
 
-// debug console print, reeeally slow, like 1 fps slow
-// file logging is faster but has limitations
-//#define PRINT_INSTR
-
 struct ARM7TDMI {
     // cycles per instruction
     static const int32_t cycleTicks = 10; // stubbing this for now, todo: implement correct cycle timings
@@ -63,11 +59,12 @@ struct ARM7TDMI {
 
     // memory helper functions
     bool writeable(uint32_t);
-    bool readable(uint32_t); // checks if the address is readable and not unused I/O with defined behavior
+    uint32_t readable(uint32_t); // returns a value from defined behavior if nonreadable/unused memory, else 1 if readable
     void storeValue(uint8_t, uint32_t);
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
     // memory getters, rotates are for misaligned ldr+swp
+    uint8_t readByte(uint32_t);
     uint16_t readHalfWord(uint32_t);
     uint16_t readHalfWordRotate(uint32_t);
     uint32_t readWord(uint32_t);
@@ -238,8 +235,27 @@ inline bool ARM7TDMI::writeable(uint32_t address) {
     }
     return true;
 }
-inline bool ARM7TDMI::readable(uint32_t address) {
-    
+inline uint32_t ARM7TDMI::readable(uint32_t address) {
+    /*
+    if((address >> 11) <= 3)
+        return 1; // todo: implement unpermitted bios reads
+    else {
+        switch(address >> 24) {
+            case 0x00:
+            case 0x01:
+                if(address > 0x4000)
+                    return ;
+            case 0x02:
+            case 0x03:
+                
+            case 0x04:
+                
+            default:
+                
+        }
+    }
+    */
+    return 1;
 }
 inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
     if(writeable(address))
@@ -271,20 +287,30 @@ inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
         reinterpret_cast<uint32_t*>(&(*systemMemory)[address])[0] = value;
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
-    return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address]);
+    uint16_t readValue = readable(address);
+    if(readValue == 1)
+        return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1]);
+    return readValue;
+}
+inline uint8_t ARM7TDMI::readByte(uint32_t address) {
+    uint8_t readValue = readable(address);
+    if(readable(address) == 1)
+        return (*systemMemory)[address];
 }
 inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
-    uint16_t halfWord = readHalfWord(address & ~1);
-    uint8_t rorAmount = (address & 1) << 3;
-    return ror(halfWord,rorAmount);
+    uint16_t readValue = readable(address);
+    if(readValue == 1) {
+        uint8_t rorAmount = (address & 1) << 3;
+        return ror(readHalfWord(address),rorAmount);
+    }
+    return readValue;
 }
 inline uint32_t ARM7TDMI::readWord(uint32_t address) {
-    return *reinterpret_cast<uint32_t*>(&(*systemMemory)[address]);
+    return *reinterpret_cast<uint32_t*>(&(*systemMemory)[address & ~3]);
 }
 inline uint32_t ARM7TDMI::readWordRotate(uint32_t address) {
-    uint32_t word = readWord(address & ~3);
     uint8_t rorAmount = (address & 3) << 3;
-    return ror(word,rorAmount);
+    return ror(readWord(address),rorAmount);
 }
 
 inline void ARM7TDMI::switchMode(uint8_t newMode) {
