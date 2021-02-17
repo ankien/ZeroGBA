@@ -66,7 +66,7 @@ struct ARM7TDMI {
     // memory getters, rotates are for misaligned ldr+swp
     uint8_t readByte(uint32_t);
     uint16_t readHalfWord(uint32_t);
-    uint16_t readHalfWordRotate(uint32_t);
+    uint32_t readHalfWordRotate(uint32_t);
     uint32_t readWord(uint32_t);
     uint32_t readWordRotate(uint32_t);
 
@@ -288,8 +288,10 @@ inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
     uint16_t readValue = readable(address);
-    if(readValue == 1)
+    if(readValue == 1) {
+        uint16_t fug = *reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1]);
         return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1]);
+    }
     return readValue;
 }
 inline uint8_t ARM7TDMI::readByte(uint32_t address) {
@@ -297,13 +299,9 @@ inline uint8_t ARM7TDMI::readByte(uint32_t address) {
     if(readable(address) == 1)
         return (*systemMemory)[address];
 }
-inline uint16_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
-    uint16_t readValue = readable(address);
-    if(readValue == 1) {
-        uint8_t rorAmount = (address & 1) << 3;
-        return ror(readHalfWord(address),rorAmount);
-    }
-    return readValue;
+inline uint32_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
+    uint8_t rorAmount = (address & 1) << 3;
+    return ror(readHalfWord(address),rorAmount);
 }
 inline uint32_t ARM7TDMI::readWord(uint32_t address) {
     return *reinterpret_cast<uint32_t*>(&(*systemMemory)[address & ~3]);
@@ -384,47 +382,51 @@ inline void ARM7TDMI::switchMode(uint8_t newMode) {
     }
 }
 inline uint32_t ARM7TDMI::getBankedReg(uint8_t mode, uint8_t reg) {
+    if(reg == 'S')
+        mode == FIQ ? reg = 7 : reg = 2;
     switch(mode) {
         case User:
         case System:
-            return reg > 7 ? sysUserReg[reg-8] : r[reg];
+            return sysUserReg[reg];
             break;
         case FIQ:
-            return reg > 7 ? fiqReg[reg-8] : r[reg];
+            return fiqReg[reg];
             break;
         case Supervisor:
-            return reg > 12 ? svcReg[reg-13] : r[reg];
+            return svcReg[reg];
             break;
         case Abort:
-            return reg > 12 ? abtReg[reg-13] : r[reg];
+            return abtReg[reg];
             break;
         case IRQ:
-            return reg > 12 ? irqReg[reg-13] : r[reg];
+            return irqReg[reg];
             break;
         case Undefined:
-            return reg > 12 ? undReg[reg-13] : r[reg];
+            return undReg[reg];
     }
 }
 inline void ARM7TDMI::setBankedReg(uint8_t mode, uint8_t reg, uint32_t arg) {
+    if(reg == 'S')
+        mode == FIQ ? reg = 7 : reg = 2;
     switch(mode) {
         case User:
         case System:
-            reg > 7 ? sysUserReg[reg-8] = arg : r[reg] = arg;
+            sysUserReg[reg] = arg;
             break;
         case FIQ:
-            reg > 7 ? fiqReg[reg-8] = arg : r[reg] = arg;
+            fiqReg[reg] = arg;
             break;
         case Supervisor:
-            reg > 12 ? svcReg[reg-13] = arg : r[reg] = arg;
+            svcReg[reg] = arg;
             break;
         case Abort:
-            reg > 12 ? abtReg[reg-13] = arg : r[reg] = arg;
+            abtReg[reg] = arg;
             break;
         case IRQ:
-            reg > 12 ? irqReg[reg-13] = arg : r[reg] = arg;
+            irqReg[reg] = arg;
             break;
         case Undefined:
-            reg > 12 ? undReg[reg-13] = arg : r[reg] = arg;
+            undReg[reg] = arg;
     }
 }
 inline uint32_t ARM7TDMI::getReg(uint8_t reg) {
@@ -454,7 +456,7 @@ inline bool ARM7TDMI::checkCond(uint32_t cond) {
         case 0x80000000:
             return carryFlag && (!zeroFlag);
         case 0x90000000:
-            return(!carryFlag) && zeroFlag;
+            return(!carryFlag) || zeroFlag;
         case 0xA0000000:
             return signFlag == overflowFlag;
         case 0xB0000000:

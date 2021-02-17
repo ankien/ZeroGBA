@@ -132,7 +132,6 @@ void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
         printf("at pc=%X SWI=",r[15]);
     #endif
     //handleException(SoftwareInterrupt,4,Supervisor);
-    //stub for Div
     int32_t signedNum = static_cast<int32_t>(getReg(0));
     int32_t signedDenom = static_cast<int32_t>(getReg(1));
     uint32_t unsignedNum = getReg(0);
@@ -206,12 +205,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             break;
     }
 
-    // when writing to R15
-    if((s) && (rd == 15)) {
-        setCPSR(getBankedReg(mode,'S'));
-        s = 0;
-    }    
-
     if(pcIsRn)
         rn = r[15] + 8;
     else
@@ -279,9 +272,16 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             result = ~op2;
             setReg(rd,result);
     }
+    
+    if((s) && (rd == 15)) {
+        uint32_t spsrVal = getBankedReg(mode,'S');
+        switchMode(spsrVal & 0x1F);
+        setCPSR(spsrVal);
+    }
 
     if(s)
         setZeroAndSign(result);
+
     if(rd != 15)
         r[15]+=4;
 }
@@ -1020,7 +1020,7 @@ void ARM7TDMI::THUMBhiRegOpsBranchEx(uint16_t instruction) {
             setReg(rd,add(rdValue,rsValue,0));
             break;
         case 0x100: // CMP
-            sub(rdValue,rsValue,1);
+            setZeroAndSign(sub(rdValue,rsValue,1));
             break;
         case 0x200: // MOV
             setReg(rd,rsValue);
@@ -1314,7 +1314,6 @@ void ARM7TDMI::THUMBsoftwareInterrupt(uint16_t instruction) {
         printf("at pc=%XTHUMB Software Interrupt=",r[15]);
     #endif
     //handleException(SoftwareInterrupt,2,Supervisor);
-    // stub for Div
     int32_t signedNum = static_cast<int32_t>(getReg(0));
     int32_t signedDenom = static_cast<int32_t>(getReg(1));
     uint32_t unsignedNum = getReg(0);
