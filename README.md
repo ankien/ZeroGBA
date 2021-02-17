@@ -20,6 +20,15 @@ Passed ARMWrestler! (visual CPU test suite)<br>
 <p><b>Frame Skip: </b>Tab</p>
 <p><b>Fullscreen: </b>Alt+Enter</p>
 
+<h2>Usage</h2>
+'Desu.exe yourRom.gba'<br>
+This emulator is only tested to be compatible with Windows.<br>
+You will need to either dump your own BIOS or download a <a href="https://github.com/Nebuleon/ReGBA/blob/master/bios/gba_bios.bin">replacement</a>.<br>
+
+<h3>Compiling</h3>
+You will need a GBA BIOS, place it in 'Desu\Desu'.<br>
+All other dependencies are included, so just open Visual Studio and click the funny green button.  :)<br>
+
 <h2>Tests Passed</h2>
 <a href="https://github.com/DenSinH/FuzzARM">FuzzARM</a>: ALL<br>
 <a href="https://github.com/destoer/armwrestler-gba-fixed">ARMWrestler</a>: ALL<br>
