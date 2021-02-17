@@ -21,7 +21,7 @@ Passed ARMWrestler! (visual CPU test suite)<br>
 <p><b>Fullscreen: </b>Alt+Enter</p><br>
 
 <h2>Usage</h2>
-<i>Since there are no user builds yet, this is merely how it's planned to work.</i><br>
+<i>Since there are no user builds yet, this is merely how it's planned to work.</i><br><br>
 <code>Desu.exe [-options] [your rom.gba]</code><br>
 This emulator is only tested to be compatible with Windows.<br>
 You will need to either dump your own BIOS or download a <a href="https://github.com/Nebuleon/ReGBA/blob/master/bios/gba_bios.bin">replacement</a>.<br>
