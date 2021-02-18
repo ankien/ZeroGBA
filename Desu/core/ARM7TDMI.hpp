@@ -289,7 +289,6 @@ inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
     uint16_t readValue = readable(address);
     if(readValue == 1) {
-        uint16_t fug = *reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1]);
         return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1]);
     }
     return readValue;

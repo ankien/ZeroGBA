@@ -682,7 +682,10 @@ void ARM7TDMI::ARMhdsDataLDRSH(uint32_t instruction) {
         }
     }
 
-    setReg(rd,static_cast<int>(static_cast<int16_t>(readHalfWordRotate(address))));
+    uint8_t shiftAmount = ((address & 1) << 3) & 0x1F;
+    int16_t value = readHalfWord(address);
+    value = (value >> shiftAmount) | (value << (32 - shiftAmount));
+    setReg(rd,static_cast<int32_t>(value));
 
     if(!p) {
         switch(u) {
@@ -714,13 +717,13 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint32_t address = getReg(rn);
     uint32_t baseAddress = address;
     bool rnInList = rListBinary & (1 << rn);
-    bool rnFirstInList = 0;
+    bool rnFirstInList = (rListBinary & (rnInList - 1)) ? 0 : 1;
     bool pcInList = 0;
     uint8_t oldMode = 0;
     int8_t offset;
     std::vector<uint8_t> rListVector;
 
-    /* todo: if rList is empty
+    /*
     if(!rList) {
         rList = 0x8000;
         
@@ -730,8 +733,6 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint16_t bitPos = 1;
     for(uint8_t i = 0; i < 16; i++) {
         if(rListBinary & bitPos) {
-            if(!rnFirstInList && rListVector.empty() && (i == rn))
-                rnFirstInList = 1;
             rListVector.emplace_back(i);
             if(i == 15)
                 pcInList = 1;
@@ -1091,7 +1092,13 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
             setReg(rd,readHalfWordRotate(rb+ro));
             break;
         case 0xC00: // LDSH
-            setReg(rd,static_cast<int32_t>(static_cast<int16_t>(readHalfWord(rb+ro))));
+        {
+            uint32_t address = rb+ro;
+            uint8_t shiftAmount = ((address & 1) << 3) & 0x1F;
+            int16_t value = readHalfWord(address);
+            value = (value >> shiftAmount) | (value << (32 - shiftAmount));
+            setReg(rd,static_cast<int32_t>(value));
+        }
     }
 
     if(rd != 15)
@@ -1239,16 +1246,24 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
     uint8_t rListBinary = instruction & 0xFF;
     uint8_t rListOffset = 1;
     uint8_t rb = (instruction & 0x700) >> 8;
+    uint8_t rbInList = rListBinary & (1 << rb);
+    bool rbFirstInList = (rListBinary & (rbInList - 1)) ? 0 : 1;
     uint32_t address = getReg(rb);
+    uint32_t baseAddress = address;
+    uint32_t rbStoreLoc;
+    bool ldm = instruction & 0x800;
 
-    if(!rListBinary) { // todo: handle empty rList
-        
+    if(!rListBinary) {
+        if(ldm)
+            setReg(15,readWord(address));
+        else
+            storeValue(r[15]+6,address);
         address += 0x40;
     } else {
-        if(instruction & 0x800) { // LDMIA
+        if(ldm) { // LDMIA
             
             for(uint8_t i = 0; i < 8; i++) {
-                if(instruction & rListOffset) {
+                if(rListBinary & rListOffset) {
                     setReg(i, readWord(address));
                     address += 4;
                     
@@ -1258,16 +1273,24 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
         } else { // STMIA
             
             for(uint8_t i = 0; i < 8; i++) {
-                if(instruction & rListOffset) {
-                    storeValue(getReg(i), address);
+                if(rListBinary & rListOffset) {
+                    if(i == rb) {
+                        storeValue(baseAddress, address);
+                        rbStoreLoc = address;
+                    } else
+                        storeValue(getReg(i), address);
                     address += 4;    
                 }
                 rListOffset <<= 1;
             }
         }
     }
-    setReg(rb, address);
-    r[15]+=2;
+
+    if(!rbFirstInList && rbInList)
+        storeValue(address,rbStoreLoc);
+    setReg(rb,address);
+    if(rListBinary || !ldm)
+        r[15]+=2;
 }
 
 void ARM7TDMI::THUMBconditionalBranch(uint16_t instruction) {

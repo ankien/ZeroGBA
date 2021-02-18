@@ -89,11 +89,10 @@ void GBA::run(char* fileName) {
             while(keypad.running) {
 
                 while(cyclesPassed < 280896) {
-                    // for debug breakpoints, mgba is 4/2 ahead depending on ARM/THUMB state
+                    // for debug breakpoints, mgba is 4 on ARM
                     // arm: t225, mgba: t225
-                    // thumb: t118, mgba: t230
-                    if(arm7tdmi.r[15] == 0x08000724)
-                        printf("Hello! I am a culprit instruction.\n");
+                    //if(arm7tdmi.r[15] == 0x080008D6)
+                        //printf("Hello! I am a culprit instruction.\n");
                     //for(int i = 0; i < 16; i++)
                     //if(arm7tdmi.r[i] == 0x1e06067e)
                         //printf("Hello! I am a culprit register.\n");
