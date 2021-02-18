@@ -24,7 +24,7 @@ You will need to either dump your own BIOS or download a <a href="https://github
 Place it in the same directory as the executable.<br>
 <h3>Compiling</h3>
 You will need a GBA BIOS, place it in <code>Desu\Desu</code>.<br>
-All other dependencies are included, so just open Visual Studio and click the funny green button.  :)<br>
+All other dependencies are included, so just open the project in Visual Studio and click the funny green button.  :)<br>
 <h2>Tests Passed</h2>
 <a href="https://github.com/DenSinH/FuzzARM">FuzzARM</a>: ALL<br>
 <a href="https://github.com/destoer/armwrestler-gba-fixed">ARMWrestler</a>: ALL<br>
