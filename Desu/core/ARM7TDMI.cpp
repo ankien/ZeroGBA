@@ -152,6 +152,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint32_t rn = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
+    bool oldCarry = carryFlag;
     bool pcIsRn = rn == 15;
 
     // forcefully set flags for certain opcodes
@@ -205,9 +206,12 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             break;
     }
 
-    if(pcIsRn)
-        rn = r[15] + 8;
-    else
+    if(pcIsRn) {
+        if(~I && (instruction & 0x10))
+            rn = r[15] + 12;
+        else
+            rn = r[15] + 8;
+    } else
         rn = getReg(rn);
     // good tip to remember: signed and unsigned integer ops produce the same binary
     uint32_t result;
@@ -233,15 +237,15 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             setReg(rd,result);
             break;
         case 0x5: // ADC
-            result = addCarry(rn,op2,s);
+            result = addCarry(rn,op2,s,oldCarry);
             setReg(rd,result);
             break;
         case 0x6: // SBC
-            result = subCarry(rn,op2,1);
+            result = addCarry(rn,~op2,1,oldCarry);
             setReg(rd,result);
             break;
         case 0x7: // RSC
-            result = subCarry(op2,rn,1);
+            result = addCarry(op2,~rn,1,oldCarry);
             setReg(rd,result);
             break;
         case 0x8: // TST
@@ -717,7 +721,6 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint32_t address = getReg(rn);
     uint32_t baseAddress = address;
     bool rnInList = rListBinary & (1 << rn);
-    bool rnFirstInList = (rListBinary & (rnInList - 1)) ? 0 : 1;
     bool pcInList = 0;
     uint8_t oldMode = 0;
     int8_t offset;
@@ -748,6 +751,11 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
         // if offset is negative, reverse the list order
         std::reverse(rListVector.begin(),rListVector.end());
     }
+
+    bool rnFirstInList = 0;
+    if(rListVector.size() != 0)
+        if(rListVector[0] == rn)
+            rnFirstInList = 1;
 
     if(s) { // If s bit is set and rn is in transfer list
         if(l && pcInList) // LDM with R15 in transfer list
@@ -919,6 +927,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
     uint32_t rs = getReg((instruction & 0x38) >> 3);
     uint8_t rd = instruction & 0x7;
     uint32_t rdValue = getReg(rd);
+    bool oldCarry = carryFlag;
 
     uint32_t result;
     switch((instruction & 0x3C0) >> 6) {
@@ -943,11 +952,11 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
             setReg(rd,result);
             break;
         case 0x5: // ADC
-            result = addCarry(rdValue,rs,1);
+            result = addCarry(rdValue,rs,1,oldCarry);
             setReg(rd,result);
             break;
         case 0x6: // SBC
-            result = subCarry(rdValue,rs,1);
+            result = addCarry(rdValue,~rs,1,oldCarry);
             setReg(rd,result);
             break;
         case 0x7: // ROR
@@ -1283,11 +1292,12 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
                 }
                 rListOffset <<= 1;
             }
+            
+            if(!rbFirstInList && rbInList)
+                storeValue(address,rbStoreLoc);
         }
     }
 
-    if(!rbFirstInList && rbInList)
-        storeValue(address,rbStoreLoc);
     setReg(rb,address);
     if(rListBinary || !ldm)
         r[15]+=2;

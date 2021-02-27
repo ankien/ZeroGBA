@@ -85,9 +85,8 @@ struct ARM7TDMI {
     uint32_t ror(uint32_t, uint8_t);
     uint32_t ALUshift(uint32_t, uint8_t, uint8_t,bool,bool);
     uint32_t sub(uint32_t,uint32_t,bool);
-    uint32_t subCarry(uint32_t,uint32_t,bool);
     uint32_t add(uint32_t,uint32_t,bool);
-    uint32_t addCarry(uint32_t,uint32_t,bool);
+    uint32_t addCarry(uint32_t,uint32_t,bool,bool);
     void setZeroAndSign(uint32_t);
     void setZeroAndSign(uint64_t);
 
@@ -618,15 +617,6 @@ inline uint32_t ARM7TDMI::sub(uint32_t op1, uint32_t op2, bool setFlags) {
     }
     return result;
 }
-inline uint32_t ARM7TDMI::subCarry(uint32_t op1, uint32_t op2, bool setFlags) {
-    uint32_t result = op1 - op2 + carryFlag - 1;
-    if(setFlags) {
-        carryFlag = op1 >= (static_cast<uint64_t>(op2) - carryFlag + 1);
-        op1 >>= 31; op2 >>= 31;
-        overflowFlag = (op1 ^ op2) ? (result >> 31) ^ op1 : 0;
-    }
-    return result;
-}
 inline uint32_t ARM7TDMI::add(uint32_t op1, uint32_t op2, bool setFlags) {
     uint32_t result = op1 + op2;
     if(setFlags) {
@@ -636,10 +626,10 @@ inline uint32_t ARM7TDMI::add(uint32_t op1, uint32_t op2, bool setFlags) {
     }
     return result;
 }
-inline uint32_t ARM7TDMI::addCarry(uint32_t op1, uint32_t op2, bool setFlags){
-    uint32_t result = op1 + op2 + carryFlag;
+inline uint32_t ARM7TDMI::addCarry(uint32_t op1, uint32_t op2, bool setFlags, bool oldCarry){
+    uint32_t result = op1 + op2 + oldCarry;
     if(setFlags) {
-        carryFlag = result < (static_cast<uint64_t>(op1) + carryFlag);
+        carryFlag = result < (static_cast<uint64_t>(op1) + oldCarry);
         op1 >>= 31; op2 >>= 31;
         overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1; // todo: check if overflow calc for carry opcodes are correct
     }
