@@ -27,6 +27,10 @@ void GBA::interpretARM() {
     uint32_t instruction = arm7tdmi.readWord(arm7tdmi.r[15]);
 
     if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
+        // for debugging
+        if(((arm7tdmi.fetchARMIndex(instruction) & 0b111000000000) == 0b101000000000) && (instruction & 0xF0000000) != 0xE0000000 && arm7tdmi.r[15] > 0x08000300)
+            printf("fug a conditional branch");
+
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
         (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
         #if defined(PRINT_INSTR)
@@ -90,8 +94,8 @@ void GBA::run(char* fileName) {
 
                 while(cyclesPassed < 280896) {
                     // for debug breakpoints, mgba prints 4 ahead on ARM
-                    // gba-tests arm: t253
-                    if(arm7tdmi.r[15] == 0x08000CE4)
+                    // gba-tests arm: t356
+                    if(arm7tdmi.r[15] == 0x08001270)
                         printf("Hello! I am a culprit instruction.\n");
                     //for(int i = 0; i < 16; i++)
                     //if(arm7tdmi.r[i] == 0x1e06067e)

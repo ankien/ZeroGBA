@@ -260,15 +260,15 @@ inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
     if(writeable(address))
     switch(address >> 24) {
         case 0x05:
-            storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address & ~1);
+            storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address);
             break;
         case 0x06:
             if(systemMemory->IORegisters[0] < 3) { // bitmap mode writes
                 if(address < 0x6014000)
-                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address & ~1);
+                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address);
             } else {
                 if(address < 0x6010000)
-                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address & ~1);
+                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address);
             }
             return;
         case 0x07:
@@ -279,11 +279,11 @@ inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
 }
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
     if(writeable(address))
-        reinterpret_cast<uint16_t*>(&(*systemMemory)[address])[0] = value;
+        reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1])[0] = value;
 }
 inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
     if(writeable(address))
-        reinterpret_cast<uint32_t*>(&(*systemMemory)[address])[0] = value;
+        reinterpret_cast<uint32_t*>(&(*systemMemory)[address & ~3])[0] = value;
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
     uint16_t readValue = readable(address);

@@ -153,6 +153,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
     bool oldCarry = carryFlag;
+    bool voidRd = 0;
     bool pcIsRn = rn == 15;
 
     // forcefully set flags for certain opcodes
@@ -162,6 +163,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         case 0x9:
         case 0x8:
             s = 1;
+            voidRd = 1;
     }
 
     // shifting
@@ -176,22 +178,22 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
                 case 0: // register operand w/ immediate shift
                 {
                     uint8_t Is = (instruction & 0xF80) >> 7;
-                    if(pcIsRn || (rm == 15))
+                    if(rm == 15)
                         r[15]+=8;
 
                     op2 = ALUshift(getReg(rm),Is,shiftType,s,1);
 
-                    if(pcIsRn || (rm == 15))
+                    if(rm == 15)
                         r[15]-=8;
                     break;
                 }
 
                 default: // register operand w/ register shift
                     uint8_t Rs = (instruction & 0xF00) >> 8;
-                    if((rn == 15) || (rm == 15))
+                    if(rm == 15)
                         r[15]+=12;
                     op2 = ALUshift(getReg(rm),getReg(Rs) & 0xFF,shiftType,s,0);
-                    if((rn == 15) || (rm == 15))
+                    if(rm == 15)
                         r[15]-=12;
                 
             }
@@ -286,7 +288,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     if(s)
         setZeroAndSign(result);
 
-    if(rd != 15)
+    if(rd != 15 || voidRd)
         r[15]+=4;
 }
 void ARM7TDMI::ARMmultiplyAndMultiplyAccumulate(uint32_t instruction) {
@@ -406,8 +408,7 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
         switch(mode) {
             case 16:
             case 31:
-                if(!psr)
-                    setReg(rd, getCPSR());
+                setReg(rd, getCPSR());
                 break;
             default:
                 switch(psr) {
@@ -415,8 +416,7 @@ void ARM7TDMI::ARMpsrTransfer(uint32_t instruction) {
                         setReg(rd, getCPSR());
                         break;
                     default:
-                        if(hasSpsr)
-                            setReg(rd, getSPSR(mode));
+                        setReg(rd, getSPSR(mode));
                 }
         }
     }
