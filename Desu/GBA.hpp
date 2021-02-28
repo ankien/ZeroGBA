@@ -16,7 +16,7 @@ struct GBA {
 
     /// Hardware ///
     ARM7TDMI arm7tdmi{};
-    GBAMemory* memory;
+    GBAMemory* systemMemory;
     LCD lcd{};
     Keypad keypad{};
 

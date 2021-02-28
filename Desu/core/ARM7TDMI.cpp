@@ -209,7 +209,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     }
 
     if(pcIsRn) {
-        if(~I && (instruction & 0x10))
+        if(!I && (instruction & 0x10))
             rn = r[15] + 12;
         else
             rn = r[15] + 8;
@@ -473,7 +473,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     storeValue(static_cast<uint8_t>(getReg(rd)),address);
             }
             if(rd == 15)
-                storeValue(static_cast<uint8_t>((*systemMemory)[address]+12),address);
+                storeValue(r[15]+12,address);
             break;
         default: // LDR
                 
@@ -499,7 +499,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
     if(((instruction & 0x200000) || !p) && ((rd != rn) || !ldr)) // write-back address
         setReg(rn,address);
 
-    if(rd != 15)
+    if(rd != 15 || !ldr)
         r[15]+=4;
 }
 void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
@@ -537,7 +537,7 @@ void ARM7TDMI::ARMhdsDataSTRH(uint32_t instruction) {
     storeValue(static_cast<uint16_t>(getReg(rd)),address);
 
     if(rd == 15)
-        storeValue(static_cast<uint8_t>((*systemMemory)[address]+12),address);
+        storeValue(r[15]+12,address);
 
     if(!p) {
         switch(u) {

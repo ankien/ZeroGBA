@@ -1,9 +1,9 @@
 #include "GBA.hpp"
 
 GBA::GBA() {
-    memory = new GBAMemory();
+    systemMemory = new GBAMemory();
 
-    arm7tdmi.systemMemory = memory;
+    arm7tdmi.systemMemory = systemMemory;
     arm7tdmi.setCPSR(0x1F);
 
     // Skip BIOS (for debugging)
@@ -12,13 +12,13 @@ GBA::GBA() {
     arm7tdmi.setBankedReg(arm7tdmi.IRQ,0,0x3007FA0);
     arm7tdmi.setBankedReg(arm7tdmi.Supervisor,0,0x3007FE0);
 
-    lcd.systemMemory = memory;
+    lcd.systemMemory = systemMemory;
 
-    keypad.systemMemory = memory;
+    keypad.systemMemory = systemMemory;
     keypad.window = lcd.window;
     keypad.width = (lcd.WIDTH * lcd.SCALE); keypad.height = (lcd.HEIGHT * lcd.SCALE);
-    memory->IORegisters[0x130] = 0xFF;
-    memory->IORegisters[0x131] = 3;
+    systemMemory->IORegisters[0x130] = 0xFF;
+    systemMemory->IORegisters[0x131] = 3;
 }
 
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
@@ -75,7 +75,7 @@ void GBA::run(char* fileName) {
     
     if(fileExtension == ".gba") {
        // load GBA game
-        if(!memory->loadRom(fileName))
+        if(!systemMemory->loadRom(fileName))
             return;
 
         if(runtimeOptions.jit) { // GBA JIT
@@ -94,8 +94,8 @@ void GBA::run(char* fileName) {
 
                 while(cyclesPassed < 280896) {
                     // for debug breakpoints, mgba prints 4 ahead on ARM
-                    // gba-tests arm: t356
-                    if(arm7tdmi.r[15] == 0x08001270)
+                    // gba-tests arm: t509
+                    if(arm7tdmi.r[15] == 0x080018FC)
                         printf("Hello! I am a culprit instruction.\n");
                     //for(int i = 0; i < 16; i++)
                     //if(arm7tdmi.r[i] == 0x1e06067e)
@@ -129,18 +129,18 @@ void GBA::run(char* fileName) {
                     else
                         arm7tdmi.r[15] &= ~2;
 
-                    if((cyclesSinceHBlank >= 960) && !(memory->IORegisters[4] & 0x2)) { // scan and draw line from framebuffer
+                    if((cyclesSinceHBlank >= 960) && !(systemMemory->IORegisters[4] & 0x2)) { // scan and draw line from framebuffer
                         lcd.fetchScanline(); // draw visible line
-                        memory->IORegisters[4] |= 0x2; // turn on hblank
+                        systemMemory->IORegisters[4] |= 0x2; // turn on hblank
                     } else if(cyclesSinceHBlank >= 1232) {
-                        memory->IORegisters[4] ^= 0x2; // turn off hblank
+                        systemMemory->IORegisters[4] ^= 0x2; // turn off hblank
                         cyclesSinceHBlank -= 1232;
                     }
 
                     if(cyclesPassed >= 197120)
-                        memory->IORegisters[4] |= 0x1; // set vblank
+                        systemMemory->IORegisters[4] |= 0x1; // set vblank
                     else
-                        memory->IORegisters[4] ^= 0x1;; // disable vblank
+                        systemMemory->IORegisters[4] ^= 0x1;; // disable vblank
                 }
 
                 if(cyclesPassed > 280896)
