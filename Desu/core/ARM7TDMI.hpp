@@ -2,7 +2,6 @@
 #include <cstring>
 #include <cstdint>
 #include <iostream>
-#include <vector>
 #include <algorithm>
 #include "../hardware/GBAMemory.hpp"
 

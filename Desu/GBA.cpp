@@ -27,7 +27,6 @@ void GBA::interpretARM() {
     uint32_t instruction = arm7tdmi.readWord(arm7tdmi.r[15]);
 
     if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
-
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
         (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
         #if defined(PRINT_INSTR)

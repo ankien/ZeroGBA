@@ -719,7 +719,7 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     uint16_t rListBinary = instruction & 0xFFFF;
     uint32_t address = getReg(rn);
     bool rnInList = rListBinary & (1 << rn);
-    bool pcInList = 0;
+    bool pcInList = rListBinary & 0x8000;
 
     if(!rListBinary) {
         if(u) {
@@ -757,30 +757,15 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
         uint32_t rnStoreLoc;
         uint8_t oldMode = 0;
         int8_t offset;
-        std::vector<uint8_t> rListVector;
-
-        uint16_t bitPos = 1;
-        for(uint8_t i = 0; i < 16; i++) {
-            if(rListBinary & bitPos) {
-                rListVector.emplace_back(i);
-                if(i == 15)
-                    pcInList = 1;
-            }
-            bitPos <<= 1;
-        }
+        uint16_t listStartBinary;
         
-        bool rnFirstInList = 0;
-        if(rListVector.size() != 0)
-            if(rListVector[0] == rn)
-                rnFirstInList = 1;
-
         if(u) {
             offset = 4;
-            // if offset is positive do nothing
+            listStartBinary = 0x1;
         } else {
             offset = -4;
             // if offset is negative, reverse the list order
-            std::reverse(rListVector.begin(), rListVector.end());
+            listStartBinary = 0x8000;
         }
         
         if(s) { // If s bit is set and rn is in transfer list
@@ -794,38 +779,93 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
 
         if(l) { // LDM
 
-            for(uint8_t num : rListVector) {
-                if(p)
-                    address += offset;
-                setReg(num, readWord(address));
-                if(!p)
-                    address += offset;
+            if(u) {
+                for(int8_t i = 0; i < 16; i++) {
+                    if(listStartBinary & rListBinary) {
+                        if(p)
+                            address += offset;
+                        setReg(i, readWord(address));
+                        if(!p)
+                            address += offset;
+                    }
+                    listStartBinary <<= 1;
+                }
+            } else {
+                for(int8_t i = 15; i > -1; i--) {
+                    if(listStartBinary & rListBinary) {
+                        if(p)
+                            address += offset;
+                        setReg(i, readWord(address));
+                        if(!p)
+                            address += offset;
+                    }
+                    listStartBinary >>= 1;
+                }
             }
+
         } else { // STM
 
-            for(uint8_t num : rListVector) {
+            uint16_t rnListLoc = rListBinary & (1 << rn);
+            bool rnFirstInList = (rListBinary & (rnListLoc - 1)) ? 0 : 1;
 
-                if(p)
-                    address += offset;
+            if(u) {
 
-                if(num == 15) {
-                    if(rn == 15) {
-                        storeValue(baseAddress,address);
-                        rnStoreLoc = address;
-                    } else
-                        storeValue(getReg(num) + 12, address);
+                for(int8_t i = 0; i < 16; i++) {
                     
-                } else {
-                    if(num == rn) {
-                        storeValue(baseAddress,address);
-                        rnStoreLoc = address;
-                    } else
-                        storeValue(getReg(num), address);
+                    if(rListBinary & listStartBinary) {
+                        if(p)
+                            address += offset;
+                        if(i == 15) {
+                            if(rn == 15) {
+                                storeValue(baseAddress, address);
+                                rnStoreLoc = address;
+                            } else
+                                storeValue(getReg(i) + 12, address);
+
+                        } else {
+                            if(i == rn) {
+                                storeValue(baseAddress, address);
+                                rnStoreLoc = address;
+                            } else
+                                storeValue(getReg(i), address);
+
+                        }
+                        if(!p)
+                            address += offset;
+                    }
+
+                    listStartBinary <<= 1;
+
                     
                 }
+            } else {
 
-                if(!p)
-                    address += offset;
+                for(int8_t i = 15; i > -1; i--) {
+                    
+                    if(rListBinary & listStartBinary) {
+                        if(p)
+                            address += offset;
+                        if(i == 15) {
+                            if(rn == 15) {
+                                storeValue(baseAddress, address);
+                                rnStoreLoc = address;
+                            } else
+                                storeValue(getReg(i) + 12, address);
+
+                        } else {
+                            if(i == rn) {
+                                storeValue(baseAddress, address);
+                                rnStoreLoc = address;
+                            } else
+                                storeValue(getReg(i), address);
+
+                        }
+                        if(!p)
+                            address += offset;
+                    }
+
+                    listStartBinary >>= 1;
+                }
             }
 
             if(!rnFirstInList && rnInList)
