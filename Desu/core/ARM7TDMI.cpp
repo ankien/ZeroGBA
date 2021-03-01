@@ -131,15 +131,7 @@ void ARM7TDMI::ARMsoftwareInterrupt(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X SWI=",r[15]);
     #endif
-    //handleException(SoftwareInterrupt,4,Supervisor);
-    int32_t signedNum = static_cast<int32_t>(getReg(0));
-    int32_t signedDenom = static_cast<int32_t>(getReg(1));
-    uint32_t unsignedNum = getReg(0);
-    uint32_t unsignedDenom = getReg(1);
-    setReg(0,signedNum / signedDenom);
-    setReg(1,signedNum % signedDenom);
-    setReg(3,unsignedNum / unsignedDenom);
-    r[15]+=4;
+    handleException(SoftwareInterrupt,4,Supervisor);
 }
 
 void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
@@ -1426,13 +1418,5 @@ void ARM7TDMI::THUMBsoftwareInterrupt(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%XTHUMB Software Interrupt=",r[15]);
     #endif
-    //handleException(SoftwareInterrupt,2,Supervisor);
-    int32_t signedNum = static_cast<int32_t>(getReg(0));
-    int32_t signedDenom = static_cast<int32_t>(getReg(1));
-    uint32_t unsignedNum = getReg(0);
-    uint32_t unsignedDenom = getReg(1);
-    setReg(0,signedNum / signedDenom);
-    setReg(1,signedNum % signedDenom);
-    setReg(3,unsignedNum / unsignedDenom);
-    r[15]+=2;
+    handleException(SoftwareInterrupt,2,Supervisor);
 }

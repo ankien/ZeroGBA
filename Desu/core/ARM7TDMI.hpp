@@ -142,16 +142,19 @@ struct ARM7TDMI {
 /// Helper Methods ///
 
 inline void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
-    //setModeArrayIndex(newMode,14,r[15]+nn);
-    //setModeArrayIndex(newMode,'S',getCPSR());
-    state = 0;
+    setBankedReg(newMode,1,r[15]+nn); // save old PC
+    setBankedReg(newMode,'S',getCPSR()); // save old CPSR
+    uint8_t oldMode = mode;
+    switchMode(newMode); // switch mode
+    // new bits!
     mode = newMode;
+    state = 0;
     irqDisable = 1;
     
-    if((mode == Reset) || (mode == FIQ))
+    if((newMode == Reset) || (newMode == FIQ))
         fiqDisable = 1;
 
-    switch(mode) {
+    switch(newMode) {
 
         case Supervisor:
 
@@ -212,7 +215,7 @@ inline void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t ne
             }
     }
 
-
+    r[15]+=nn;
 }
 // Bits 27-20 + 7-4
 inline uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
@@ -322,21 +325,29 @@ inline void ARM7TDMI::switchMode(uint8_t newMode) {
             fiqReg[7] = getCPSR();
             break;
         case Supervisor:
+            for(uint8_t i = 8; i < 13; i++)
+                sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 svcReg[i-13] = r[i];
             svcReg[2] = getCPSR();
             break;
         case Abort:
+            for(uint8_t i = 8; i < 13; i++)
+                sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 abtReg[i-13] = r[i];
             abtReg[2] = getCPSR();
             break;
         case IRQ:
+            for(uint8_t i = 8; i < 13; i++)
+                sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 irqReg[i-13] = r[i];
             irqReg[2] = getCPSR();
             break;
         case Undefined:
+            for(uint8_t i = 8; i < 13; i++)
+                sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 undReg[i-13] = r[i];
             undReg[2] = getCPSR();
@@ -357,21 +368,29 @@ inline void ARM7TDMI::switchMode(uint8_t newMode) {
             setCPSR(fiqReg[7]);
             break;
         case Supervisor:
+            for(uint8_t i = 8; i < 13; i++)
+                r[i] = sysUserReg[i-8];
             for(uint8_t i = 13; i < 15; i++)
                 r[i] = svcReg[i-13];
             setCPSR(svcReg[2]);
             break;
         case Abort:
+            for(uint8_t i = 8; i < 13; i++)
+                r[i] = sysUserReg[i-8];
             for(uint8_t i = 13; i < 15; i++)
                 r[i] = abtReg[i-13];
             setCPSR(abtReg[2]);
             break;
         case IRQ:
+            for(uint8_t i = 8; i < 13; i++)
+                r[i] = sysUserReg[i-8];
             for(uint8_t i = 13; i < 15; i++)
                 r[i] = irqReg[i-13];
             setCPSR(irqReg[2]);
             break;
         case Undefined:
+            for(uint8_t i = 8; i < 13; i++)
+                r[i] = sysUserReg[i-8];
             for(uint8_t i = 13; i < 15; i++)
                 r[i] = undReg[i-13];
             setCPSR(undReg[2]);

@@ -89,7 +89,7 @@ void GBA::run(char* fileName) {
             while(keypad.running) {
 
                 while(cyclesPassed < 280896) {
-                    //if(arm7tdmi.r[15] == 0x08001D28)
+                    //if(arm7tdmi.r[15] == 0x00000084)
                         //printf("Hello! I am a culprit instruction.");
                     //for(int i = 0; i < 16; i++)
                     //if(arm7tdmi.r[i] == 0x1e06067e)
