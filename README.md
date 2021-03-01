@@ -28,4 +28,4 @@ All other dependencies are included, so just open the project in Visual Studio a
 <h2>Tests Passed</h2>
 <a href="https://github.com/DenSinH/FuzzARM">FuzzARM</a>: ALL<br>
 <a href="https://github.com/destoer/armwrestler-gba-fixed">ARMWrestler</a>: ALL<br>
-<a href="https://github.com/jsmolka/gba-tests">gba-tests</a>: thumb, memory<br>
+<a href="https://github.com/jsmolka/gba-tests">gba-tests</a>: arm, thumb, memory<br>
