@@ -711,98 +711,136 @@ void ARM7TDMI::ARMblockDataTransfer(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Block Data Transfer=",r[15]);
     #endif
-    bool p = instruction & 0x1000000;
-    bool u = instruction & 0x800000;
-    bool s = instruction & 0x400000;
+    bool p = instruction & 0x1000000; // before
+    bool u = instruction & 0x800000; // increment
     bool w = instruction & 0x200000;
     bool l = instruction & 0x100000;
     uint8_t rn = (instruction & 0xF0000) >> 16;
     uint16_t rListBinary = instruction & 0xFFFF;
     uint32_t address = getReg(rn);
-    uint32_t baseAddress = address;
     bool rnInList = rListBinary & (1 << rn);
     bool pcInList = 0;
-    uint8_t oldMode = 0;
-    int8_t offset;
-    std::vector<uint8_t> rListVector;
 
-    /*
-    if(!rList) {
-        rList = 0x8000;
-        
-    }
-    */
-
-    uint16_t bitPos = 1;
-    for(uint8_t i = 0; i < 16; i++) {
-        if(rListBinary & bitPos) {
-            rListVector.emplace_back(i);
-            if(i == 15)
-                pcInList = 1;
-        }
-        bitPos <<= 1;
-    }
-
-    if(u) {
-        offset = 4;
-        // if offset is positive do nothing
-    } else {
-        offset = -4;
-        // if offset is negative, reverse the list order
-        std::reverse(rListVector.begin(),rListVector.end());
-    }
-
-    bool rnFirstInList = 0;
-    if(rListVector.size() != 0)
-        if(rListVector[0] == rn)
-            rnFirstInList = 1;
-
-    if(s) { // If s bit is set and rn is in transfer list
-        if(l && pcInList) // LDM with R15 in transfer list
-            setCPSR(getSPSR(mode));
-        else { // R15 not in list
-            oldMode = mode;
-            switchMode(User);
-        }
-    }
-
-    if(l) { // LDM
-
-        for(uint8_t num : rListVector) {
+    if(!rListBinary) {
+        if(u) {
             if(p)
-                address += offset;
-            setReg(num,readWord(address));
-            if(!p)
-                address += offset;
-        }
-    } else { // STM
-
-        for(uint8_t num : rListVector) {
-            
-            if(p)
-                address += offset;
-
-            if(num == 15)
-                storeValue(getReg(num),address+12);
+                address+=0x4; // ib
             else
-                storeValue(getReg(num),address);
-            
-            if(!p)
-                address += offset;
+                address+=0x0; // ia
+        } else {
+            if(p)
+                address-=0x40; // db
+            else
+                address-=0x3C; // da
         }
 
-        if(rnFirstInList)
-            storeValue(baseAddress,baseAddress);
-    }
+        if(l) {
+            setReg(15,readWord(address));
+            pcInList = 1;
+        } else
+            storeValue(r[15]+12,address);
+            // pcInList = 1; # technically not needed, but just making a note :p
 
-    if(oldMode)
-        switchMode(oldMode);
+        if(u) {
+            if(p)
+                address += 0x3C; // ib
+            else
+                address += 0x40; // ia
+        }
+        if(!u)
+            if(!p)
+                address -= 0x04; // da
+        
+    } else {
+        bool s = instruction & 0x400000;
+        uint32_t baseAddress = address;
+        uint32_t rnStoreLoc;
+        uint8_t oldMode = 0;
+        int8_t offset;
+        std::vector<uint8_t> rListVector;
+
+        uint16_t bitPos = 1;
+        for(uint8_t i = 0; i < 16; i++) {
+            if(rListBinary & bitPos) {
+                rListVector.emplace_back(i);
+                if(i == 15)
+                    pcInList = 1;
+            }
+            bitPos <<= 1;
+        }
+        
+        bool rnFirstInList = 0;
+        if(rListVector.size() != 0)
+            if(rListVector[0] == rn)
+                rnFirstInList = 1;
+
+        if(u) {
+            offset = 4;
+            // if offset is positive do nothing
+        } else {
+            offset = -4;
+            // if offset is negative, reverse the list order
+            std::reverse(rListVector.begin(), rListVector.end());
+        }
+        
+        if(s) { // If s bit is set and rn is in transfer list
+            if(l && pcInList) // LDM with R15 in transfer list
+                setCPSR(getSPSR(mode));
+            else { // R15 not in list
+                oldMode = mode;
+                switchMode(User);
+            }
+        }
+
+        if(l) { // LDM
+
+            for(uint8_t num : rListVector) {
+                if(p)
+                    address += offset;
+                setReg(num, readWord(address));
+                if(!p)
+                    address += offset;
+            }
+        } else { // STM
+
+            for(uint8_t num : rListVector) {
+
+                if(p)
+                    address += offset;
+
+                if(num == 15) {
+                    if(rn == 15) {
+                        storeValue(baseAddress,address);
+                        rnStoreLoc = address;
+                    } else
+                        storeValue(getReg(num) + 12, address);
+                    
+                } else {
+                    if(num == rn) {
+                        storeValue(baseAddress,address);
+                        rnStoreLoc = address;
+                    } else
+                        storeValue(getReg(num), address);
+                    
+                }
+
+                if(!p)
+                    address += offset;
+            }
+
+            if(!rnFirstInList && rnInList)
+                storeValue(address, rnStoreLoc);
+        }
+
+        if(oldMode)
+            switchMode(oldMode);
+    }
     
     // if STM wb bit is set, write-back; don't if LDM and rn is in list
     if(w && !(l && rnInList)) 
         setReg(rn,address);
     
-    if(!pcInList)
+    if(!(pcInList && l))
         r[15]+=4;
 }
 void ARM7TDMI::ARMswap(uint32_t instruction) {
@@ -1214,7 +1252,7 @@ void ARM7TDMI::THUMBpushPopRegisters(uint16_t instruction) {
         
 
         rListOffset = 1;
-        for(uint8_t i = 0; i < 8; i++) {
+        for(int8_t i = 0; i < 8; i++) {
             if(instruction & rListOffset) {
                 setReg(i,readWord(address));
                 address+=4;
@@ -1253,13 +1291,9 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
         printf("at pc=%X Multiple Load Store=",r[15]);
     #endif
     uint8_t rListBinary = instruction & 0xFF;
-    uint8_t rListOffset = 1;
     uint8_t rb = (instruction & 0x700) >> 8;
-    uint8_t rbInList = rListBinary & (1 << rb);
-    bool rbFirstInList = (rListBinary & (rbInList - 1)) ? 0 : 1;
     uint32_t address = getReg(rb);
-    uint32_t baseAddress = address;
-    uint32_t rbStoreLoc;
+    
     bool ldm = instruction & 0x800;
 
     if(!rListBinary) {
@@ -1269,6 +1303,12 @@ void ARM7TDMI::THUMBmultipleLoadStore(uint16_t instruction) {
             storeValue(r[15]+6,address);
         address += 0x40;
     } else {
+        uint8_t rListOffset = 1;
+        uint8_t rbInList = rListBinary & (1 << rb);
+        bool rbFirstInList = (rListBinary & (rbInList - 1)) ? 0 : 1;
+        uint32_t baseAddress = address;
+        uint32_t rbStoreLoc;
+
         if(ldm) { // LDMIA
             
             for(uint8_t i = 0; i < 8; i++) {
