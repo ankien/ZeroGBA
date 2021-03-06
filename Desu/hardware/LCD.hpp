@@ -14,9 +14,11 @@ struct LCD {
     
 
     uint8_t fps = 0;
-    // used to calculate frame delta
+    // used to calculate fps and frame delta
     uint32_t currMillseconds = 0;
-    uint32_t millisecondsElapsed = 0;
+    uint32_t millisecondsElapsedSinceLastSecond = 0;
+    uint32_t millisecondsElapsedSinceLastFrame = 0;
+
     GBAMemory* systemMemory;
 
     /// SDL + OpenGL variables ///

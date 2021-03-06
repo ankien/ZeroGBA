@@ -88,9 +88,11 @@ void GBA::run(char* fileName) {
 
             while(keypad.running) {
 
+                lcd.millisecondsElapsedSinceLastFrame = SDL_GetTicks();
+
                 while(cyclesPassed < 280896) {
-                    //if(arm7tdmi.r[15] == 0x00000084)
-                        //printf("Hello! I am a culprit instruction.");
+                    if(arm7tdmi.r[15] == 0x08000428)
+                        printf("Hello! I am a culprit instruction.");
                     //for(int i = 0; i < 16; i++)
                     //if(arm7tdmi.r[i] == 0x1e06067e)
                         //printf("Hello! I am a culprit register.\n");
@@ -148,9 +150,9 @@ void GBA::run(char* fileName) {
                 // todo: implement JIT polling and run ahead - https://byuu.net/input
                 keypad.pollInputs();
 
-                // todo: make the delay (16 ms) dynamically fluctuate for 60 fps target
+                // roughly 1000ms / 60fps + error accumulated from missing .666~ ms/frame - delay since start of last frame draw
                 if(keypad.notSkippingFrames)
-                    SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsed) % 16)); // roughly 1000ms / 60fps - delay since start of last frame draw
+                    SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedSinceLastFrame) % 16));
             }
         }
 

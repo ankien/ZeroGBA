@@ -71,23 +71,20 @@ void LCD::fetchScanline() {
 }
 
 void LCD::draw() {
-    // skip frames if shit's faster than it should be
-    if(fps < 70) {
-        glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5_A1,WIDTH,HEIGHT,0,GL_BGRA,GL_UNSIGNED_SHORT_1_5_5_5_REV,pixelBuffer);
-        glDrawArrays(GL_TRIANGLE_STRIP,0,4);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB5_A1,WIDTH,HEIGHT,0,GL_BGRA,GL_UNSIGNED_SHORT_1_5_5_5_REV,pixelBuffer);
+    glDrawArrays(GL_TRIANGLE_STRIP,0,4);
 
-        SDL_GL_SwapWindow(window);
-    }
+    SDL_GL_SwapWindow(window);
 
     fps++;
 
     // If a second has passed
     currMillseconds = SDL_GetTicks();
-    if(currMillseconds / 1000 != millisecondsElapsed / 1000) {
+    if(currMillseconds / 1000 != millisecondsElapsedSinceLastSecond / 1000) {
         std::string title = std::to_string(fps)+" fps - Desu";
         SDL_SetWindowTitle(window,title.c_str());
         fps = 0;
-        millisecondsElapsed = currMillseconds;
+        millisecondsElapsedSinceLastSecond = currMillseconds;
     }
 }
 
