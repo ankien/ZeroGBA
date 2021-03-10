@@ -5,7 +5,7 @@ LCD::LCD() {
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER);
 
     window = SDL_CreateWindow(
-        "Placeholder Title", 
+        "Desu", 
         SDL_WINDOWPOS_CENTERED, 
         SDL_WINDOWPOS_CENTERED, 
         WIDTH*SCALE, 
@@ -80,11 +80,11 @@ void LCD::draw() {
 
     // If a second has passed
     currMillseconds = SDL_GetTicks();
-    if(currMillseconds / 1000 != millisecondsElapsedSinceLastSecond / 1000) {
+    if(currMillseconds / 1000 != millisecondsElapsedAtLastSecond / 1000) {
         std::string title = std::to_string(fps)+" fps - Desu";
         SDL_SetWindowTitle(window,title.c_str());
         fps = 0;
-        millisecondsElapsedSinceLastSecond = currMillseconds;
+        millisecondsElapsedAtLastSecond = currMillseconds;
     }
 }
 
@@ -133,4 +133,14 @@ void LCD::compileShaders() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glUseProgram(program);
+}
+
+void LCD::startHBlank() {
+    
+}
+void LCD::endHBlank() {
+    
+}
+void LCD::endVBlank() {
+    
 }

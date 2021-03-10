@@ -19,6 +19,14 @@ GBA::GBA() {
     keypad.width = (lcd.WIDTH * lcd.SCALE); keypad.height = (lcd.HEIGHT * lcd.SCALE);
     systemMemory->IORegisters[0x130] = 0xFF;
     systemMemory->IORegisters[0x131] = 3;
+
+    /*
+    // Initialize scheduler events
+    scheduler.addEvent(&lcd.startHBlank,960);
+    scheduler.addEvent(&lcd.endHBlank,1232);
+    scheduler.addEvent(&lcd.startVBlank,197120);
+    scheduler.addEvent(&postFrame,280896);
+    */
 }
 
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
@@ -88,11 +96,11 @@ void GBA::run(char* fileName) {
 
             while(keypad.running) {
 
-                lcd.millisecondsElapsedSinceLastFrame = SDL_GetTicks();
+                lcd.millisecondsElapsedAtLastFrame = SDL_GetTicks();
 
                 while(cyclesPassed < 280896) {
-                    if(arm7tdmi.r[15] == 0x08000428)
-                        printf("Hello! I am a culprit instruction.");
+                    //if(arm7tdmi.r[15] == 0x08000428)
+                        //printf("Hello! I am a culprit instruction.");
                     //for(int i = 0; i < 16; i++)
                     //if(arm7tdmi.r[i] == 0x1e06067e)
                         //printf("Hello! I am a culprit register.\n");
@@ -139,10 +147,7 @@ void GBA::run(char* fileName) {
                         systemMemory->IORegisters[4] ^= 0x1;; // disable vblank
                 }
 
-                if(cyclesPassed > 280896)
-                    cyclesPassed -= 280896;
-                else
-                    cyclesPassed = 0;
+                cyclesPassed -= 280896;
 
                 cyclesSinceHBlank = cyclesPassed; // keep other cycle counters in sync with system
                 lcd.draw();
@@ -150,12 +155,29 @@ void GBA::run(char* fileName) {
                 // todo: implement JIT polling and run ahead - https://byuu.net/input
                 keypad.pollInputs();
 
-                // roughly 1000ms / 60fps + error accumulated from missing .666~ ms/frame - delay since start of last frame draw
+                // naive sync to video approach
+                // roughly 1000ms / 60fps - delay since start of last frame draw
+                // window's low resolution clock conveniently makes us run at 60 fps instead of 62 without error accumulation lmao
                 if(keypad.notSkippingFrames)
-                    SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedSinceLastFrame) % 16));
+                    SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedAtLastFrame) % 16));
             }
         }
 
     } else
         std::cout << "Invalid ROM\n";
+}
+
+void GBA::postFrame() {
+    systemMemory->IORegisters[4] ^= 0x1;; // disable vblank
+
+    lcd.draw();
+
+    // todo: implement JIT polling and run ahead - https://byuu.net/input
+    keypad.pollInputs();
+
+    // naive sync to video approach
+    // roughly 1000ms / 60fps - delay since start of last frame draw
+    // window's low resolution clock conveniently makes us run at 60 fps instead of 62 without error accumulation lmao
+    if(keypad.notSkippingFrames)
+        SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedAtLastFrame) % 16));
 }

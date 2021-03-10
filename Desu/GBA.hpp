@@ -7,7 +7,7 @@
 #include "hardware/GBAMemory.hpp"
 #include "hardware/LCD.hpp"
 #include "hardware/Keypad.hpp"
-#include "Scheduler.hpp" // todo: implement this bad boy
+#include "Scheduler.hpp"
 
 struct GBA {
     /// Cycle scheduler variables ///
@@ -19,6 +19,7 @@ struct GBA {
     GBAMemory* systemMemory;
     LCD lcd{};
     Keypad keypad{};
+    Scheduler scheduler{};
 
     GBA();
 
@@ -32,4 +33,7 @@ struct GBA {
     } runtimeOptions;
     bool parseArguments(uint64_t argc, char* argv[]);
     void run(char*);
+
+    // Scheduler event(s)
+    void postFrame();
 };

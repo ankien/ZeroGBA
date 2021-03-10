@@ -16,8 +16,8 @@ struct LCD {
     uint8_t fps = 0;
     // used to calculate fps and frame delta
     uint32_t currMillseconds = 0;
-    uint32_t millisecondsElapsedSinceLastSecond = 0;
-    uint32_t millisecondsElapsedSinceLastFrame = 0;
+    uint32_t millisecondsElapsedAtLastSecond = 0;
+    uint32_t millisecondsElapsedAtLastFrame = 0;
 
     GBAMemory* systemMemory;
 
@@ -39,5 +39,8 @@ struct LCD {
     uint32_t createShader(std::string,uint32_t);
     void compileShaders();
 
-
+    // Scheduler event(s)
+    void startHBlank();
+    void endHBlank();
+    void endVBlank();
 };

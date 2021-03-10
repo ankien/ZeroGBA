@@ -36,7 +36,6 @@
     <ClCompile Include="hardware\LCD.cpp" />
     <ClCompile Include="hardware\Timer.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Scheduler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />
@@ -117,7 +116,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Desu\dependencies\sdl\include;$(SolutionDir)Desu\dependencies\glew\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Desu\dependencies\boost;$(SolutionDir)Desu\dependencies\sdl\include;$(SolutionDir)Desu\dependencies\glew\include</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -129,7 +128,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; glew32.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Desu\dependencies\sdl\lib;$(SolutionDir)Desu\dependencies\glew\lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Desu\dependencies\boost\libs;$(SolutionDir)Desu\dependencies\sdl\lib;$(SolutionDir)Desu\dependencies\glew\lib</AdditionalLibraryDirectories>
       <EntryPointSymbol>
       </EntryPointSymbol>
     </Link>
