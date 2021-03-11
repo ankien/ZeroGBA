@@ -63,9 +63,6 @@
     <ClInclude Include="GBA.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scheduler.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\GBA.frag">

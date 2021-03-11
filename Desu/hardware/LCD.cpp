@@ -134,13 +134,3 @@ void LCD::compileShaders() {
 
     glUseProgram(program);
 }
-
-void LCD::startHBlank() {
-    
-}
-void LCD::endHBlank() {
-    
-}
-void LCD::endVBlank() {
-    
-}

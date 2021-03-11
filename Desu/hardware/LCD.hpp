@@ -38,9 +38,4 @@ struct LCD {
     std::string loadShader(const char*);
     uint32_t createShader(std::string,uint32_t);
     void compileShaders();
-
-    // Scheduler event(s)
-    void startHBlank();
-    void endHBlank();
-    void endVBlank();
 };

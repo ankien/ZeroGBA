@@ -20,13 +20,12 @@ GBA::GBA() {
     systemMemory->IORegisters[0x130] = 0xFF;
     systemMemory->IORegisters[0x131] = 3;
 
-    /*
     // Initialize scheduler events
-    scheduler.addEvent(&lcd.startHBlank,960);
-    scheduler.addEvent(&lcd.endHBlank,1232);
-    scheduler.addEvent(&lcd.startVBlank,197120);
-    scheduler.addEvent(&postFrame,280896);
-    */
+    addEvent(&GBA::startHBlank,960);
+    addEvent(&GBA::endHBlank,1232);
+    addEvent(&GBA::startVBlank,197120);
+    addEvent(&GBA::postFrame,280896);
+    getInitialEventList();
 }
 
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
@@ -40,8 +39,7 @@ void GBA::interpretARM() {
         #if defined(PRINT_INSTR)
             printf(" %X\n",instruction); // debug
         #endif
-        cyclesPassed += arm7tdmi.cycleTicks;
-        cyclesSinceHBlank += arm7tdmi.cycleTicks;
+        cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
     } else
         arm7tdmi.r[15]+=4;
 }
@@ -53,8 +51,7 @@ void GBA::interpretTHUMB() {
     #if defined(PRINT_INSTR)
         printf(" %X\n",instruction); // debug
     #endif
-    cyclesPassed += arm7tdmi.cycleTicks;
-    cyclesSinceHBlank += arm7tdmi.cycleTicks;
+    cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
 }
 
 // todo: not really urgent, but change this to use regex
@@ -96,70 +93,41 @@ void GBA::run(char* fileName) {
 
             while(keypad.running) {
 
-                lcd.millisecondsElapsedAtLastFrame = SDL_GetTicks();
+                //if(arm7tdmi.r[15] == 0x08000428)
+                    //printf("Hello! I am a culprit instruction.");
+                //for(int i = 0; i < 16; i++)
+                //if(arm7tdmi.r[i] == 0x1e06067e)
+                    //printf("Hello! I am a culprit register.\n");
+                uint32_t oldPC = arm7tdmi.r[15]; // for debugging
 
-                while(cyclesPassed < 280896) {
-                    //if(arm7tdmi.r[15] == 0x08000428)
-                        //printf("Hello! I am a culprit instruction.");
-                    //for(int i = 0; i < 16; i++)
-                    //if(arm7tdmi.r[i] == 0x1e06067e)
-                        //printf("Hello! I am a culprit register.\n");
-                    uint32_t oldPC = arm7tdmi.r[15]; // for debugging
-
-                    #if defined(TRACE)
-                        if(traceAmount < TRACE) {
-                            for(uint8_t j = 0; j < 16; j++) {
-                                if(j == 15)
-                                    arm7tdmi.state ? fprintf(traceFile,"%08X ",arm7tdmi.r[j]+2) : fprintf(traceFile,"%08X ",arm7tdmi.r[j]+4);
-                                else
-                                    fprintf(traceFile,"%08X ",arm7tdmi.r[j]);
-                            }
-                            fprintf(traceFile,"cpsr: %08X\n",arm7tdmi.getCPSR());
-                            traceAmount++;
-                        } else {
-                            fclose(traceFile);
-                            exit(0);
-                        }
-                    #endif
-
-                    if(arm7tdmi.state)
-                        interpretTHUMB();
-                    else
-                        interpretARM();
-
-                    // align addresses
-                    if(arm7tdmi.state)
-                        arm7tdmi.r[15] &= ~1;
-                    else
-                        arm7tdmi.r[15] &= ~2;
-
-                    if((cyclesSinceHBlank >= 960) && !(systemMemory->IORegisters[4] & 0x2)) { // scan and draw line from framebuffer
-                        lcd.fetchScanline(); // draw visible line
-                        systemMemory->IORegisters[4] |= 0x2; // turn on hblank
-                    } else if(cyclesSinceHBlank >= 1232) {
-                        systemMemory->IORegisters[4] ^= 0x2; // turn off hblank
-                        cyclesSinceHBlank -= 1232;
+                #if defined(TRACE)
+                if(traceAmount < TRACE) {
+                    for(uint8_t j = 0; j < 16; j++) {
+                        if(j == 15)
+                            arm7tdmi.state ? fprintf(traceFile, "%08X ", arm7tdmi.r[j] + 2) : fprintf(traceFile, "%08X ", arm7tdmi.r[j] + 4);
+                        else
+                            fprintf(traceFile, "%08X ", arm7tdmi.r[j]);
                     }
-
-                    if(cyclesPassed >= 197120)
-                        systemMemory->IORegisters[4] |= 0x1; // set vblank
-                    else
-                        systemMemory->IORegisters[4] ^= 0x1;; // disable vblank
+                    fprintf(traceFile, "cpsr: %08X\n", arm7tdmi.getCPSR());
+                    traceAmount++;
+                } else {
+                    fclose(traceFile);
+                    exit(0);
                 }
+                #endif
 
-                cyclesPassed -= 280896;
+                if(arm7tdmi.state)
+                    interpretTHUMB();
+                else
+                    interpretARM();
 
-                cyclesSinceHBlank = cyclesPassed; // keep other cycle counters in sync with system
-                lcd.draw();
+                // align addresses
+                if(arm7tdmi.state)
+                    arm7tdmi.r[15] &= ~1;
+                else
+                    arm7tdmi.r[15] &= ~2;
 
-                // todo: implement JIT polling and run ahead - https://byuu.net/input
-                keypad.pollInputs();
-
-                // naive sync to video approach
-                // roughly 1000ms / 60fps - delay since start of last frame draw
-                // window's low resolution clock conveniently makes us run at 60 fps instead of 62 without error accumulation lmao
-                if(keypad.notSkippingFrames)
-                    SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedAtLastFrame) % 16));
+                step();
             }
         }
 
@@ -167,17 +135,36 @@ void GBA::run(char* fileName) {
         std::cout << "Invalid ROM\n";
 }
 
-void GBA::postFrame() {
-    systemMemory->IORegisters[4] ^= 0x1;; // disable vblank
-
-    lcd.draw();
-
-    // todo: implement JIT polling and run ahead - https://byuu.net/input
+uint32_t GBA::postFrame() {
+    cyclesPassedSinceLastFrame -= 280896;
+    resetEventList();
+    
+    // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
     keypad.pollInputs();
+    
+    lcd.draw();
 
     // naive sync to video approach
     // roughly 1000ms / 60fps - delay since start of last frame draw
     // window's low resolution clock conveniently makes us run at 60 fps instead of 62 without error accumulation lmao
     if(keypad.notSkippingFrames)
         SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedAtLastFrame) % 16));
+
+    lcd.millisecondsElapsedAtLastFrame = SDL_GetTicks();
+    systemMemory->IORegisters[4] ^= 0x1;; // disable vblank
+
+    return 280896;
+}
+uint32_t GBA::startHBlank() {
+    lcd.fetchScanline(); // draw visible line
+    systemMemory->IORegisters[4] |= 0x2; // turn on hblank
+    return 1232;
+}
+uint32_t GBA::endHBlank() {
+    systemMemory->IORegisters[4] ^= 0x2; // turn off hblank
+    return 1232;
+}
+uint32_t GBA::startVBlank() {
+    systemMemory->IORegisters[4] |= 0x1; // set vblank
+    return 197120;
 }
