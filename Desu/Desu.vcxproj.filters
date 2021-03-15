@@ -40,6 +40,9 @@
     <ClCompile Include="GBA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hardware\DMATransfer.cpp">
+      <Filter>Hardware</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hardware\GBAMemory.hpp">
@@ -62,6 +65,15 @@
     </ClInclude>
     <ClInclude Include="GBA.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\InterruptControl.hpp">
+      <Filter>Hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\DMATransfer.hpp">
+      <Filter>Hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="Scheduler.hpp">
+      <Filter>Hardware</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

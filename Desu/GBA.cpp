@@ -21,11 +21,11 @@ GBA::GBA() {
     systemMemory->IORegisters[0x131] = 3;
 
     // Initialize scheduler events
-    addEvent(&GBA::startHBlank,960);
-    addEvent(&GBA::endHBlank,1232);
-    addEvent(&GBA::startVBlank,197120);
-    addEvent(&GBA::postFrame,280896);
-    getInitialEventList();
+    scheduler.addEventToBack(startHBlank,960,1);
+    scheduler.addEventToBack(endHBlank,1232,1);
+    scheduler.addEventToBack(startVBlank,197120,1);
+    scheduler.addEventToBack(postFrame,280896,1);
+    scheduler.getInitialEventList();
 }
 
 // there's a pipeline, DMA channels, audio channels, PPU, and timers too?
@@ -39,7 +39,7 @@ void GBA::interpretARM() {
         #if defined(PRINT_INSTR)
             printf(" %X\n",instruction); // debug
         #endif
-        cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
+        scheduler.cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
     } else
         arm7tdmi.r[15]+=4;
 }
@@ -51,7 +51,7 @@ void GBA::interpretTHUMB() {
     #if defined(PRINT_INSTR)
         printf(" %X\n",instruction); // debug
     #endif
-    cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
+    scheduler.cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
 }
 
 // todo: not really urgent, but change this to use regex
@@ -127,44 +127,10 @@ void GBA::run(char* fileName) {
                 else
                     arm7tdmi.r[15] &= ~2;
 
-                step();
+                scheduler.step();
             }
         }
 
     } else
         std::cout << "Invalid ROM\n";
-}
-
-uint32_t GBA::postFrame() {
-    cyclesPassedSinceLastFrame -= 280896;
-    resetEventList();
-    
-    // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
-    keypad.pollInputs();
-    
-    lcd.draw();
-
-    // naive sync to video approach
-    // roughly 1000ms / 60fps - delay since start of last frame draw
-    // window's low resolution clock conveniently makes us run at 60 fps instead of 62 without error accumulation lmao
-    if(keypad.notSkippingFrames)
-        SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedAtLastFrame) % 16));
-
-    lcd.millisecondsElapsedAtLastFrame = SDL_GetTicks();
-    systemMemory->IORegisters[4] ^= 0x1;; // disable vblank
-
-    return 280896;
-}
-uint32_t GBA::startHBlank() {
-    lcd.fetchScanline(); // draw visible line
-    systemMemory->IORegisters[4] |= 0x2; // turn on hblank
-    return 1232;
-}
-uint32_t GBA::endHBlank() {
-    systemMemory->IORegisters[4] ^= 0x2; // turn off hblank
-    return 1232;
-}
-uint32_t GBA::startVBlank() {
-    systemMemory->IORegisters[4] |= 0x1; // set vblank
-    return 197120;
 }

@@ -44,7 +44,7 @@ void LCD::fetchScanline() {
                 uint16_t lineStart = VCOUNT * 240;
                 for(uint8_t i = 0; i < 240; i++) {
                     uint32_t vramIndex = (lineStart + i) * 2;
-                    pixelBuffer[lineStart + i] = systemMemory->vram[vramIndex] | (systemMemory->vram[vramIndex + 1] << 8);
+                    pixelBuffer[lineStart + i] = *reinterpret_cast<uint16_t*>(&systemMemory->vram[vramIndex]);
                 }
                 break;
             }
@@ -54,7 +54,7 @@ void LCD::fetchScanline() {
                 uint16_t lineStart = VCOUNT * 240;
                 for(uint8_t i = 0; i < 240; i++) {
                     uint8_t paletteEntry = systemMemory->vram[frameBufferStart + lineStart + i] * 2;
-                    pixelBuffer[lineStart + i] = systemMemory->pram[paletteEntry] | (systemMemory->pram[paletteEntry + 1] << 8);
+                    pixelBuffer[lineStart + i] = *reinterpret_cast<uint16_t*>(&systemMemory->pram[paletteEntry]);
                 }
                 break;
             }

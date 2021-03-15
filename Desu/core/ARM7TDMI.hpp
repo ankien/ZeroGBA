@@ -1,8 +1,7 @@
 #pragma once
-#include <cstring>
 #include <cstdint>
 #include <iostream>
-#include <algorithm>
+#include <type_traits>
 #include "../hardware/GBAMemory.hpp"
 
 struct ARM7TDMI {
