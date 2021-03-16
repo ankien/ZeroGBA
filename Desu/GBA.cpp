@@ -28,8 +28,7 @@ GBA::GBA() {
     scheduler.getInitialEventList();
 }
 
-// there's a pipeline, DMA channels, audio channels, PPU, and timers too?
-// i think i can fake the pipeline
+// todo: DMA channels, audio channels, PPU, and timers
 void GBA::interpretARM() {
     uint32_t instruction = arm7tdmi.readWord(arm7tdmi.r[15]);
 
@@ -55,7 +54,6 @@ void GBA::interpretTHUMB() {
 }
 
 // todo: not really urgent, but change this to use regex
-// also, could turn it into a lambda since we only need it once
 bool GBA::parseArguments(uint64_t argc, char* argv[]) {
     if(argc < 2)
         return 0;

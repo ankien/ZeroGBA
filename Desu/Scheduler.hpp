@@ -19,12 +19,13 @@ struct Scheduler {
         }
     };
 
-    std::vector<Event> initialEventList;
+    std::vector<Event> initialEventList; // to store reschedulable events (HBlank start/end, etc.)
     std::list<Event> eventList;
     uint32_t cyclesPassedSinceLastFrame = 0;
 
     void addEventToBack(std::function<uint32_t()>,uint32_t, bool);
-    // void addEventToFront, todo, for interrupts and stuff
+    // for interrupts and events that don't have a schedule
+    void addEventToFront(std::function<uint32_t()>,uint32_t);
 
     // takes the return value of an event fuction and reschedules it
     // only use for events that should be rescheduled!
@@ -37,12 +38,12 @@ struct Scheduler {
 inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint32_t cycleTimeStamp, bool reschedule) {
     eventList.emplace_back(func,cycleTimeStamp,reschedule);
 }
+inline void Scheduler::addEventToFront(std::function<uint32_t()> func, uint32_t cycleTimeStamp) {
+    eventList.emplace_front(func,cycleTimeStamp,0);
+}
 
 inline void Scheduler::rescheduleFront(std::function<uint32_t()> func,uint32_t cycleTimeStamp) {
     uint32_t processRescheduledTime = eventList.front().timestamp + cycleTimeStamp;
-
-    if(processRescheduledTime > 280896)
-        int fug = 2 + 2;
     
     if(processRescheduledTime <= 280896) {
         for(auto it = std::next(eventList.begin(),1); it != eventList.end(); ++it) {
@@ -53,14 +54,16 @@ inline void Scheduler::rescheduleFront(std::function<uint32_t()> func,uint32_t c
             }
         }
     } else
-        eventList.pop_front();
-    // else pop or reschedule later? currently there aren't any rescheduable events that don't evenly align w/ 280896 cycles
+        eventList.pop_front(); // else don't reschedule
 }
 inline void Scheduler::step() {
     if(cyclesPassedSinceLastFrame >= eventList.front().timestamp) {
         if(eventList.front().shouldBeRescheduled)
             rescheduleFront(eventList.front().process,eventList.front().process());
-        //else add to front
+        else {
+            eventList.front().process();
+            eventList.pop_front();
+        }
     }
 }
 inline void Scheduler::getInitialEventList() {

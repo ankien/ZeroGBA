@@ -1,8 +1,9 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
-#include <type_traits>
 #include "../hardware/GBAMemory.hpp"
+#include "../Scheduler.hpp"
+#include "../hardware/MMIO.h"
 
 struct ARM7TDMI {
     // cycles per instruction
@@ -94,6 +95,7 @@ struct ARM7TDMI {
     void THUMBemptyInstruction(uint16_t);
 
     /// ARM Instructions ///
+    // todo: implement a templated instruction handler
     void ARMbranch(uint32_t);
     void ARMbranchExchange(uint32_t);
     void ARMsoftwareInterrupt(uint32_t);
@@ -136,6 +138,9 @@ struct ARM7TDMI {
     void THUMBunconditionalBranch(uint16_t);
     void THUMBlongBranchWithLink(uint16_t);
     void THUMBsoftwareInterrupt(uint16_t);
+
+    /// Scheduler Stuff ///
+    bool irqsEnabled();
 };
 
 /// Helper Methods ///
@@ -258,33 +263,36 @@ inline uint32_t ARM7TDMI::readable(uint32_t address) {
     return 1;
 }
 inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
-    if(writeable(address))
-    switch(address >> 24) {
-        case 0x05:
-            storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address);
-            break;
-        case 0x06:
-            if(systemMemory->IORegisters[0] < 3) { // bitmap mode writes
-                if(address < 0x6014000)
-                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address);
-            } else {
-                if(address < 0x6010000)
-                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value)*0x101),address);
-            }
-            return;
-        case 0x07:
-            return;
-        default:
-            (*systemMemory)[address] = value;
+    if(writeable(address)) {
+        switch(address >> 24) {
+            case 0x05:
+                storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
+                break;
+            case 0x06:
+                if(systemMemory->IORegisters[0] < 3) { // bitmap mode writes
+                    if(address < 0x6014000)
+                        storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
+                } else {
+                    if(address < 0x6010000)
+                        storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
+                }
+                return;
+            case 0x07:
+                return;
+            default:
+                (*systemMemory)[address] = value;
+        }
     }
 }
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
-    if(writeable(address))
+    if(writeable(address)) {
         reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1])[0] = value;
+    }
 }
 inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
-    if(writeable(address))
+    if(writeable(address)) {
         reinterpret_cast<uint32_t*>(&(*systemMemory)[address & ~3])[0] = value;
+    }
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
     uint16_t readValue = readable(address);
@@ -659,4 +667,9 @@ inline void ARM7TDMI::setZeroAndSign(uint32_t arg) {
 inline void ARM7TDMI::setZeroAndSign(uint64_t arg) {
     (arg == 0) ?  zeroFlag = 1 : zeroFlag = 0;
     (arg & 0x8000000000000000) ? signFlag = 1 : signFlag = 0;
+}
+
+inline bool ARM7TDMI::irqsEnabled() {
+    if(IME)
+        return !irqDisable;
 }

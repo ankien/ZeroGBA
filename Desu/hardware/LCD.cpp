@@ -30,6 +30,7 @@ LCD::LCD() {
 
 void LCD::fetchScanline() {
 
+    uint16_t lineStart = VCOUNT * 240;
     if(VCOUNT < 160) { // if VCOUNT < 160, load update a single scanline, 160-227 is non-visible scanline range
         switch(DISPCNT_MODE) {
             case 0: // tile/map + text mode
@@ -40,18 +41,14 @@ void LCD::fetchScanline() {
             case 2: // tile/map + scale/rotation mode
                 break;
             case 3: // bitmap mode for still images
-            {
-                uint16_t lineStart = VCOUNT * 240;
                 for(uint8_t i = 0; i < 240; i++) {
                     uint32_t vramIndex = (lineStart + i) * 2;
                     pixelBuffer[lineStart + i] = *reinterpret_cast<uint16_t*>(&systemMemory->vram[vramIndex]);
                 }
                 break;
-            }
             case 4: // bitmap mode
             {
-                uint16_t frameBufferStart = DISPCNT_DISPLAY_FRAME_SELECT ? 0x5000 : 0;
-                uint16_t lineStart = VCOUNT * 240;
+                uint16_t frameBufferStart = DISPCNT_DISPLAY_FRAME_SELECT ? 0xA000 : 0;
                 for(uint8_t i = 0; i < 240; i++) {
                     uint8_t paletteEntry = systemMemory->vram[frameBufferStart + lineStart + i] * 2;
                     pixelBuffer[lineStart + i] = *reinterpret_cast<uint16_t*>(&systemMemory->pram[paletteEntry]);
@@ -62,12 +59,6 @@ void LCD::fetchScanline() {
                 break;
         }
     }
-    
-    if(VCOUNT == 228)
-        systemMemory->IORegisters[6] = 0; // reset vcount
-    else
-        systemMemory->IORegisters[6]++; // increment vcount
-    systemMemory->IORegisters[4] |= ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2); // set v-counter flag
 }
 
 void LCD::draw() {

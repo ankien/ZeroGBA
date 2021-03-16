@@ -25,9 +25,6 @@
     <ClCompile Include="hardware\GBAMemory.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\Timer.cpp">
-      <Filter>Hardware</Filter>
-    </ClCompile>
     <ClCompile Include="hardware\Keypad.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
@@ -40,15 +37,9 @@
     <ClCompile Include="GBA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\DMATransfer.cpp">
-      <Filter>Hardware</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hardware\GBAMemory.hpp">
-      <Filter>Hardware</Filter>
-    </ClInclude>
-    <ClInclude Include="hardware\Timer.hpp">
       <Filter>Hardware</Filter>
     </ClInclude>
     <ClInclude Include="hardware\Keypad.hpp">
@@ -65,12 +56,6 @@
     </ClInclude>
     <ClInclude Include="GBA.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hardware\InterruptControl.hpp">
-      <Filter>Hardware</Filter>
-    </ClInclude>
-    <ClInclude Include="hardware\DMATransfer.hpp">
-      <Filter>Hardware</Filter>
     </ClInclude>
     <ClInclude Include="Scheduler.hpp">
       <Filter>Hardware</Filter>
