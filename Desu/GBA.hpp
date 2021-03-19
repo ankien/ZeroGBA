@@ -65,7 +65,7 @@ struct GBA {
                 return 0;
             },0);
         }
-        lcd.fetchScanline(); // draw visible line
+        lcd.renderScanline(); // draw visible line
         return 1232;
     };
     std::function<uint32_t()> endHBlank = [&]() {

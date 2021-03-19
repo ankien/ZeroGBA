@@ -26,12 +26,54 @@ struct LCD {
     uint32_t program;
     // pixel format: xbbbbbgggggrrrrr, x unused
     uint16_t* pixelBuffer;
+
+    /// For the software renderer ///
+    uint16_t bgLayer[4][240];
+    struct {
+        uint16_t color;
+        uint8_t priority;
+        uint8_t alpha : 1;
+    } spriteLayer[240];
+
+    // [Shape][Size][width or height]
+    const uint8_t spriteOBJSize[4][4][2] = {
+        // Square
+        {
+            {8,8},
+            {16,16},
+            {32,32},
+            {64,64}
+        },
+        // Horizontal
+        {
+            {16,8},
+            {32,8},
+            {32,16},
+            {64,32}
+        },
+        // Vertical
+        {
+            {8,16},
+            {8,32},
+            {16,32},
+            {32,64}
+        },
+        // Prohibited
+        {
+            {0,0},
+            {0,0},
+            {0,0},
+            {0,0}
+        }
+    };
     
     LCD();
 
-    // not really a "fetch/getter", loads shit like BGs and OBJs
-    // into a single line of the framebuffer
-    void fetchScanline();
+    void renderTextBG(uint8_t);
+    void renderAffineBG(uint8_t);
+    void renderSprites(uint32_t);
+    void composeScanline(uint16_t*);
+    void renderScanline();
 
     void draw();
 
