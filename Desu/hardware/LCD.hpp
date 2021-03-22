@@ -27,8 +27,8 @@ struct LCD {
     // pixel format: xbbbbbgggggrrrrr, x unused
     uint16_t* pixelBuffer;
 
-    /// For the software renderer ///
-    uint16_t bgLayer[4][240];
+    /// For the software renderer, stores palette indexes for scanline composition ///
+    uint8_t bgLayer[4][240];
     struct {
         uint16_t color;
         uint8_t priority;
@@ -69,9 +69,13 @@ struct LCD {
     
     LCD();
 
-    void renderTextBG(uint8_t);
+    // The idea behind these is to read tile data from VRAM (+ OAM for sprites)
+    // and use the data as an index into PRAM
+    uint16_t screenEntryIndex(uint16_t,uint16_t,uint16_t);
+    void renderTextBG(uint8_t,uint8_t);
     void renderAffineBG(uint8_t);
-    void renderSprites(uint32_t);
+    void renderSprites(uint32_t,int16_t);
+
     void composeScanline(uint16_t*);
     void renderScanline();
 
@@ -81,3 +85,12 @@ struct LCD {
     uint32_t createShader(std::string,uint32_t);
     void compileShaders();
 };
+
+inline uint16_t LCD::screenEntryIndex(uint16_t tx,uint16_t ty,uint16_t bgcntSize) {
+    uint32_t n = tx = ty*32;
+    if(tx >= 32)
+        n += 0x03E0;
+    if(ty >= 32 && bgcntSize == 0xC000)
+        n += 0x0400;
+    return n;
+}
