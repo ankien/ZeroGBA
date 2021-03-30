@@ -29,10 +29,12 @@ struct LCD {
 
     /// For the software renderer, stores palette indexes for scanline composition ///
     uint8_t bgLayer[4][240];
-    struct {
-        uint16_t color;
-        uint8_t priority;
-        uint8_t alpha : 1;
+    struct Sprite {
+        uint16_t color = 0;
+        uint8_t priority = 4; // not actual possible value
+        bool alpha = 0,
+             window = 0;
+
     } spriteLayer[240];
 
     // [Shape][Size][width or height]
@@ -76,7 +78,10 @@ struct LCD {
     void renderAffineBG(uint8_t);
     void renderSprites(uint32_t,int16_t);
 
-    void composeScanline(uint16_t*);
+    // Take the BG and sprite layers and output them into pixelBuffer 
+    // with priority and alpha blending
+    void composeScanline(uint16_t*,uint8_t);
+
     void renderScanline();
 
     void draw();

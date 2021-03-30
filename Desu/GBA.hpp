@@ -58,7 +58,7 @@ struct GBA {
         systemMemory->IORegisters[4] |= 0x2; // turn on hblank
         if(DISPSTAT_HBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x2;// set hblank REG_IF
-            scheduler.addEventToFront([&]() {
+            scheduler.scheduleInterruptCheck([&]() {
                 if(IE_HBLANK && IF_HBLANK)
                     if(arm7tdmi.irqsEnabled())
                         arm7tdmi.handleException(arm7tdmi.IRQ,4 - (arm7tdmi.state * 2),arm7tdmi.IRQ);
@@ -74,7 +74,7 @@ struct GBA {
         systemMemory->IORegisters[4] |= ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2); // set v-counter flag
         if(DISPSTAT_VCOUNT_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x4;
-            scheduler.addEventToFront([&]() {
+            scheduler.scheduleInterruptCheck([&]() {
                 if(IE_VCOUNTER && IF_VCOUNTER)
                     if(arm7tdmi.irqsEnabled())
                         arm7tdmi.handleException(arm7tdmi.IRQ,4 - (arm7tdmi.state * 2),arm7tdmi.IRQ);
@@ -88,7 +88,7 @@ struct GBA {
         systemMemory->IORegisters[4] |= 0x1; // set vblank
         if(DISPSTAT_VBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x1;// set vblank REG_IF
-            scheduler.addEventToFront([&]() {
+            scheduler.scheduleInterruptCheck([&]() {
                 if(IE_VBLANK && IF_VBLANK)
                     if(arm7tdmi.irqsEnabled())
                         arm7tdmi.handleException(arm7tdmi.IRQ,4 - (arm7tdmi.state * 2),arm7tdmi.IRQ);

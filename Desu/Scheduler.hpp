@@ -25,7 +25,7 @@ struct Scheduler {
 
     void addEventToBack(std::function<uint32_t()>,uint32_t, bool);
     // for interrupts and events that don't have a schedule
-    void addEventToFront(std::function<uint32_t()>,uint32_t);
+    void scheduleInterruptCheck(std::function<uint32_t()>,uint32_t);
 
     // takes the return value of an event fuction and reschedules it
     // only use for events that should be rescheduled!
@@ -38,8 +38,9 @@ struct Scheduler {
 inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint32_t cycleTimeStamp, bool reschedule) {
     eventList.emplace_back(func,cycleTimeStamp,reschedule);
 }
-inline void Scheduler::addEventToFront(std::function<uint32_t()> func, uint32_t cycleTimeStamp) {
+inline void Scheduler::scheduleInterruptCheck(std::function<uint32_t()> func, uint32_t cycleTimeStamp) {
     eventList.emplace_front(func,cycleTimeStamp,0);
+    eventList.splice(std::next(eventList.begin(),2),eventList,eventList.begin());
 }
 
 inline void Scheduler::rescheduleFront(std::function<uint32_t()> func,uint32_t cycleTimeStamp) {

@@ -31,7 +31,7 @@ LCD::LCD() {
 void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     if((systemMemory->IORegisters[0] & (1 << (8+bg))) == 0)
         return;
-    uint16_t* currLayer = &bgLayer[bg][0];
+    uint8_t* currLayer = &bgLayer[bg][0];
     uint16_t* layer = reinterpret_cast<uint16_t*>(&bgLayer[bg]);
 
     uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x8 + (0x2*bg));
@@ -168,18 +168,70 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
 
     }
 }
-void LCD::composeScanline(uint16_t* scanline) {
+void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
+    
+    uint16_t winin = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x48);
+    uint8_t win0List = winin & 0x1F;
+    uint8_t win1List = (winin & 0x1F00) >> 8;
+    uint16_t winout = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x4A);
+    uint8_t outList = winout & 0x1F;
+    uint8_t objList = (winout & 0x1F00) >> 8;
+    uint16_t dispcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters);
+    uint16_t bldalpha = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x52);
+    uint16_t bldy = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x54);
+
+    bool win0Display, win1Display, objDisplay, win1YVisible, win0YVisible, win0Effects, win1Effects, outEffects, objEffects, specialEffects;
+    win0Display = dispcnt & 0x2000;
+    win1Display = dispcnt & 0x4000;
+    objDisplay = dispcnt & 0x8000;
+    win0YVisible = WIN0V_Y1 <= vcount;
+    win1YVisible = WIN1V_Y1 <= vcount;
+    win0Effects = winin & 0x20;
+    win1Effects = winin & 0x2000;
+    outEffects = winout & 0x20;
+    objEffects = winout & 0x2000;
+    uint8_t enableList, win0x1, win0x2, win0y1, win0y2, win1x1, win1x2, win1y1, win1y2;
+    win0x1 = systemMemory->IORegisters[0x41];
+    win0x2 = systemMemory->IORegisters[0x40];
+    win0y1 = systemMemory->IORegisters[0x45];
+    win0y2 = systemMemory->IORegisters[0x44];
+    win1x1 = systemMemory->IORegisters[0x43];
+    win1x2 = systemMemory->IORegisters[0x42];
+    win1y1 = systemMemory->IORegisters[0x47];
+    win1y2 = systemMemory->IORegisters[0x46];
+
     for(uint8_t i = 0; i < 240; i++) {
         
-        // values of zero are transparent
+        if(win0Display && win0x1 <= i && i < win0x2 && win0YVisible) { // win0
+            enableList = win0List;
+            specialEffects = win0Effects;
+        } else if(win1Display && win1x1 <= i && i < win1x2 && win1YVisible) { // win 1
+            enableList = win1List;
+            specialEffects = win1Effects;
+        } else if(objDisplay && spriteLayer[i].window) { // obj win
+            enableList = objList;
+            specialEffects = objEffects;
+        } else if(win0Display || win1Display || objDisplay) { // winout
+            enableList = outList;
+            specialEffects = outEffects;
+        } else { // no windows
+            enableList = 0;
+            specialEffects = false;
+        }
 
-        //scanline[i] = ;
+
+        //uint16_t finalColor;
+        for(int8_t offset = 0; offset < 4; offset++) {
+            
+        }
+
+        //scanline[i] = finalColor;
     }
 }
 
 #define RENDER_SPRITES_AND_COMPOSE(baseAddress) if(DISPCNT_OBJ) \
                                                     renderSprites(baseAddress,159-vcount); \
-                                                composeScanline(scanLine);
+                                                composeScanline(scanLine,vcount);
 void LCD::renderScanline() {
 
     /*
@@ -202,10 +254,17 @@ void LCD::renderScanline() {
 
     // todo: implement rotation + scaling (affine), and objs for bitmap modes
     uint8_t vcount = VCOUNT;
+
     if(vcount < 160) { // if VCOUNT < 160, load update a single scanline, 160-227 is non-visible scanline range
 
         uint16_t lineStart = vcount * 240;
         uint16_t* scanLine = pixelBuffer + lineStart;
+        
+        // clear buffers
+        for(uint8_t i = 0; i < 4; i++)
+            memset(bgLayer[i],0,240); // do i even need this
+        std::fill_n(spriteLayer,240,Sprite{});
+
         switch(DISPCNT_MODE) {
             case 0: // BG[0-3] text/tile BG mode, no affine
                 renderTextBG(0,vcount);
