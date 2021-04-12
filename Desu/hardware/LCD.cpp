@@ -29,12 +29,11 @@ LCD::LCD() {
 }
 
 void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
-    if((systemMemory->IORegisters[0] & (1 << (8+bg))) == 0)
+    if((systemMemory->IORegisters[1] & (1 << bg)) == 0)
         return;
     uint8_t* currLayer = &bgLayer[bg][0];
-    uint16_t* layer = reinterpret_cast<uint16_t*>(&bgLayer[bg]);
 
-    uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x8 + (0x2*bg));
+    uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x8 + (0x2*bg));
     uint8_t* charBlockBase = &systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)]; // tile data
     uint16_t* screenBlockBase = reinterpret_cast<uint16_t*>(&systemMemory->vram[(((bgcnt & 0x1F00) >> 8) * 0x800)]); // tile map
     bool eightBppEnabled = bgcnt & 0x80;
@@ -59,8 +58,8 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
 
     // position of the SCREEN on the MAP, positive values correspond to moving the screen right and down respectively
     // the screen will wrap at the right at bottom edges of the BG
-    uint16_t bghofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x10 + (0x4*bg)) & 0x1FF;
-    uint16_t bgvofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x12 + (0x4*bg)) & 0x1FF;
+    uint16_t bghofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x10 + (0x4*bg)) & 0x1FF;
+    uint16_t bgvofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x12 + (0x4*bg)) & 0x1FF;
 
     uint16_t bgTileRow = vcount + bgvofs & height;
     uint16_t ty = bgTileRow / 8;
@@ -81,11 +80,11 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
 
         if(eightBppEnabled) // 8bpp
             currLayer[i] = charBlockBase[tid * 0x40 + y*8 + x];
-        else { // 4bpp, todo: find a test rom for this
+        else { // 4bpp
             uint8_t pBank = (screenEntry & 0xF000) >> 12;
             uint8_t pIndex = charBlockBase[tid * 0x20 + y*4 + x/2];
             pIndex = (pIndex >> ((x & 1) * 4) & 0xF); // read 4-bit pIndexes from 8-bit array
-            currLayer[i] = pBank * 16 + pIndex;
+            currLayer[i] = (pBank * 16 + pIndex) * 2;
         }
     }
 }
@@ -99,8 +98,8 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
 
     // todo: adjust for bitmap modes?
     for(uint16_t spriteByteOffset = 0; spriteByteOffset < 1024; spriteByteOffset+=8) {
-        uint16_t attribute0 = *reinterpret_cast<uint16_t*>(&systemMemory->oam + spriteByteOffset);
-        uint16_t attribute1 = *reinterpret_cast<uint16_t*>(&systemMemory->oam + spriteByteOffset + 2);
+        uint16_t attribute0 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset);
+        uint16_t attribute1 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 2);
 
         // skip OBJ conditions
         bool affine = attribute0 & 0x100;
@@ -135,10 +134,10 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
 
             uint16_t affineParam = ((attribute1 & 0x3E00) >> 9) * 32;
 
-            pa = *reinterpret_cast<int16_t*>(&systemMemory->oam + affineParam + 0x6);
-            pb = *reinterpret_cast<int16_t*>(&systemMemory->oam + affineParam + 0xE);
-            pc = *reinterpret_cast<int16_t*>(&systemMemory->oam + affineParam + 0x16);
-            pd = *reinterpret_cast<int16_t*>(&systemMemory->oam + affineParam + 0x1E);
+            pa = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0x6);
+            pb = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0xE);
+            pc = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0x16);
+            pd = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0x1E);
 
             // if sprite should be treated as double sized
             if(attr0Bit9) {
@@ -162,23 +161,26 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
         bool eightBitColors = attribute0 & 0x2000;
         bool horizontalFlip = affine ? false : attribute1 & 0x1000;
         bool verticalFlip = affine ? false : attribute1 & 0x2000;
-        uint16_t attribute2 = *reinterpret_cast<uint16_t*>(&systemMemory->oam + spriteByteOffset + 4);
-        uint16_t attribute3 = *reinterpret_cast<uint16_t*>(&systemMemory->oam + spriteByteOffset + 8);
+        uint16_t attribute2 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 4);
+        uint16_t attribute3 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 8);
 
 
     }
 }
 void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
-    
-    uint16_t winin = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x48);
+
+    // todo: optimize the faq out of this, presort the backgrounds so we only need to show the highest one;
+    // take alpha blending into consideration (if you blend the highest layer, order up another BG)
+    // also todo: put these variables in the right scope
+    uint16_t winin = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x48);
     uint8_t win0List = winin & 0x1F;
     uint8_t win1List = (winin & 0x1F00) >> 8;
-    uint16_t winout = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x4A);
+    uint16_t winout = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x4A);
     uint8_t outList = winout & 0x1F;
     uint8_t objList = (winout & 0x1F00) >> 8;
     uint16_t dispcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters);
-    uint16_t bldalpha = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x52);
-    uint16_t bldy = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters + 0x54);
+    uint16_t bldalpha = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x52);
+    uint16_t bldy = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x54);
 
     bool win0Display, win1Display, objDisplay, win1YVisible, win0YVisible, win0Effects, win1Effects, outEffects, objEffects, specialEffects;
     win0Display = dispcnt & 0x2000;
@@ -190,7 +192,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     win1Effects = winin & 0x2000;
     outEffects = winout & 0x20;
     objEffects = winout & 0x2000;
-    uint8_t enableList, win0x1, win0x2, win0y1, win0y2, win1x1, win1x2, win1y1, win1y2;
+    uint8_t enableList = 0, win0x1, win0x2, win0y1, win0y2, win1x1, win1x2, win1y1, win1y2;
     win0x1 = systemMemory->IORegisters[0x41];
     win0x2 = systemMemory->IORegisters[0x40];
     win0y1 = systemMemory->IORegisters[0x45];
@@ -200,32 +202,73 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     win1y1 = systemMemory->IORegisters[0x47];
     win1y2 = systemMemory->IORegisters[0x46];
 
-    for(uint8_t i = 0; i < 240; i++) {
+    // composite a scanline from lowest priority windows (and within those, OBJs and BGs) to highest
+    for(uint8_t x = 0; x < 240; x++) {
         
-        if(win0Display && win0x1 <= i && i < win0x2 && win0YVisible) { // win0
-            enableList = win0List;
-            specialEffects = win0Effects;
-        } else if(win1Display && win1x1 <= i && i < win1x2 && win1YVisible) { // win 1
-            enableList = win1List;
-            specialEffects = win1Effects;
-        } else if(objDisplay && spriteLayer[i].window) { // obj win
-            enableList = objList;
-            specialEffects = objEffects;
-        } else if(win0Display || win1Display || objDisplay) { // winout
-            enableList = outList;
-            specialEffects = outEffects;
-        } else { // no windows
-            enableList = 0;
-            specialEffects = false;
+        // backdrop color, rendered with no windows or BGs
+        uint16_t currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]); 
+
+        // draw each window starting from the lowest priority one
+        // Order: outside, obj, win1, win0
+        for(uint8_t window = 0; window < 5; window++) {
+
+            // set the bg enable list: OBJ (4), BG0-3 (0-3)
+            if(windowList[window] == WIN0) {
+                if(win0Display && win0x1 <= x && x < win0x2 && win0YVisible) {
+                    enableList = win0List;
+                    specialEffects = win0Effects;
+                } else
+                    continue;
+            } else if(windowList[window] == WIN1) {
+                if(win1Display && win1x1 <= x && x < win1x2 && win1YVisible) {
+                    enableList = win1List;
+                    specialEffects = win1Effects;
+                } else
+                    continue;
+            } else if(windowList[window] == OBJ_WIN) {
+                if(objDisplay && spriteLayer[x].window) {
+                    enableList = objList;
+                    specialEffects = objEffects;
+                } else
+                    continue;
+            } else if(windowList[window] == WINOUT) { // WINOUT
+                if(win0Display || win1Display || objDisplay) {
+                    enableList = outList;
+                    specialEffects = outEffects;
+                } else
+                    continue;
+            } else {
+                // even with no windows, BGs are shown
+                enableList = (dispcnt & 0x1F00) >> 8;
+                specialEffects = true;
+            }
+
+            // iterate through bgs and sprite of this window in lowest to highest priority
+            for(int8_t priority = 3; priority >= 0; priority--) {
+                
+                // bgs
+                for(int8_t bg = 3; bg >= 0; bg--) {
+                    if(enableList & (1 << bg)) {
+                        if((*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0] + 0x8 + (0x2*bg)) & 0x3) == priority) {
+                            if(bgLayer[bg][x] == 0)
+                                continue;
+                            uint16_t bgColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[bgLayer[bg][x]]);
+                            currPixelColor = bgColor;
+                        }
+                    }
+                }
+
+                // sprite
+                if(enableList & 0b10000) {
+                    if(spriteLayer[x].priority == priority && spriteLayer[x].pindex != 0) {
+                        uint16_t spriteColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[spriteLayer[x].pindex]);
+                        currPixelColor = spriteColor;
+                    }
+                }
+            }
         }
 
-
-        //uint16_t finalColor;
-        for(int8_t offset = 0; offset < 4; offset++) {
-            
-        }
-
-        //scanline[i] = finalColor;
+        scanline[x] = currPixelColor;
     }
 }
 
@@ -261,8 +304,8 @@ void LCD::renderScanline() {
         uint16_t* scanLine = pixelBuffer + lineStart;
         
         // clear buffers
-        for(uint8_t i = 0; i < 4; i++)
-            memset(bgLayer[i],0,240); // do i even need this
+        //for(uint8_t i = 0; i < 4; i++)
+            //memset(bgLayer[i],0,240); // do i even need this
         std::fill_n(spriteLayer,240,Sprite{});
 
         switch(DISPCNT_MODE) {

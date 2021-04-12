@@ -148,16 +148,6 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     bool voidRd = 0;
     bool pcIsRn = rn == 15;
 
-    // forcefully set flags for certain opcodes
-    switch(opcode) {
-        case 0xA:
-        case 0xB:
-        case 0x9:
-        case 0x8:
-            s = 1;
-            voidRd = 1;
-    }
-
     // shifting
     switch(I) {
 
@@ -243,15 +233,19 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             setReg(rd,result);
             break;
         case 0x8: // TST
+            voidRd = true;
             result = rn & op2;
             break;
         case 0x9: // TEQ
+            voidRd = true;
             result = rn ^ op2;
             break;
         case 0xA: // CMP
+            voidRd = true;
             result = sub(rn,op2,s);
             break;
         case 0xB: // CMN
+            voidRd = true;
             result = add(rn,op2,s);
             break;
         case 0xC: // ORR

@@ -30,7 +30,7 @@ struct LCD {
     /// For the software renderer, stores palette indexes for scanline composition ///
     uint8_t bgLayer[4][240];
     struct Sprite {
-        uint16_t color = 0;
+        uint16_t pindex = 0;
         uint8_t priority = 4; // not actual possible value
         bool alpha = 0,
              window = 0;
@@ -68,10 +68,18 @@ struct LCD {
             {0,0}
         }
     };
+
+    // for compositing a scanline
+    enum windowTypes {NONE,WINOUT,OBJ_WIN,WIN1,WIN0};
+    // [highest window type][window type]
+    // a list of the lowest to highest priority windows given the highest priority one, -1 is skipped
+    const int8_t windowList[5] = {
+        NONE,WINOUT,OBJ_WIN,WIN1,WIN0
+    };
     
     LCD();
 
-    // The idea behind these is to read tile data from VRAM (+ OAM for sprites)
+    // read tile data from VRAM (+ OAM for sprites)
     // and use the data as an index into PRAM
     uint16_t screenEntryIndex(uint16_t,uint16_t,uint16_t);
     void renderTextBG(uint8_t,uint8_t);
@@ -92,7 +100,7 @@ struct LCD {
 };
 
 inline uint16_t LCD::screenEntryIndex(uint16_t tx,uint16_t ty,uint16_t bgcntSize) {
-    uint32_t n = tx = ty*32;
+    uint32_t n = tx + ty*32;
     if(tx >= 32)
         n += 0x03E0;
     if(ty >= 32 && bgcntSize == 0xC000)

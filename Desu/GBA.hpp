@@ -4,7 +4,6 @@
 #include <functional>
 #include <cstdio>
 #include <SDL.h>
-#include "hardware/MMIO.h"
 #include "core/ARM7TDMI.hpp"
 #include "hardware/GBAMemory.hpp"
 #include "hardware/LCD.hpp"
