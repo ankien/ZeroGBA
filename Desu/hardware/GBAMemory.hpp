@@ -25,9 +25,6 @@ struct GBAMemory {
     // todo: handle unused memory reads correctly (writes are handled)
     uint8_t unusedMemoryAccess;
 
-    // for getting and setting memory
-    uint8_t& operator[](uint32_t);
-
     // todo: create a saveRom function for different storage types (None, EEPROM-512/8, SRAM-32, Flash-64/128)
     bool loadRom(std::string);
 };

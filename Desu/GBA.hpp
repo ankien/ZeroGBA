@@ -7,6 +7,7 @@
 #include "core/ARM7TDMI.hpp"
 #include "hardware/GBAMemory.hpp"
 #include "hardware/LCD.hpp"
+#include "hardware/DMA.hpp"
 #include "hardware/Keypad.hpp"
 #include "Scheduler.hpp"
 
@@ -16,6 +17,7 @@ struct GBA {
     ARM7TDMI arm7tdmi{};
     GBAMemory* systemMemory;
     LCD lcd{};
+    DMA dma{};
     Keypad keypad{};
     Scheduler scheduler{};
 
@@ -35,7 +37,7 @@ struct GBA {
     // Scheduler events
     std::function<uint32_t()> postFrame = [&]() {
         scheduler.cyclesPassedSinceLastFrame -= 280896;
-        systemMemory->IORegisters[4] ^= 0x1;
+        systemMemory->IORegisters[4] ^= 0x1; // turn off vblank
         scheduler.resetEventList();
 
         // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
@@ -57,12 +59,7 @@ struct GBA {
         systemMemory->IORegisters[4] |= 0x2; // turn on hblank
         if(DISPSTAT_HBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x2;// set hblank REG_IF
-            scheduler.scheduleInterruptCheck([&]() {
-                if(IE_HBLANK && IF_HBLANK)
-                    if(arm7tdmi.irqsEnabled())
-                        arm7tdmi.handleException(arm7tdmi.IRQ,4 - (arm7tdmi.state * 2),arm7tdmi.IRQ);
-                return 0;
-            },0);
+            arm7tdmi.scheduleInterruptCheck();
         }
         lcd.renderScanline(); // draw visible line
         return 1232;
@@ -70,29 +67,23 @@ struct GBA {
     std::function<uint32_t()> endHBlank = [&]() {
         systemMemory->IORegisters[4] ^= 0x2; // turn off hblank
         systemMemory->IORegisters[6] = (VCOUNT+1) % 228; // increment vcount
+        systemMemory->IORegisters[4] &= 0xFB;
         systemMemory->IORegisters[4] |= ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2); // set v-counter flag
         if(DISPSTAT_VCOUNT_IRQ) {
-            systemMemory->IORegisters[0x202] |= 0x4;
-            scheduler.scheduleInterruptCheck([&]() {
-                if(IE_VCOUNTER && IF_VCOUNTER)
-                    if(arm7tdmi.irqsEnabled())
-                        arm7tdmi.handleException(arm7tdmi.IRQ,4 - (arm7tdmi.state * 2),arm7tdmi.IRQ);
-                return 0;
-            },0);
+            if(DISPSTAT_VCOUNTER_FLAG)
+                systemMemory->IORegisters[0x202] |= 0x4;
+            else
+                return 1232;
+
+            arm7tdmi.scheduleInterruptCheck();
         }
-        // check for interrupt?
         return 1232;
     };
     std::function<uint32_t()> startVBlank = [&]() {
         systemMemory->IORegisters[4] |= 0x1; // set vblank
         if(DISPSTAT_VBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x1;// set vblank REG_IF
-            scheduler.scheduleInterruptCheck([&]() {
-                if(IE_VBLANK && IF_VBLANK)
-                    if(arm7tdmi.irqsEnabled())
-                        arm7tdmi.handleException(arm7tdmi.IRQ,4 - (arm7tdmi.state * 2),arm7tdmi.IRQ);
-                return 0;
-            },0);
+            arm7tdmi.scheduleInterruptCheck();
         }
         return 197120;
     };

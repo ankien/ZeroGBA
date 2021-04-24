@@ -6,6 +6,9 @@
 
 struct Scheduler {
 
+    int eventsNum = 0;
+    int highestEvents = 0;
+
     struct Event {
 
         std::function<uint32_t()> process;
@@ -40,6 +43,11 @@ inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint32_t c
 }
 inline void Scheduler::scheduleInterruptCheck(std::function<uint32_t()> func, uint32_t cycleTimeStamp) {
     eventList.emplace_front(func,cycleTimeStamp,0);
+    
+    eventsNum = eventList.size();
+    if(eventsNum > highestEvents)
+        highestEvents = eventsNum;
+
     eventList.splice(std::next(eventList.begin(),2),eventList,eventList.begin());
 }
 

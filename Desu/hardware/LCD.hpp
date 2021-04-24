@@ -100,7 +100,7 @@ struct LCD {
 };
 
 inline uint16_t LCD::screenEntryIndex(uint16_t tx,uint16_t ty,uint16_t bgcntSize) {
-    uint32_t n = tx + ty*32;
+    uint16_t n = tx + ty*32;
     if(tx >= 32)
         n += 0x03E0;
     if(ty >= 32 && bgcntSize == 0xC000)

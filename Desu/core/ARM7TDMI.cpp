@@ -265,14 +265,14 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
             setReg(rd,result);
     }
     
+    if(s)
+        setZeroAndSign(result);
+    
     if((s) && (rd == 15)) {
         uint32_t spsrVal = getBankedReg(mode,'S');
         switchMode(spsrVal & 0x1F);
         setCPSR(spsrVal);
     }
-
-    if(s)
-        setZeroAndSign(result);
 
     if(rd != 15 || voidRd)
         r[15]+=4;

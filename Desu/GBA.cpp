@@ -4,7 +4,8 @@ GBA::GBA() {
     systemMemory = new GBAMemory();
 
     arm7tdmi.systemMemory = systemMemory;
-    arm7tdmi.setCPSR(0x1F);
+    arm7tdmi.scheduler = &scheduler;
+    arm7tdmi.mode = 0x1F;
 
     // Skip BIOS (for debugging)
     arm7tdmi.r[15] = 0x8000000;
@@ -38,9 +39,9 @@ void GBA::interpretARM() {
         #if defined(PRINT_INSTR)
             printf(" %X\n",instruction); // debug
         #endif
-        scheduler.cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
     } else
         arm7tdmi.r[15]+=4;
+    scheduler.cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
 }
 void GBA::interpretTHUMB() {
     uint16_t instruction = arm7tdmi.readHalfWord(arm7tdmi.r[15]);
@@ -91,8 +92,9 @@ void GBA::run(char* fileName) {
 
             while(keypad.running) {
 
-                //if(arm7tdmi.r[15] == 0x08000428)
-                    //printf("Hello! I am a culprit instruction.");
+                // check x3 for strange interrupt
+                if(arm7tdmi.r[15] == 0x03000140)
+                    printf("Hello! I am a culprit instruction.");
                 //for(int i = 0; i < 16; i++)
                 //if(arm7tdmi.r[i] == 0x1e06067e)
                     //printf("Hello! I am a culprit register.\n");
@@ -114,12 +116,12 @@ void GBA::run(char* fileName) {
                 }
                 #endif
 
+                // todo: make it so that we don't have to check what state we're in every instruction and alignment
                 if(arm7tdmi.state)
                     interpretTHUMB();
                 else
                     interpretARM();
 
-                // align addresses
                 if(arm7tdmi.state)
                     arm7tdmi.r[15] &= ~1;
                 else

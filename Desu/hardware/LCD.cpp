@@ -33,7 +33,7 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
         return;
     uint8_t* currLayer = &bgLayer[bg][0];
 
-    uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x8 + (0x2*bg));
+    uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]);
     uint8_t* charBlockBase = &systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)]; // tile data
     uint16_t* screenBlockBase = reinterpret_cast<uint16_t*>(&systemMemory->vram[(((bgcnt & 0x1F00) >> 8) * 0x800)]); // tile map
     bool eightBppEnabled = bgcnt & 0x80;
@@ -58,8 +58,8 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
 
     // position of the SCREEN on the MAP, positive values correspond to moving the screen right and down respectively
     // the screen will wrap at the right at bottom edges of the BG
-    uint16_t bghofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x10 + (0x4*bg)) & 0x1FF;
-    uint16_t bgvofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x12 + (0x4*bg)) & 0x1FF;
+    uint16_t bghofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x10 + (0x4*bg)]) & 0x1FF;
+    uint16_t bgvofs = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x12 + (0x4*bg)]) & 0x1FF;
 
     uint16_t bgTileRow = vcount + bgvofs & height;
     uint16_t ty = bgTileRow / 8;
@@ -84,7 +84,8 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
             uint8_t pBank = (screenEntry & 0xF000) >> 12;
             uint8_t pIndex = charBlockBase[tid * 0x20 + y*4 + x/2];
             pIndex = (pIndex >> ((x & 1) * 4) & 0xF); // read 4-bit pIndexes from 8-bit array
-            currLayer[i] = (pBank * 16 + pIndex) * 2;
+            if(pIndex != 0)
+                currLayer[i] = pBank * 16 + pIndex;
         }
     }
 }
@@ -171,16 +172,16 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
 
     // todo: optimize the faq out of this, presort the backgrounds so we only need to show the highest one;
     // take alpha blending into consideration (if you blend the highest layer, order up another BG)
-    // also todo: put these variables in the right scope
-    uint16_t winin = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x48);
+    uint16_t winin = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x48]);
     uint8_t win0List = winin & 0x1F;
     uint8_t win1List = (winin & 0x1F00) >> 8;
-    uint16_t winout = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x4A);
+    uint16_t winout = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x4A]);
     uint8_t outList = winout & 0x1F;
     uint8_t objList = (winout & 0x1F00) >> 8;
     uint16_t dispcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters);
-    uint16_t bldalpha = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x52);
-    uint16_t bldy = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0] + 0x54);
+    uint16_t bldalpha = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x52]);
+    uint16_t bldy = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x54]);
+    uint16_t* halfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram);
 
     bool win0Display, win1Display, objDisplay, win1YVisible, win0YVisible, win0Effects, win1Effects, outEffects, objEffects, specialEffects;
     win0Display = dispcnt & 0x2000;
@@ -206,7 +207,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     for(uint8_t x = 0; x < 240; x++) {
         
         // backdrop color, rendered with no windows or BGs
-        uint16_t currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]); 
+        uint16_t currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
 
         // draw each window starting from the lowest priority one
         // Order: outside, obj, win1, win0
@@ -249,22 +250,24 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                 // bgs
                 for(int8_t bg = 3; bg >= 0; bg--) {
                     if(enableList & (1 << bg)) {
-                        if((*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0] + 0x8 + (0x2*bg)) & 0x3) == priority) {
+                        if((*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]) & 0x3) == priority) {
                             if(bgLayer[bg][x] == 0)
                                 continue;
-                            uint16_t bgColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[bgLayer[bg][x]]);
+                            uint16_t bgColor = halfWordPram[bgLayer[bg][x]];
                             currPixelColor = bgColor;
                         }
                     }
                 }
 
                 // sprite
+                /*
                 if(enableList & 0b10000) {
                     if(spriteLayer[x].priority == priority && spriteLayer[x].pindex != 0) {
-                        uint16_t spriteColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[spriteLayer[x].pindex]);
+                        uint16_t spriteColor = halfWordPram[spriteLayer[x].pindex];
                         currPixelColor = spriteColor;
                     }
                 }
+                */
             }
         }
 
@@ -304,8 +307,8 @@ void LCD::renderScanline() {
         uint16_t* scanLine = pixelBuffer + lineStart;
         
         // clear buffers
-        //for(uint8_t i = 0; i < 4; i++)
-            //memset(bgLayer[i],0,240); // do i even need this
+        for(uint8_t i = 0; i < 4; i++)
+            memset(bgLayer[i],0,240); // probably don't need this
         std::fill_n(spriteLayer,240,Sprite{});
 
         switch(DISPCNT_MODE) {

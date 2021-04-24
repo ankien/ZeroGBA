@@ -16,6 +16,7 @@ struct ARM7TDMI {
 
     // could make this a generic pointer for code reuse with another system (the DS has an ARM7TDMI)
     GBAMemory* systemMemory;
+    Scheduler* scheduler;
 
     enum exceptions { Reset, UndefinedInstruction, SoftwareInterrupt, PrefetchAbort, DataAbort,
                       AddressExceeds26Bit, NormalInterrupt, FastInterrupt };
@@ -52,13 +53,13 @@ struct ARM7TDMI {
     void fillTHUMB();
     
     // ARM/THUMB helper functions
-    void handleException(uint8_t, uint32_t, uint8_t);
+    void handleException(uint8_t, int8_t, uint8_t);
     uint16_t fetchARMIndex(uint32_t);
     uint8_t fetchTHUMBIndex(uint16_t);
 
     // memory helper functions
-    bool writeable(uint32_t);
-    uint32_t readable(uint32_t); // returns a value from defined behavior if nonreadable/unused memory, else 1 if readable
+    uint8_t& memoryArray(uint32_t);
+    uint32_t writeable(uint32_t);
     void storeValue(uint8_t, uint32_t);
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
@@ -140,15 +141,14 @@ struct ARM7TDMI {
     void THUMBsoftwareInterrupt(uint16_t);
 
     /// Scheduler Stuff ///
+    void scheduleInterruptCheck();
     bool irqsEnabled();
 };
 
 /// Helper Methods ///
-
-inline void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t newMode) {
+inline void ARM7TDMI::handleException(uint8_t exception, int8_t nn, uint8_t newMode) {
     setBankedReg(newMode,1,r[15]+nn); // save old PC
     setBankedReg(newMode,'S',getCPSR()); // save old CPSR
-    uint8_t oldMode = mode;
     switchMode(newMode); // switch mode
     // new bits!
     mode = newMode;
@@ -218,8 +218,6 @@ inline void ARM7TDMI::handleException(uint8_t exception, uint32_t nn, uint8_t ne
                     break;
             }
     }
-
-    r[15]+=nn;
 }
 // Bits 27-20 + 7-4
 inline uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
@@ -230,81 +228,104 @@ inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
     return instruction >> 8;
 }
 
-inline bool ARM7TDMI::writeable(uint32_t address) {
-    switch(address) {
-        case 0x4000006:
-        case 0x4000007:
-        case 0x4000130:
-        case 0x4000131:
-            return false;
+// return bitmask to write with
+inline uint8_t& ARM7TDMI::memoryArray(uint32_t i) {
+    switch(i >> 24) {
+        case 0x00:
+            return systemMemory->bios[i];
+        case 0x02:
+            return systemMemory->wramOnBoard[(i-0x2000000) % 0x40000];
+        case 0x03:
+            return systemMemory->wramOnChip[(i-0x3000000) % 0x8000];
+        case 0x04:
+            // todo: check if I also need to check for interrupts when respective hardware register IRQ bits are written to
+            if(i >= 0x40001FD && i <= 0x4000208) // 32-bit range from IO regs
+                scheduleInterruptCheck();
+            return systemMemory->IORegisters[i-0x4000000];
+        case 0x05:
+            return systemMemory->pram[(i-0x5000000) % 0x400];
+        case 0x06:
+            i = (i-0x6000000) % 0x20000;
+            if(i > 0x17FFF)
+                i -= 0x8000;
+            return systemMemory->vram[i];
+        case 0x07:
+            return systemMemory->oam[(i-0x7000000) % 0x400];
+        case 0x08:
+        case 0x09:
+            return systemMemory->gamePak[i-0x8000000];
+        case 0x0A:
+        case 0x0B:
+            return systemMemory->gamePak[i-0xA000000];
+        case 0x0C:
+        case 0x0D:
+            return systemMemory->gamePak[i-0xC000000];
+        case 0x0E:
+            return systemMemory->gPakSram[i-0xE000000];
+        default:
+            return systemMemory->unusedMemoryAccess;
+            break;
     }
-    return true;
 }
-inline uint32_t ARM7TDMI::readable(uint32_t address) {
-    /*
-    if((address >> 11) <= 3)
-        return 1; // todo: implement unpermitted bios reads
-    else {
-        switch(address >> 24) {
-            case 0x00:
-            case 0x01:
-                if(address > 0x4000)
-                    return ;
-            case 0x02:
-            case 0x03:
-                
-            case 0x04:
-                
-            default:
-                
-        }
+inline uint32_t ARM7TDMI::writeable(uint32_t address) {
+    // todo: add SIO regs
+    switch(address) {
+        case 0x4000004:
+            return 0xFE00FFB8;
+        case 0x4000006:
+            return 0xFFFFFE00;
+        case 0x4000007:
+            return 0xFFFFFFFE;
+        case 0x4000084:
+            return 0xFFFFFFF0;
+        case 0x4000130:
+            return 0xFFFFFC00;
+        case 0x4000131:
+            return 0xFFFFFFFC;
     }
-    */
-    return 1;
+    return 0xFFFFFFFF;
 }
 inline void ARM7TDMI::storeValue(uint8_t value, uint32_t address) {
-    if(writeable(address)) {
-        switch(address >> 24) {
-            case 0x05:
-                storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
-                break;
-            case 0x06:
-                if(systemMemory->IORegisters[0] < 3) { // bitmap mode writes
-                    if(address < 0x6014000)
-                        storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
-                } else {
-                    if(address < 0x6010000)
-                        storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
-                }
-                return;
-            case 0x07:
-                return;
-            default:
-                (*systemMemory)[address] = value;
+    switch(address >> 24) {
+        case 0x05:
+            storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
+            break;
+        case 0x06:
+            if(systemMemory->IORegisters[0] < 3) { // bitmap mode writes
+                if(address < 0x6014000)
+                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
+            } else {
+                if(address < 0x6010000)
+                    storeValue(static_cast<uint16_t>(*reinterpret_cast<uint16_t*>(&value) * 0x101), address);
+            }
+            return;
+        case 0x07:
+            return;
+        default:
+        {
+            uint8_t mask = writeable(address);
+            uint8_t* mem = &memoryArray(address);
+            mem[0] = (value & mask) | (mem[0] & ~mask);
         }
     }
 }
 inline void ARM7TDMI::storeValue(uint16_t value, uint32_t address) {
-    if(writeable(address)) {
-        reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1])[0] = value;
-    }
+    address = address & ~1;
+    uint16_t mask = writeable(address);
+    uint16_t* mem = reinterpret_cast<uint16_t*>(&memoryArray(address));
+    mem[0] = (value & mask) | (mem[0] & ~mask);
 }
 inline void ARM7TDMI::storeValue(uint32_t value, uint32_t address) {
-    if(writeable(address)) {
-        reinterpret_cast<uint32_t*>(&(*systemMemory)[address & ~3])[0] = value;
-    }
+    address = address & ~3;
+    uint32_t mask = writeable(address);
+    uint32_t* mem = reinterpret_cast<uint32_t*>(&memoryArray(address));
+    mem[0] = (value & mask) | (mem[0] & ~mask);
 }
 inline uint16_t ARM7TDMI::readHalfWord(uint32_t address) {
-    uint16_t readValue = readable(address);
-    if(readValue == 1) {
-        return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1]);
-    }
-    return readValue;
+    return *reinterpret_cast<uint16_t*>(&(*systemMemory)[address & ~1]);
 }
 inline uint8_t ARM7TDMI::readByte(uint32_t address) {
-    uint8_t readValue = readable(address);
-    if(readable(address) == 1)
-        return (*systemMemory)[address];
+    return (*systemMemory)[address];
 }
 inline uint32_t ARM7TDMI::readHalfWordRotate(uint32_t address) {
     uint8_t rorAmount = (address & 1) << 3;
@@ -669,7 +690,17 @@ inline void ARM7TDMI::setZeroAndSign(uint64_t arg) {
     (arg & 0x8000000000000000) ? signFlag = 1 : signFlag = 0;
 }
 
+inline void ARM7TDMI::scheduleInterruptCheck() {
+    scheduler->scheduleInterruptCheck([&]() {
+        if((*reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x200]) & 0x3FFF) &
+           (*reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x202]) & 0x3FFF))
+            if(irqsEnabled())
+                handleException(NormalInterrupt,4,IRQ);
+        return 0;
+    },0);
+}
 inline bool ARM7TDMI::irqsEnabled() {
     if(IME)
         return !irqDisable;
+    return false;
 }

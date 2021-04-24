@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="core\ARM7TDMI.hpp" />
     <ClInclude Include="GBA.hpp" />
+    <ClInclude Include="hardware\DMA.hpp" />
     <ClInclude Include="hardware\GBAMemory.hpp" />
     <ClInclude Include="hardware\Keypad.hpp" />
     <ClInclude Include="hardware\LCD.hpp" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClCompile Include="core\ARM7TDMI.cpp" />
     <ClCompile Include="GBA.cpp" />
+    <ClCompile Include="hardware\DMA.cpp" />
     <ClCompile Include="hardware\GBAMemory.cpp" />
     <ClCompile Include="hardware\Keypad.cpp" />
     <ClCompile Include="hardware\LCD.cpp" />
