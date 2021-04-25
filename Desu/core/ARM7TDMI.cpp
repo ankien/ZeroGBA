@@ -468,7 +468,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     setReg(rd, readWordRotate(address));
                     break;
                 default:
-                    setReg(rd, (*systemMemory)[address]);
+                    setReg(rd, memoryArray<uint8_t>(address));
             }
     }
 
@@ -622,7 +622,7 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
         }
     }
 
-    setReg(rd,static_cast<int>(reinterpret_cast<int8_t&>((*systemMemory)[address])));
+    setReg(rd,static_cast<int>(memoryArray<int8_t>(address)));
 
     if(!p) {
         switch(u) {
@@ -881,7 +881,7 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
 
     // swap byte
     if(instruction & 0x400000) {
-        uint32_t rnAddrValue = (*systemMemory)[rnValue];
+        uint32_t rnAddrValue = memoryArray<uint8_t>(rnValue);
         storeValue(static_cast<uint8_t>(getReg(rm)),rnValue);
         setReg(rd,rnAddrValue);
     } else { // swap word
@@ -1139,7 +1139,7 @@ void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
             setReg(rd,readWordRotate(rb+ro));
             break;
         case 0xC00: // LDRB
-            setReg(rd,(*systemMemory)[rb+ro]);
+            setReg(rd,memoryArray<uint8_t>(rb+ro));
     }
 
     if(rd != 15)
@@ -1159,7 +1159,7 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
             storeValue(*reinterpret_cast<uint16_t*>(&rd),rb+ro);
             break;
         case 0x400: // LDSB
-            setReg(rd,static_cast<int8_t>((*systemMemory)[rb+ro]));
+            setReg(rd,static_cast<int8_t>(memoryArray<uint8_t>(rb+ro)));
             break;
         case 0x800: // LDRH
             setReg(rd,readHalfWordRotate(rb+ro));
@@ -1196,7 +1196,7 @@ void ARM7TDMI::THUMBloadStoreImmOffset(uint16_t instruction) {
             storeValue(static_cast<uint8_t>(getReg(rd)),rb+nn);
             break;
         case 0x1800: // LDRB
-            setReg(rd,(*systemMemory)[rb+nn]);
+            setReg(rd,memoryArray<uint8_t>(rb+nn));
     }
 
     if(rd != 15)

@@ -40,6 +40,7 @@
   <ItemGroup>
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
+    <None Include="core\cpuHelpers.inl" />
     <None Include="shaders\GBA.frag" />
     <None Include="shaders\GBA.vert" />
   </ItemGroup>

@@ -80,5 +80,8 @@
     <None Include="..\.gitignore">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="core\cpuHelpers.inl">
+      <Filter>Core</Filter>
+    </None>
   </ItemGroup>
 </Project>
