@@ -8,22 +8,22 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{26137989-6e5d-49d1-ab8b-1712ef042b8b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Non-code">
-      <UniqueIdentifier>{9393d6c7-074c-4fa3-8152-c411450d0f87}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Hardware">
       <UniqueIdentifier>{cd56e99c-2070-464a-97a7-2650e70b0547}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Core">
-      <UniqueIdentifier>{30be8d09-6832-4b80-949f-fa2ce1a2aea4}</UniqueIdentifier>
+    <Filter Include="Hardware\CPU">
+      <UniqueIdentifier>{c0cb91a9-7807-469c-8af0-ef15d72ed218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Readme">
+      <UniqueIdentifier>{9393d6c7-074c-4fa3-8152-c411450d0f87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hardware\Memory">
+      <UniqueIdentifier>{734ac93b-3f03-475a-aa45-6c5473aead63}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="hardware\GBAMemory.cpp">
-      <Filter>Hardware</Filter>
     </ClCompile>
     <ClCompile Include="hardware\Keypad.cpp">
       <Filter>Hardware</Filter>
@@ -31,20 +31,17 @@
     <ClCompile Include="hardware\LCD.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
-    <ClCompile Include="core\ARM7TDMI.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="GBA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\DMA.cpp">
-      <Filter>Hardware</Filter>
+    <ClCompile Include="hardware\cpu\ARM7TDMI.cpp">
+      <Filter>Hardware\CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\memory\GBAMemory.cpp">
+      <Filter>Hardware\Memory</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="hardware\GBAMemory.hpp">
-      <Filter>Hardware</Filter>
-    </ClInclude>
     <ClInclude Include="hardware\Keypad.hpp">
       <Filter>Hardware</Filter>
     </ClInclude>
@@ -54,16 +51,22 @@
     <ClInclude Include="hardware\MMIO.h">
       <Filter>Hardware</Filter>
     </ClInclude>
-    <ClInclude Include="core\ARM7TDMI.hpp">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="GBA.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Scheduler.hpp">
       <Filter>Hardware</Filter>
     </ClInclude>
-    <ClInclude Include="hardware\DMA.hpp">
+    <ClInclude Include="hardware\cpu\ARM7TDMI.hpp">
+      <Filter>Hardware\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\cpu\CPUState.hpp">
+      <Filter>Hardware\CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\memory\GBAMemory.hpp">
+      <Filter>Hardware\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\Interrupts.hpp">
       <Filter>Hardware</Filter>
     </ClInclude>
   </ItemGroup>
@@ -74,14 +77,23 @@
     <None Include="shaders\GBA.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\README.md">
-      <Filter>Non-code</Filter>
-    </None>
     <None Include="..\.gitignore">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="core\cpuHelpers.inl">
-      <Filter>Core</Filter>
+    <None Include="hardware\cpu\cpuHelpers.inl">
+      <Filter>Hardware\CPU</Filter>
+    </None>
+    <None Include="..\README.md">
+      <Filter>Readme</Filter>
+    </None>
+    <None Include="hardware\memory\memoryHelpers.inl">
+      <Filter>Hardware\Memory</Filter>
+    </None>
+    <None Include="hardware\cpu\cpuStateHelpers.inl">
+      <Filter>Hardware\CPU</Filter>
+    </None>
+    <None Include="hardware\cpu\cpuGlobals.inl">
+      <Filter>Hardware\CPU</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -14,6 +14,7 @@ LCD::LCD() {
     );
 
     SDL_GL_CreateContext(window);
+    SDL_GL_SetSwapInterval(0);
     glewInit();
     
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE,5);
@@ -170,8 +171,9 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
 }
 void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
 
-    // todo: optimize the faq out of this, presort the backgrounds so we only need to show the highest one;
-    // take alpha blending into consideration (if you blend the highest layer, order up another BG)
+    // todo: optimize the faq out of this, presort the backgrounds before per-pixel compositing;
+    // also break off compositing loop if all BGs are enabled, but only one is shown,
+    // take alpha blending into consideration (if you blend the highest layer, order up another BG, only two layer blend at most)
     uint16_t winin = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x48]);
     uint8_t win0List = winin & 0x1F;
     uint8_t win1List = (winin & 0x1F00) >> 8;
@@ -248,8 +250,8 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
             for(int8_t priority = 3; priority >= 0; priority--) {
                 
                 // bgs
-                for(int8_t bg = 3; bg >= 0; bg--) {
-                    if(enableList & (1 << bg)) {
+                for(int8_t bg = 3, i = 0b1; bg >= 0; bg--, i << 1) {
+                    if(enableList & i) {
                         if((*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]) & 0x3) == priority) {
                             if(bgLayer[bg][x] == 0)
                                 continue;

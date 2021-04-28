@@ -4,10 +4,10 @@
 #include <functional>
 #include <cstdio>
 #include <SDL.h>
-#include "core/ARM7TDMI.hpp"
-#include "hardware/GBAMemory.hpp"
+#include "hardware/cpu/ARM7TDMI.hpp"
+#include "hardware/Interrupts.hpp"
+#include "hardware/memory/GBAMemory.hpp"
 #include "hardware/LCD.hpp"
-#include "hardware/DMA.hpp"
 #include "hardware/Keypad.hpp"
 #include "Scheduler.hpp"
 
@@ -15,9 +15,9 @@ struct GBA {
 
     /// Hardware ///
     ARM7TDMI arm7tdmi{};
+    Interrupts interrupts{};
     GBAMemory* systemMemory;
     LCD lcd{};
-    DMA dma{};
     Keypad keypad{};
     Scheduler scheduler{};
 
@@ -47,7 +47,8 @@ struct GBA {
 
         // naive sync to video approach
         // roughly 1000ms / 60fps - delay since start of last frame draw
-        // window's low resolution clock conveniently makes us run at 60 fps instead of 62 without error accumulation lmao
+        // todo: add error accumulation (to account for 2 frames over 60),
+        // and fix it so that frame times > 16 don't delay the next frame (frame time accumulation)
         if(keypad.notSkippingFrames)
             SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedAtLastFrame) % 16));
 
@@ -59,7 +60,7 @@ struct GBA {
         systemMemory->IORegisters[4] |= 0x2; // turn on hblank
         if(DISPSTAT_HBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x2;// set hblank REG_IF
-            arm7tdmi.scheduleInterruptCheck();
+            interrupts.scheduleInterruptCheck();
         }
         lcd.renderScanline(); // draw visible line
         return 1232;
@@ -75,7 +76,7 @@ struct GBA {
             else
                 return 1232;
 
-            arm7tdmi.scheduleInterruptCheck();
+            interrupts.scheduleInterruptCheck();
         }
         return 1232;
     };
@@ -83,7 +84,7 @@ struct GBA {
         systemMemory->IORegisters[4] |= 0x1; // set vblank
         if(DISPSTAT_VBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x1;// set vblank REG_IF
-            arm7tdmi.scheduleInterruptCheck();
+            interrupts.scheduleInterruptCheck();
         }
         return 197120;
     };

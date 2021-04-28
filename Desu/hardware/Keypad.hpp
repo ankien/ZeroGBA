@@ -3,7 +3,7 @@
 #include <glew.h>
 #include <cstdint>
 #include "MMIO.h"
-#include "GBAMemory.hpp"
+#include "memory/GBAMemory.hpp"
 
 // for keypad hardware AND emulator controls
 struct Keypad {

@@ -3,7 +3,7 @@
 #include <SDL.h>
 #include <glew.h>
 #include <string>
-#include "GBAMemory.hpp"
+#include "memory/GBAMemory.hpp"
 
 struct LCD {
     /// GBA variables ///
@@ -13,7 +13,7 @@ struct LCD {
         HEIGHT = 160;
     
 
-    uint8_t fps = 0;
+    uint16_t fps = 0;
     // used to calculate fps and frame delta
     uint32_t currMillseconds = 0;
     uint32_t millisecondsElapsedAtLastSecond = 0;

@@ -6,9 +6,6 @@
 
 struct Scheduler {
 
-    int eventsNum = 0;
-    int highestEvents = 0;
-
     struct Event {
 
         std::function<uint32_t()> process;
@@ -32,7 +29,7 @@ struct Scheduler {
 
     // takes the return value of an event fuction and reschedules it
     // only use for events that should be rescheduled!
-    void rescheduleFront(std::function<uint32_t()>,uint32_t);
+    void rescheduleFront(uint32_t);
     void step();
     void getInitialEventList();
     void resetEventList();
@@ -41,17 +38,13 @@ struct Scheduler {
 inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint32_t cycleTimeStamp, bool reschedule) {
     eventList.emplace_back(func,cycleTimeStamp,reschedule);
 }
+
 inline void Scheduler::scheduleInterruptCheck(std::function<uint32_t()> func, uint32_t cycleTimeStamp) {
     eventList.emplace_front(func,cycleTimeStamp,0);
-    
-    eventsNum = eventList.size();
-    if(eventsNum > highestEvents)
-        highestEvents = eventsNum;
-
     eventList.splice(std::next(eventList.begin(),2),eventList,eventList.begin());
 }
-
-inline void Scheduler::rescheduleFront(std::function<uint32_t()> func,uint32_t cycleTimeStamp) {
+// todo: ask about and optimize this bihh, rescheduling seems slow for some reason
+inline void Scheduler::rescheduleFront(uint32_t cycleTimeStamp) {
     uint32_t processRescheduledTime = eventList.front().timestamp + cycleTimeStamp;
     
     if(processRescheduledTime <= 280896) {
@@ -68,7 +61,7 @@ inline void Scheduler::rescheduleFront(std::function<uint32_t()> func,uint32_t c
 inline void Scheduler::step() {
     if(cyclesPassedSinceLastFrame >= eventList.front().timestamp) {
         if(eventList.front().shouldBeRescheduled)
-            rescheduleFront(eventList.front().process,eventList.front().process());
+            rescheduleFront(eventList.front().process());
         else {
             eventList.front().process();
             eventList.pop_front();
