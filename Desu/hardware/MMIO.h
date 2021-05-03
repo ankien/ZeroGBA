@@ -8,6 +8,7 @@
 #define DISPCNT_BG2 (systemMemory->IORegisters[1] & 0x4)
 #define DISPCNT_OBJ (systemMemory->IORegisters[1] & 0x10)
 
+#define DISPSTAT_VBLANK_FLAG (systemMemory->IORegisters[4] & 0x1)
 #define DISPSTAT_VCOUNTER_FLAG (systemMemory->IORegisters[4] & 0x4)
 #define DISPSTAT_VBLANK_IRQ (systemMemory->IORegisters[4] & 0x8)
 #define DISPSTAT_HBLANK_IRQ (systemMemory->IORegisters[4] & 0x10)

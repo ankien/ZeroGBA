@@ -10,7 +10,7 @@
 
 struct ARM7TDMI {
     // cycles per instruction
-    static const int32_t cycleTicks = 10; // stubbing this for now, todo: implement correct cycle timings
+    static const int32_t cycleTicks = 1; // stubbing this for now, todo: implement correct cycle timings
 
     // lookup tables, array size is the different number of instructions
     // todo: use templates to generate these tables, and their constexpr arguments at compile time

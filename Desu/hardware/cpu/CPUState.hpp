@@ -40,6 +40,7 @@ struct CPUState {
     uint32_t getSPSR(uint8_t);
     void setSPSR(uint8_t,uint32_t);
 
+    // for IRQs and SWIs
     void handleException(uint8_t, int8_t, uint8_t);
 };
 

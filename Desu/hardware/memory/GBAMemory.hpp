@@ -15,20 +15,6 @@ struct GBAMemory {
 
     Interrupts* interrupts;
 
-    /*
-struct DMA {
-    
-    GBAMemory* systemMemory;
-    Interrupts* interrupts;
-
-    const uint32_t sourceAddressMasks[4] = {0x07FFFFFF,0x0FFFFFFF,0x0FFFFFFF,0x0FFFFFFF}; 
-    const uint32_t destAddressMasks[4] = {0x07FFFFFF,0x07FFFFFF,0x07FFFFFF,0x0FFFFFFF};
-    const uint16_t lengthMasks[4] = {0x3FFF,0x3FFF,0x3FFF,0xFFFF};
-
-    void triggerDma();
-};
-*/
-
     uint8_t bios[0x4000];
     uint8_t wramOnBoard[0x40000]; // AKA EWRAM
     uint8_t wramOnChip[0x8000]; // AKA IWRAM
@@ -59,6 +45,20 @@ struct DMA {
     uint32_t readWordRotate(uint32_t);
 
     uint32_t ror(uint32_t, uint8_t);
+
+    /// DMA stuff ///
+    const uint32_t sourceAddressMasks[4] = {0x07FFFFFF,0x0FFFFFFF,0x0FFFFFFF,0x0FFFFFFF}; 
+    const uint32_t destAddressMasks[4] = {0x07FFFFFF,0x07FFFFFF,0x07FFFFFF,0x0FFFFFFF};
+    const uint16_t lengthMasks[4] = {0x3FFF,0x3FFF,0x3FFF,0xFFFF};
+
+    uint32_t internalSrc[4]{};
+    uint32_t internalDst[4]{};
+    uint16_t internalLen[4]{};
+
+    // DMA helper
+    template<uint8_t> void delayedDma();
+    void dmaTransfer(uint8_t);
+    int8_t getIncrementFactor(uint8_t);
 };
 
 #include "memoryHelpers.inl"

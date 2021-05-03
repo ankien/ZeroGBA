@@ -56,16 +56,18 @@ struct GBA {
 
         return 280896;
     };
-    std::function<uint32_t()> startHBlank = [&]() {
+    const std::function<uint32_t()> startHBlank = [&]() {
         systemMemory->IORegisters[4] |= 0x2; // turn on hblank
         if(DISPSTAT_HBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x2;// set hblank REG_IF
             interrupts.scheduleInterruptCheck();
         }
         lcd.renderScanline(); // draw visible line
+        if(!DISPSTAT_VBLANK_FLAG)
+            systemMemory->delayedDma<0x20>();
         return 1232;
     };
-    std::function<uint32_t()> endHBlank = [&]() {
+    const std::function<uint32_t()> endHBlank = [&]() {
         systemMemory->IORegisters[4] ^= 0x2; // turn off hblank
         systemMemory->IORegisters[6] = (VCOUNT+1) % 228; // increment vcount
         systemMemory->IORegisters[4] &= 0xFB;
@@ -80,8 +82,9 @@ struct GBA {
         }
         return 1232;
     };
-    std::function<uint32_t()> startVBlank = [&]() {
+    const std::function<uint32_t()> startVBlank = [&]() {
         systemMemory->IORegisters[4] |= 0x1; // set vblank
+        systemMemory->delayedDma<0x10>();
         if(DISPSTAT_VBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x1;// set vblank REG_IF
             interrupts.scheduleInterruptCheck();
