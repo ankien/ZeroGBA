@@ -37,28 +37,14 @@ inline T& GBAMemory::memoryArray(uint32_t i) {
 // return bitmask to write with, also handles special write behavior for certain regions (like IF regs)
 template<typename T>
 inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
-    // todo: add SIO regs
+    
+    // Some IO regs have special behavior, this is how I handle them
     if(address >> 24 == 0x04) {
-
-        // if writing to IE or IME
-        // todo: check if I also need to check for interrupts when respective hardware register IRQ bits are written to
         constexpr uint8_t offset = sizeof(T) - 1;
-        if(address >= 0x4000200-offset && address < 0x4000202 || address >= 0x4000208-offset && address <= 0x4000208) { // respective bit range for IO regs
-            interrupts->scheduleInterruptCheck();
-            return 0xFFFFFFFF;
-        }
-        
-        // if writing to DMAxCNT_SAD
+        uint8_t ioAddress = address & 0xFFF;
 
-        
-        // if writing to DMAxCNT_DAD
-
-
-        // if writing to DMAxCNT_L
-
-
-        // if writing to DMAxCNT_H
-        if(address >= 0x40000BA-offset && address < 0x40000DE) {
+        // DMA regs
+        if(ioAddress < 0xE0 && ioAddress > 0xA8) {
             uint8_t channel;
 
             if(address < 0x40000BC)
@@ -69,47 +55,49 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
                 channel = 2;
             else
                 channel = 3;
-                
-            uint32_t dmaCntHAddr = 0x40000BA + 12*channel;
-            uint16_t oldDmaCntH = memoryArray<uint16_t>(dmaCntHAddr);
-            const bool oldEnable = oldDmaCntH & 0x8000;
-            memoryArray<T>(address) = value;
-            if(oldDmaCntH & 0x8000 && !oldEnable) {
+
+            // if CNT_H will be modified
+            uint32_t dmaCntHAddr = 0x40000BA + 12 * channel;
+            uint16_t oldCntH = memoryArray<uint16_t>(dmaCntHAddr);
+            const bool oldEnable = oldCntH & 0x8000;
+
+            memoryArray<T>(address) = value; // write the new value
+
+            uint16_t newCntH = memoryArray<uint16_t>(dmaCntHAddr);
+
+            if(newCntH & 0x8000 && !oldEnable) {
                 // reload SAD, DAD, and CNT_L
-                internalSrc[channel] = memoryArray<uint32_t>(0x40000B0 + 12*channel) & sourceAddressMasks[channel];
-                internalDst[channel] = memoryArray<uint32_t>(0x40000B4 + 12*channel) & destAddressMasks[channel];
-                internalLen[channel] = memoryArray<uint16_t>(0x40000B8 + 12*channel) & lengthMasks[channel];
-                
+                internalSrc[channel] = memoryArray<uint32_t>(0x40000B0 + 12 * channel) & sourceAddressMasks[channel];
+                internalDst[channel] = memoryArray<uint32_t>(0x40000B4 + 12 * channel) & destAddressMasks[channel];
+
                 // only trigger dmas if if the enable bit is 1 and old enable bit was 0
-                if((memoryArray<uint16_t>(dmaCntHAddr) & 0x3000) == 0x0000)
-                    dmaTransfer(channel);
+                if((newCntH & 0x3000) == 0x0000)
+                    dmaTransfer(channel,newCntH);
             }
+
             return 0x0;
         }
+        
+        // Interrupt regs
+        else if(ioAddress < 0x400 && ioAddress > 0x12B) {
+            // if writing to IE or IME
+            // todo: check if I also need to check for interrupts when respective hardware register IRQ bits are written to
+            if(address >= 0x4000200 - offset && address < 0x4000202 || address >= 0x4000208 - offset && address <= 0x4000208) { // respective bit range for IO regs
+                interrupts->scheduleInterruptCheck();
+            }
 
-        // if value overlaps with IF
-        if(address >= 0x4000202-offset && address <= 0x4000203) {
-            uint16_t oldIF = memoryArray<uint16_t>(0x4000202);
-            memoryArray<T>(address) = value;
-            memoryArray<uint16_t>(0x4000202) = oldIF & ~memoryArray<uint16_t>(0x4000202);
-            return 0x0;
+            // if value overlaps with IF
+            if(address >= 0x4000202 - offset && address <= 0x4000203) {
+                uint16_t oldIF = memoryArray<uint16_t>(0x4000202);
+                memoryArray<T>(address) = value;
+                memoryArray<uint16_t>(0x4000202) = oldIF & ~memoryArray<uint16_t>(0x4000202);
+                return 0x0;
+            }
         }
-
-        switch(address) {
-            case 0x4000004:
-                return 0xFE00FFB8;
-            case 0x4000006:
-                return 0xFFFFFE00;
-            case 0x4000007:
-                return 0xFFFFFFFE;
-            case 0x4000084:
-                return 0xFFFFFFF0;
-            case 0x4000130:
-                return 0xFFFFFC00;
-            case 0x4000131:
-                return 0xFFFFFFFC;
-        }
+        
+        return *reinterpret_cast<const uint32_t*>(&writeMask[ioAddress]);
     }
+
     return 0xFFFFFFFF;
 }
 inline void GBAMemory::storeValue(uint8_t value, uint32_t address) {
@@ -172,29 +160,28 @@ inline uint32_t GBAMemory::ror(uint32_t value, uint8_t shiftAmount) {
     return (value >> shiftAmount) | (value << (32 - shiftAmount));
 }
 
-template <uint8_t timing>
+template <uint16_t timing>
 inline void GBAMemory::delayedDma() {
-    for(uint8_t i = 0; i < 4; i++) {
-        uint8_t dmaCntTop = memoryArray<uint32_t>(0x40000BB + 12*i);
-        if(dmaCntTop & 0x80 && (dmaCntTop & 0x30) == timing)
-            dmaTransfer(i);
+    for(uint8_t channel = 0; channel < 4; channel++) {
+        uint16_t dmaCntH = memoryArray<uint16_t>(0x40000BA + 12*channel);
+        if(dmaCntH & 0x8000 && (dmaCntH & 0x3000) == timing) {
+            dmaTransfer(channel,dmaCntH);
+        }
     }
 }
-
-inline void GBAMemory::dmaTransfer(uint8_t channel) {
-    
-    uint16_t dmaCntH = memoryArray<uint16_t>(0x40000BA + 12*channel);
-
-    const uint8_t destAddressControl = (dmaCntH & 0x60) >> 4;
+inline void GBAMemory::dmaTransfer(uint8_t channel, uint16_t dmaCntH) {
+    const uint8_t destAddressControl = (dmaCntH & 0x60) >> 5;
     int8_t destCtrlFactor = destAddressControl;
-    int8_t srcCtrlFactor = (dmaCntH & 0x180) >> 3;
+    int8_t srcCtrlFactor = (dmaCntH & 0x180) >> 7;
     int16_t startTiming = dmaCntH & 0x3000;
-    const bool ifWordTransfer = dmaCntH & 0x400;
-    uint8_t transferSize = ifWordTransfer ? 4 : 2;
-    uint16_t length = internalLen[channel]; // todo: treat value of zero as max length
+    const bool wordTransfer = dmaCntH & 0x400;
+    uint8_t transferSize = wordTransfer ? 4 : 2;
+    uint32_t length = memoryArray<uint16_t>(0x40000B8 + 12 * channel) & lengthMasks[channel];
+    if(length == 0)
+        channel == 3 ? length = 0x10000 : length = 0x4000;
 
     destCtrlFactor = getIncrementFactor(destCtrlFactor);
-    srcCtrlFactor = getIncrementFactor(destCtrlFactor);
+    srcCtrlFactor = getIncrementFactor(srcCtrlFactor);
 
     if(startTiming == 0x3000) {
         switch(channel) 	{
@@ -213,7 +200,7 @@ inline void GBAMemory::dmaTransfer(uint8_t channel) {
     int8_t destIncrement = transferSize * destCtrlFactor;
     int8_t srcIncrement = transferSize * srcCtrlFactor;
 
-    if(ifWordTransfer) {
+    if(wordTransfer) {
         for(uint32_t i = 0; i < length; i++) {
             memoryArray<uint32_t>(internalDst[channel]) = readWord(internalSrc[channel]);
             internalSrc[channel] += srcIncrement;

@@ -102,13 +102,12 @@ void GBA::run(char* fileName) {
 
             while(keypad.running) {
 
-                // check x3 for strange interrupt
                 if(arm7tdmi.cpuState.r[15] == 0x03000140)
                     printf("Hello! I am a culprit instruction.");
                 //for(int i = 0; i < 16; i++)
                 //if(arm7tdmi.r[i] == 0x1e06067e)
                     //printf("Hello! I am a culprit register.\n");
-                //uint32_t oldPC = arm7tdmi.r[15]; // for debugging
+                //uint32_t oldPC = arm7tdmi.r[15];
 
                 #if defined(TRACE)
                 if(traceAmount < TRACE) {

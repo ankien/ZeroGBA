@@ -35,7 +35,7 @@ struct GBA {
     void run(char*);
 
     // Scheduler events
-    std::function<uint32_t()> postFrame = [&]() {
+    const std::function<uint32_t()> postFrame = [&]() {
         scheduler.cyclesPassedSinceLastFrame -= 280896;
         systemMemory->IORegisters[4] ^= 0x1; // turn off vblank
         scheduler.resetEventList();
@@ -64,7 +64,7 @@ struct GBA {
         }
         lcd.renderScanline(); // draw visible line
         if(!DISPSTAT_VBLANK_FLAG)
-            systemMemory->delayedDma<0x20>();
+            systemMemory->delayedDma<0x2000>();
         return 1232;
     };
     const std::function<uint32_t()> endHBlank = [&]() {
@@ -84,7 +84,7 @@ struct GBA {
     };
     const std::function<uint32_t()> startVBlank = [&]() {
         systemMemory->IORegisters[4] |= 0x1; // set vblank
-        systemMemory->delayedDma<0x10>();
+        systemMemory->delayedDma<0x1000>();
         if(DISPSTAT_VBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x1;// set vblank REG_IF
             interrupts.scheduleInterruptCheck();
