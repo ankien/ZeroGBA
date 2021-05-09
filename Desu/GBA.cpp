@@ -1,14 +1,17 @@
 #include "GBA.hpp"
 
 GBA::GBA() {
+    // Memory init
     systemMemory = new GBAMemory();
     systemMemory->interrupts = &interrupts;
+    systemMemory->cpuState = &arm7tdmi.cpuState;
 
     // CPU init
     arm7tdmi.interrupts = &interrupts;
     arm7tdmi.systemMemory = systemMemory;
     arm7tdmi.scheduler = &scheduler;
     arm7tdmi.cpuState.mode = 0x1F;
+    arm7tdmi.cpuState.stateRelativeToBios = &systemMemory->stateRelativeToBios;
 
     // Skip BIOS (for debugging)
     arm7tdmi.cpuState.r[15] = 0x8000000;
@@ -41,7 +44,7 @@ GBA::GBA() {
 
 // todo: DMA channels, audio channels, PPU, and timers
 void GBA::interpretARM() {
-    uint32_t instruction = arm7tdmi.systemMemory->readWord(arm7tdmi.cpuState.r[15]);
+    uint32_t instruction = systemMemory->memoryArray<uint32_t>(arm7tdmi.cpuState.r[15]);
 
     if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
@@ -54,7 +57,7 @@ void GBA::interpretARM() {
     scheduler.cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
 }
 void GBA::interpretTHUMB() {
-    uint16_t instruction = arm7tdmi.systemMemory->readHalfWord(arm7tdmi.cpuState.r[15]);
+    uint16_t instruction = systemMemory->memoryArray<uint16_t>(arm7tdmi.cpuState.r[15]);
 
     uint8_t thumbIndex = arm7tdmi.fetchTHUMBIndex(instruction);
     (arm7tdmi.*(arm7tdmi.thumbTable[thumbIndex]))(instruction);
@@ -102,12 +105,16 @@ void GBA::run(char* fileName) {
 
             while(keypad.running) {
 
-                if(arm7tdmi.cpuState.r[15] == 0x03000140)
-                    printf("Hello! I am a culprit instruction.");
-                //for(int i = 0; i < 16; i++)
-                //if(arm7tdmi.r[i] == 0x1e06067e)
-                    //printf("Hello! I am a culprit register.\n");
-                //uint32_t oldPC = arm7tdmi.r[15];
+                #ifdef DEBUG_VARS
+                //if((systemMemory->IORegisters[0x208] & 1) == 0)
+                    //printf("not dank");
+                //else if(systemMemory->IORegisters[0x208] & 1)
+                    //printf("dank");
+
+                //if(arm7tdmi.cpuState.r[15] == 0x70)
+                    //printf("Hello! I am a culprit instruction.");
+                uint32_t oldPC = arm7tdmi.cpuState.r[15];
+                #endif
 
                 #if defined(TRACE)
                 if(traceAmount < TRACE) {
@@ -131,6 +138,11 @@ void GBA::run(char* fileName) {
                     interpretTHUMB();
                 else
                     interpretARM();
+
+                #ifdef DEBUG_VARS
+                instrCount++;
+                #endif
+
 
                 if(arm7tdmi.cpuState.state)
                     arm7tdmi.cpuState.r[15] &= ~1;

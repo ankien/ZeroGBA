@@ -1,7 +1,72 @@
+inline uint8_t GBAMemory::getUnusedMemType(uint32_t address) {
+    
+    if(address <= 0x3FFF) {
+        if(cpuState->r[15] >> 24 == 0x00)
+            return NotUnused;
+        return Bios;
+    }
+
+    if(address > 0xFFFFFFF)
+        return GenericUnused;
+    
+    switch(address >> 24) 	{
+        case 0x04:
+            if(address > 0x40003FF)
+                return GenericUnused;
+            break;
+        case 0x00:
+        case 0x01:
+            return GenericUnused;
+    }
+
+    return NotUnused;
+}
+inline uint32_t GBAMemory::readUnusedMem(bool thumb,uint8_t memType) {
+    
+    if(memType == Bios)
+        switch(stateRelativeToBios) {
+            case AfterStartupOrReset:
+                return *reinterpret_cast<uint32_t*>(&bios[0xDC + 8]);
+                break;
+            case DuringIRQ:
+                return *reinterpret_cast<uint32_t*>(&bios[0x134 + 8]);
+                break;
+            case AfterIRQ:
+                return *reinterpret_cast<uint32_t*>(&bios[0x13C + 8]);
+                break;
+            case AfterSWI:
+                return *reinterpret_cast<uint32_t*>(&bios[0x188 + 8]);
+        }
+    else {
+        if(!thumb)
+            return memoryArray<uint32_t>(cpuState->r[15] + 8);
+        else {
+            uint32_t pcVal = cpuState->r[15];
+            switch(pcVal >> 24) {
+                case 0x00:
+                case 0x07:
+                    if(pcVal % 4)
+                        return memoryArray<uint32_t>(pcVal+2);
+                    else
+                        return memoryArray<uint32_t>(pcVal+4);
+                case 0x03:
+                    if(pcVal % 4)
+                        return memoryArray<uint16_t>(pcVal+4) << 16 | memoryArray<uint16_t>(pcVal+2);
+                    else
+                        return memoryArray<uint32_t>(pcVal+2);
+                default:
+                    return memoryArray<uint16_t>(pcVal+4) << 16 | memoryArray<uint16_t>(pcVal+4);
+            }
+        }
+    }
+}
+
 template<typename T>
 inline T& GBAMemory::memoryArray(uint32_t i) {
     switch(i >> 24) {
         case 0x00:
+            if(i > 0x3FFF)
+                return *reinterpret_cast<T*>(&ignore);
             return *reinterpret_cast<T*>(&bios[i]);
         case 0x02:
             return *reinterpret_cast<T*>(&wramOnBoard[(i-0x2000000) % 0x40000]);
@@ -28,18 +93,23 @@ inline T& GBAMemory::memoryArray(uint32_t i) {
         case 0x0D:
             return *reinterpret_cast<T*>(&gamePak[i-0xC000000]);
         case 0x0E:
-            return *reinterpret_cast<T*>(&gPakSram[i-0xE000000]);
+        case 0x0F:
+            return *reinterpret_cast<T*>(&gPakSram[((i-0xE000000) % 0x10000) % 0x8000]);
         default:
-            return *reinterpret_cast<T*>(&unusedMemoryAccess);
-            break;
+            return *reinterpret_cast<T*>(&ignore); // ignore writes to misc addresses, reads are handled
     }
 }
 // return bitmask to write with, also handles special write behavior for certain regions (like IF regs)
 template<typename T>
 inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
     
+    uint8_t addressSection = address >> 24;
+    
+    if(addressSection == 0x00)
+        return 0x0;
+    
     // Some IO regs have special behavior, this is how I handle them
-    if(address >> 24 == 0x04) {
+    if(addressSection == 0x04) {
         constexpr uint8_t offset = sizeof(T) - 1;
         uint8_t ioAddress = address & 0xFFF;
 
@@ -102,7 +172,6 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
 }
 inline void GBAMemory::storeValue(uint8_t value, uint32_t address) {
     switch(address >> 24) {
-        // todo: fix this shit these reinterpret casts look unsafe
         case 0x05:
             storeValue(static_cast<uint16_t>(static_cast<uint16_t>(value) * 0x101), address);
             break;
@@ -137,17 +206,30 @@ inline void GBAMemory::storeValue(uint32_t value, uint32_t address) {
     uint32_t* mem = &memoryArray<uint32_t>(address);
     mem[0] = (value & mask) | (mem[0] & ~mask);
 }
-inline uint16_t GBAMemory::readHalfWord(uint32_t address) {
-    return memoryArray<uint16_t>(address & ~1);
-}
 inline uint8_t GBAMemory::readByte(uint32_t address) {
+    uint8_t memType = getUnusedMemType(address);
+    if(memType)
+        return readUnusedMem(cpuState->state,memType);
     return memoryArray<uint8_t>(address);
+}
+inline uint16_t GBAMemory::readHalfWord(uint32_t address) {
+    uint8_t memType = getUnusedMemType(address);
+    if(memType)
+        return readUnusedMem(cpuState->state,memType);
+    //if(address >> 16 == 0xE00)
+        //return readByte(address) * 0x0101;
+    return memoryArray<uint16_t>(address & ~1);
 }
 inline uint32_t GBAMemory::readHalfWordRotate(uint32_t address) {
     uint8_t rorAmount = (address & 1) << 3;
     return ror(readHalfWord(address),rorAmount);
 }
 inline uint32_t GBAMemory::readWord(uint32_t address) {
+    uint8_t memType = getUnusedMemType(address);
+    if(memType)
+        return readUnusedMem(cpuState->state,memType);
+    //if(address >> 16 == 0xE00)
+        //return readByte(address) * 0x01010101;
     return memoryArray<uint32_t>(address & ~3);
 }
 inline uint32_t GBAMemory::readWordRotate(uint32_t address) {
@@ -201,14 +283,24 @@ inline void GBAMemory::dmaTransfer(uint8_t channel, uint16_t dmaCntH) {
     int8_t srcIncrement = transferSize * srcCtrlFactor;
 
     if(wordTransfer) {
+        internalSrc[channel] &= ~3;
+        internalDst[channel] &= ~3;
         for(uint32_t i = 0; i < length; i++) {
-            memoryArray<uint32_t>(internalDst[channel]) = readWord(internalSrc[channel]);
+            uint32_t value = memoryArray<uint32_t>(internalSrc[channel]);
+            uint32_t mask = writeable<uint32_t>(internalDst[channel],value);
+            uint32_t* mem = &memoryArray<uint32_t>(internalDst[channel]);
+            mem[0] = (value & mask) | (mem[0] & ~mask);
             internalSrc[channel] += srcIncrement;
             internalDst[channel] += destIncrement;
         }
     } else {
+        internalSrc[channel] &= ~1;
+        internalDst[channel] &= ~1;
         for(uint32_t i = 0; i < length; i++) {
-            memoryArray<uint16_t>(internalDst[channel]) = readHalfWord(internalSrc[channel]);
+            uint16_t value = memoryArray<uint16_t>(internalSrc[channel]);
+            uint16_t mask = writeable<uint16_t>(internalDst[channel],value);
+            uint16_t* mem = &memoryArray<uint16_t>(internalDst[channel]);
+            mem[0] = (value & mask) | (mem[0] & ~mask);
             internalSrc[channel] += srcIncrement;
             internalDst[channel] += destIncrement;
         }

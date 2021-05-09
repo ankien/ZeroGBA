@@ -9,6 +9,8 @@ struct CPUState {
     // current regs
     uint32_t r[16]; // R0-15; r13 - SP, r14 - LR, r15 - PC
 
+    uint8_t* stateRelativeToBios;
+
     // banked regs
     uint32_t sysUserReg[7]; // r8-14
     uint32_t fiqReg[8]; // r8-14 + SPSR
@@ -21,7 +23,7 @@ struct CPUState {
     uint8_t mode; // 5 : see enum modes
     bool    state, // 1 : 0 = ARM, 1 = THUMB
             fiqDisable, // 1 : 0 = enable, 1 = disable
-            irqDisable; // 1 : 0 = enable, 1 = disable
+            irqDisable; // 1 : 0 = enable, 1 = disable; todo: poll for interrupts when irqs are enabled
     uint32_t reserved; // 19 : never used?
     bool stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
          overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's complement, set bit) 

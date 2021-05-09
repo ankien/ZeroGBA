@@ -11,6 +11,8 @@
 #include "hardware/Keypad.hpp"
 #include "Scheduler.hpp"
 
+#define DEBUG_VARS
+
 struct GBA {
 
     /// Hardware ///
@@ -20,6 +22,11 @@ struct GBA {
     LCD lcd{};
     Keypad keypad{};
     Scheduler scheduler{};
+    
+    #ifdef DEBUG_VARS
+    uint64_t instrCount = 0;
+    #endif
+
 
     GBA();
 
@@ -77,7 +84,7 @@ struct GBA {
                 systemMemory->IORegisters[0x202] |= 0x4;
             else
                 return 1232;
-
+            
             interrupts.scheduleInterruptCheck();
         }
         return 1232;

@@ -188,6 +188,10 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         setZeroAndSign(result);
     
     if((s) && (rd == 15)) {
+        if(cpuState.mode == IRQ && cpuState.r[15] >> 24 == 0x00)
+            systemMemory->stateRelativeToBios = systemMemory->AfterIRQ;
+        else if(cpuState.mode == Supervisor && cpuState.r[15] >> 24 == 0x00)
+            systemMemory->stateRelativeToBios = systemMemory->AfterSWI;
         uint32_t spsrVal = cpuState.getBankedReg(cpuState.mode,'S');
         cpuState.switchMode(spsrVal & 0x1F);
         cpuState.setCPSR(spsrVal);
@@ -387,7 +391,7 @@ void ARM7TDMI::ARMsingleDataTransfer(uint32_t instruction) {
                     cpuState.setReg(rd, systemMemory->readWordRotate(address));
                     break;
                 default:
-                    cpuState.setReg(rd, systemMemory->memoryArray<uint8_t>(address));
+                    cpuState.setReg(rd, systemMemory->readByte(address));
             }
     }
 
@@ -800,7 +804,7 @@ void ARM7TDMI::ARMswap(uint32_t instruction) {
 
     // swap byte
     if(instruction & 0x400000) {
-        uint32_t rnAddrValue = systemMemory->memoryArray<uint8_t>(rnValue);
+        uint32_t rnAddrValue = systemMemory->readByte(rnValue);
         systemMemory->storeValue(static_cast<uint8_t>(cpuState.getReg(rm)),rnValue);
         cpuState.setReg(rd,rnAddrValue);
     } else { // swap word
@@ -950,7 +954,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
             result = rdValue & rs;
             break;
         case 0x9: // NEG
-            result = ~rs + 1;
+            result = add(0,~rs + 1,1);
             cpuState.setReg(rd,result);
             break;
         case 0xA: // CMP
@@ -1058,7 +1062,7 @@ void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
             cpuState.setReg(rd,systemMemory->readWordRotate(rb+ro));
             break;
         case 0xC00: // LDRB
-            cpuState.setReg(rd,systemMemory->memoryArray<uint8_t>(rb+ro));
+            cpuState.setReg(rd,systemMemory->readByte(rb+ro));
     }
 
     if(rd != 15)
@@ -1078,7 +1082,7 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
             systemMemory->storeValue(*reinterpret_cast<uint16_t*>(&rd),rb+ro);
             break;
         case 0x400: // LDSB
-            cpuState.setReg(rd,static_cast<int8_t>(systemMemory->memoryArray<uint8_t>(rb+ro)));
+            cpuState.setReg(rd,static_cast<int8_t>(systemMemory->readByte(rb+ro)));
             break;
         case 0x800: // LDRH
             cpuState.setReg(rd,systemMemory->readHalfWordRotate(rb+ro));
@@ -1115,7 +1119,7 @@ void ARM7TDMI::THUMBloadStoreImmOffset(uint16_t instruction) {
             systemMemory->storeValue(static_cast<uint8_t>(cpuState.getReg(rd)),rb+nn);
             break;
         case 0x1800: // LDRB
-            cpuState.setReg(rd,systemMemory->memoryArray<uint8_t>(rb+nn));
+            cpuState.setReg(rd,systemMemory->readByte(rb+nn));
     }
 
     if(rd != 15)

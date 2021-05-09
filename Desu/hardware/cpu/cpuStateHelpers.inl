@@ -254,6 +254,7 @@ inline void CPUState::handleException(uint8_t exception, int8_t nn, uint8_t newM
             switch(exception) {
 
                 case NormalInterrupt:
+                    *stateRelativeToBios = 1; // dumb open bus shit, see GBAMemory.hpp
                     r[15] = 0x18;
                     break;
             }
