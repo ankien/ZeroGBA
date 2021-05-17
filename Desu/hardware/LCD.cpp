@@ -29,6 +29,7 @@ LCD::LCD() {
     compileShaders();
 }
 
+// Credits to NanoBoyAdvance and Crab for figuring this shit out
 void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     if((systemMemory->IORegisters[1] & (1 << bg)) == 0)
         return;
@@ -91,22 +92,23 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     }
 }
 void LCD::renderAffineBG(uint8_t bg) {
-    
-}
-void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
-    uint16_t dispCnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters);
-    if(dispCnt & 0x8000)
+    if((systemMemory->IORegisters[1] & (1 << bg)) == 0)
         return;
+}
+void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
+    uint16_t dispCnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0]);
+    if((dispCnt & 0x1000) == 0)
+        return;
+    uint8_t* charBlockBase = &systemMemory->vram[0x10000]; // todo: adjust this and below offset for bitmap modes (GBAtek VRAM overview)
 
-    // todo: adjust for bitmap modes?
     for(uint16_t spriteByteOffset = 0; spriteByteOffset < 1024; spriteByteOffset+=8) {
-        uint16_t attribute0 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset);
-        uint16_t attribute1 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 2);
+        uint16_t attribute0 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[spriteByteOffset]);
+        uint16_t attribute1 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[spriteByteOffset + 2]);
 
-        // skip OBJ conditions
+        // skip OBJ conditions from OAM attributes
         bool affine = attribute0 & 0x100;
         bool attr0Bit9 = attribute0 & 0x200;
-        if(~affine && attr0Bit9)
+        if(!affine && attr0Bit9)
             continue;
 
         uint8_t mode = (attribute0 & 0xC00) >> 10;
@@ -114,8 +116,8 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
             continue;
 
         // the rest of the fukin variables
-        int16_t y = attribute0 & 0xFF;  // x and y of the top left corner for regular sprites, 
-        int16_t x = attribute1 & 0x1FF; // for affine sprites, these are for the center
+        int16_t y = attribute0 & 0xFF;  // marks the top of the sprite, grows downwards
+        int16_t x = attribute1 & 0x1FF; // marks the left of the sprite, grows rightwards
         uint8_t shape = (attribute0 & 0xC000) >> 14;
         uint8_t size = (attribute1 & 0xC000) >> 14;
 
@@ -126,47 +128,105 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t line) {
         uint8_t spriteWidth = spriteOBJSize[shape][size][0];
         uint8_t spriteHeight = spriteOBJSize[shape][size][1];
 
-        int16_t centerY = y - (spriteHeight / 2);
-        int16_t centerX = x + (spriteWidth / 2);
+        uint8_t halfWidth = spriteWidth / 2;
+        uint8_t halfHeight = spriteHeight / 2;
+
+        // accounting for width and height to represent the center
+        x += halfWidth;
+        y += halfHeight;
 
         int16_t pa,pb,pc,pd;
         if(affine) {
-            centerY = y;
-            centerX = x;
-
             uint16_t affineParam = ((attribute1 & 0x3E00) >> 9) * 32;
 
-            pa = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0x6);
-            pb = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0xE);
-            pc = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0x16);
-            pd = *reinterpret_cast<int16_t*>(&systemMemory->oam[0] + affineParam + 0x1E);
+            pa = *reinterpret_cast<int16_t*>(&systemMemory->oam[affineParam + 0x6]);
+            pb = *reinterpret_cast<int16_t*>(&systemMemory->oam[affineParam + 0xE]);
+            pc = *reinterpret_cast<int16_t*>(&systemMemory->oam[affineParam + 0x16]);
+            pd = *reinterpret_cast<int16_t*>(&systemMemory->oam[affineParam + 0x1E]);
 
             // if sprite should be treated as double sized
             if(attr0Bit9) {
-                spriteWidth *= 2;
-                spriteHeight *= 2;
+                x += halfWidth;
+                y += halfHeight;
+                halfWidth *= 2;
+                halfHeight *= 2;
             }
         } else
             // identity matrix, can we set this to just 1 instead of 0x100?
             pa = 0x100, pb = 0, pc = 0, pd = 0x100;
 
-
-        int16_t halfWidth = spriteWidth / 2;
-        int16_t halfHeight = spriteHeight / 2;
-        // if sprite isn't visible, don't draw it
-        if((centerY + halfHeight) <  line || (centerY - halfHeight) > line)
-            continue;
-        if((centerX + halfWidth) <  0 || (centerX - halfWidth) > 240)
+        // if sprite isn't within line, don't draw it
+        if((y - halfHeight) >  vcount || (y + halfHeight) < vcount)
             continue;
 
-        bool mosaic = attribute0 & 0x1000;
+        // y relative to the line being drawn
+        int16_t relativeY = vcount - y;
+
+        // bool mosaic = attribute0 & 0x1000; todo
         bool eightBitColors = attribute0 & 0x2000;
         bool horizontalFlip = affine ? false : attribute1 & 0x1000;
         bool verticalFlip = affine ? false : attribute1 & 0x2000;
         uint16_t attribute2 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 4);
         uint16_t attribute3 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 8);
+        bool oneDimensionMapping = systemMemory->IORegisters[0] & 0x40;
+        
+        // transform x and y to texture coordinates 
+        for(int8_t objX = -halfWidth; objX <= halfWidth; objX++) {
+            int16_t screenX = objX + x; // left of sprite relative to screen x-coords
+            
+            if((screenX < 0) || (screenX >= 240))
+                continue;
 
+            // transform to tex coords and bring origin to top left
+            int16_t texX = ((pa*objX + pb*relativeY) >> 8) + (spriteWidth / 2);
+            int16_t texY = ((pc*objX + pd*relativeY) >> 8) + (spriteHeight / 2);
 
+            // if the coord is outside the boundary of the original obj, skip
+            if(texY >= spriteHeight || texX >= spriteWidth || texY < 0 || texX < 0)
+                continue;
+
+            if(horizontalFlip) texX =  spriteWidth - texX - 1;
+            if(verticalFlip) texY = spriteHeight - texY - 1;
+
+            uint16_t tid = attribute2 & 0x3FF;
+            uint8_t tileX = texX % 8; // X within tile
+            uint8_t tileY = texY % 8; // Y within tile
+            
+            uint16_t tileRowOffset = texY / 8; // used to get the correct tid according to 1D or 2D mapping
+            if(oneDimensionMapping) // 1D VRAM mapping
+                tileRowOffset *= spriteWidth / 8;
+            else // 2D VRAM mapping
+                tileRowOffset *= 0x20; // offset is always 32 regardless of bit-depth
+            tileRowOffset += texX / 8;
+
+            uint8_t paletteIndex = 0;
+            // Unlike BGs, TID for sprites are located in OAM
+            if(eightBitColors) {
+                tid /= 2;
+                tid += tileRowOffset;
+                paletteIndex = charBlockBase[tid * 0x40 + tileY * 8 + tileX];
+            } else {
+                tid += tileRowOffset;
+                paletteIndex = charBlockBase[tid * 0x20 + tileY * 4 + tileX/2];
+                paletteIndex = (paletteIndex >> ((x & 1) * 4) & 0xF); // read 4-bit pIndexes from 8-bit array
+                if(paletteIndex != 0)
+                    paletteIndex += ((attribute2 & 0xF000) >> 12) * 16;
+            }
+
+            auto& spritePixel = spriteLayer[screenX];
+            bool notTransparent = paletteIndex != 0;
+            uint8_t priority = (attribute2 & 0xC00) >> 10;
+            uint8_t mode = (attribute0 & 0xC00) >> 10;
+            if(mode == 0x2) {
+                if(notTransparent) spritePixel.window = true;
+            } else if(priority < spritePixel.priority || spritePixel.pindex == 0) {
+                if(notTransparent) {
+                    spritePixel.pindex = paletteIndex;
+                    spritePixel.alpha = mode == 0x1;
+                }
+                spritePixel.priority = priority;
+            }
+        }
     }
 }
 void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
@@ -183,7 +243,6 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     uint16_t dispcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters);
     uint16_t bldalpha = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x52]);
     uint16_t bldy = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x54]);
-    uint16_t* halfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram);
 
     bool win0Display, win1Display, objDisplay, win1YVisible, win0YVisible, win0Effects, win1Effects, outEffects, objEffects, specialEffects;
     win0Display = dispcnt & 0x2000;
@@ -255,21 +314,20 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                         if((*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]) & 0x3) == priority) {
                             if(bgLayer[bg][x] == 0)
                                 continue;
+                            uint16_t* halfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram);
                             uint16_t bgColor = halfWordPram[bgLayer[bg][x]];
                             currPixelColor = bgColor;
                         }
                     }
                 }
 
-                // sprite
-                /*
                 if(enableList & 0b10000) {
                     if(spriteLayer[x].priority == priority && spriteLayer[x].pindex != 0) {
+                        uint16_t* halfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram[0x200]);
                         uint16_t spriteColor = halfWordPram[spriteLayer[x].pindex];
                         currPixelColor = spriteColor;
                     }
                 }
-                */
             }
         }
 
@@ -278,7 +336,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
 }
 
 #define RENDER_SPRITES_AND_COMPOSE(baseAddress) if(DISPCNT_OBJ) \
-                                                    renderSprites(baseAddress,159-vcount); \
+                                                    renderSprites(baseAddress,vcount); \
                                                 composeScanline(scanLine,vcount);
 void LCD::renderScanline() {
 
@@ -317,6 +375,7 @@ void LCD::renderScanline() {
             case 0: // BG[0-3] text/tile BG mode, no affine
                 renderTextBG(0,vcount);
                 renderTextBG(1,vcount);
+                renderTextBG(2,vcount);
                 renderTextBG(3,vcount);
                 RENDER_SPRITES_AND_COMPOSE(0x10000)
                 break;

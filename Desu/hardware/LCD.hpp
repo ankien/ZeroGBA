@@ -37,7 +37,7 @@ struct LCD {
 
     } spriteLayer[240];
 
-    // [Shape][Size][width or height]
+    // [Shape][Size][width or height], in pixels, not tiles!
     const uint8_t spriteOBJSize[4][4][2] = {
         // Square
         {

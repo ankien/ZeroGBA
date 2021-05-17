@@ -60,6 +60,8 @@ inline void Scheduler::rescheduleFront(uint32_t cycleTimeStamp) {
         eventList.pop_front(); // else don't reschedule
 }
 inline void Scheduler::step() {
+    if(cyclesPassedSinceLastFrame >= 280896)
+        printf("fugglishousce");
     if(cyclesPassedSinceLastFrame >= eventList.front().timestamp) {
         if(eventList.front().shouldBeRescheduled)
             rescheduleFront(eventList.front().process());

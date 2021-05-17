@@ -106,13 +106,6 @@ void GBA::run(char* fileName) {
             while(keypad.running) {
 
                 #ifdef DEBUG_VARS
-                //if((systemMemory->IORegisters[0x208] & 1) == 0)
-                    //printf("not dank");
-                //else if(systemMemory->IORegisters[0x208] & 1)
-                    //printf("dank");
-
-                //if(arm7tdmi.cpuState.r[15] == 0x70)
-                    //printf("Hello! I am a culprit instruction.");
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
                 #endif
 

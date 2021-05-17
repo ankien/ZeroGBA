@@ -954,7 +954,7 @@ void ARM7TDMI::THUMBaluOperations(uint16_t instruction) {
             result = rdValue & rs;
             break;
         case 0x9: // NEG
-            result = add(0,~rs + 1,1);
+            result = sub(0,rs,1);
             cpuState.setReg(rd,result);
             break;
         case 0xA: // CMP

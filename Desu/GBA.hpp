@@ -44,7 +44,7 @@ struct GBA {
     // Scheduler events
     const std::function<uint32_t()> postFrame = [&]() {
         scheduler.cyclesPassedSinceLastFrame -= 280896;
-        systemMemory->IORegisters[4] ^= 0x1; // turn off vblank
+        systemMemory->IORegisters[4] &= 0xFE; // turn off vblank
         scheduler.resetEventList();
 
         // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
@@ -75,10 +75,9 @@ struct GBA {
         return 1232;
     };
     const std::function<uint32_t()> endHBlank = [&]() {
-        systemMemory->IORegisters[4] ^= 0x2; // turn off hblank
+        systemMemory->IORegisters[4] &= 0xFD; // turn off hblank
         systemMemory->IORegisters[6] = (VCOUNT+1) % 228; // increment vcount
-        systemMemory->IORegisters[4] &= 0xFB;
-        systemMemory->IORegisters[4] |= ((VCOUNT == DISPSTAT_VCOUNT_SETTING) << 2); // set v-counter flag
+        VCOUNT == DISPSTAT_VCOUNT_SETTING ? systemMemory->IORegisters[4] |= 0x4 : systemMemory->IORegisters[4] &= 0xFB ; // set v-counter flag
         if(DISPSTAT_VCOUNT_IRQ) {
             if(DISPSTAT_VCOUNTER_FLAG)
                 systemMemory->IORegisters[0x202] |= 0x4;
