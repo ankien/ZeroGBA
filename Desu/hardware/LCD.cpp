@@ -101,6 +101,8 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
         return;
     uint8_t* charBlockBase = &systemMemory->vram[0x10000]; // todo: adjust this and below offset for bitmap modes (GBAtek VRAM overview)
 
+    std::fill_n(spriteLayer,240,Sprite{});
+
     for(uint16_t spriteByteOffset = 0; spriteByteOffset < 1024; spriteByteOffset+=8) {
         uint16_t attribute0 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[spriteByteOffset]);
         uint16_t attribute1 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[spriteByteOffset + 2]);
@@ -152,7 +154,6 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
                 halfHeight *= 2;
             }
         } else
-            // identity matrix, can we set this to just 1 instead of 0x100?
             pa = 0x100, pb = 0, pc = 0, pd = 0x100;
 
         // if sprite isn't within line, don't draw it
@@ -167,7 +168,6 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
         bool horizontalFlip = affine ? false : attribute1 & 0x1000;
         bool verticalFlip = affine ? false : attribute1 & 0x2000;
         uint16_t attribute2 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 4);
-        uint16_t attribute3 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[0] + spriteByteOffset + 8);
         bool oneDimensionMapping = systemMemory->IORegisters[0] & 0x40;
         
         // transform x and y to texture coordinates 
@@ -208,7 +208,7 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
             } else {
                 tid += tileRowOffset;
                 paletteIndex = charBlockBase[tid * 0x20 + tileY * 4 + tileX/2];
-                paletteIndex = (paletteIndex >> ((x & 1) * 4) & 0xF); // read 4-bit pIndexes from 8-bit array
+                paletteIndex = (paletteIndex >> ((tileX & 1) * 4) & 0xF); // read 4-bit pIndexes from 8-bit array
                 if(paletteIndex != 0)
                     paletteIndex += ((attribute2 & 0xF000) >> 12) * 16;
             }
@@ -369,7 +369,6 @@ void LCD::renderScanline() {
         // clear buffers
         for(uint8_t i = 0; i < 4; i++)
             memset(bgLayer[i],0,240); // probably don't need this
-        std::fill_n(spriteLayer,240,Sprite{});
 
         switch(DISPCNT_MODE) {
             case 0: // BG[0-3] text/tile BG mode, no affine

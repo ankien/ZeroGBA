@@ -30,7 +30,7 @@ struct LCD {
     /// For the software renderer, stores palette indexes for scanline composition ///
     uint8_t bgLayer[4][240];
     struct Sprite {
-        uint16_t pindex = 0;
+        uint8_t pindex = 0;
         uint8_t priority = 4; // not actual possible value
         bool alpha = 0,
              window = 0;

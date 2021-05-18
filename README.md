@@ -2,10 +2,9 @@ Just a GBA emulator I decided to work on for fun.<br>
 The long-term goal is to boot most commercial games with stable 60 fps framerate.<br>
 <h1>Current Progress</h1>
 <img src="/Desu/non-code/screenshots/mode0.gif" width="400">
-<img src="/Desu/non-code/screenshots/doom boot.gif" width="400">
-<img src="/Desu/non-code/screenshots/mode 3 tonc demo.png" width="400">
+<img src="/Desu/non-code/screenshots/doom.gif" width="400">
+<img src="/Desu/non-code/screenshots/kirby.gif" width="400">
 <img src="/Desu/non-code/screenshots/armwrestler pass.gif" width="400">
-Passed ARMWrestler! (visual CPU test suite)<br>
 <h2>System Controls</h2>
 <p><b>A Button: </b>Space</p>
 <p><b>B Button: </b>S</p>
