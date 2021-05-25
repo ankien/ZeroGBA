@@ -94,6 +94,43 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
 void LCD::renderAffineBG(uint8_t bg) {
     if((systemMemory->IORegisters[1] & (1 << bg)) == 0)
         return;
+
+    // I don't check whether or not a non-2 or 3 bg uses this method, but I don't need to :-)
+
+    int32_t refX = systemMemory->internalRefX[bg - 2];
+    int32_t refY = systemMemory->internalRefY[bg - 2];
+
+    int16_t pa = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x10 * bg]);
+    int16_t pc = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[(0x10 * bg) + 0x4]);;
+    
+    uint8_t* currLayer = bgLayer[bg];
+    uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]);
+    uint8_t* charBlockBase = &systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)];
+    uint8_t* screenBlockBase = reinterpret_cast<uint8_t*>(&systemMemory->vram[(((bgcnt & 0x1F00) >> 8) * 0x800)]);
+    bool displayOverflow = bgcnt & 0x2000;
+
+    uint8_t bgcntSize = (bgcnt & 0xC000) >> 14;
+    uint8_t tileNum = 16 << bgcntSize; // aff BGs are always squares of factor 16x16
+    uint16_t bgSize = tileNum * 8; // in pixels
+
+
+    for(uint8_t i = 0; i < 240; i++) {
+        int32_t intX = refX >> 8;
+        int32_t intY = refY >> 8;
+
+        refX += pa;
+        refY += pc;
+
+        if(displayOverflow) {
+            intX %= bgSize;
+            intY %= bgSize;
+        } else if(intX >= bgSize || intY >= bgSize || intX < 0 || intY < 0)
+            continue;
+
+        // Affine BG screen entries are only 8 bits and only contain the TIDs
+        uint16_t tid = screenBlockBase[intY*bgSize*8 + intX*8];
+        currLayer[i] = charBlockBase[tid * 0x40 + (intY % 8)*8 + intX%8]; // Affine BGs are 8bpp only
+    }
 }
 void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
     uint16_t dispCnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0]);
@@ -335,6 +372,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     }
 }
 
+// todo: implement sprites for bitmap modes
 #define RENDER_SPRITES_AND_COMPOSE(baseAddress) if(DISPCNT_OBJ) \
                                                     renderSprites(baseAddress,vcount); \
                                                 composeScanline(scanLine,vcount);
@@ -368,7 +406,7 @@ void LCD::renderScanline() {
         
         // clear buffers
         for(uint8_t i = 0; i < 4; i++)
-            memset(bgLayer[i],0,240); // probably don't need this
+            memset(bgLayer[i],0,240);
 
         switch(DISPCNT_MODE) {
             case 0: // BG[0-3] text/tile BG mode, no affine

@@ -50,8 +50,35 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         constexpr uint8_t offset = sizeof(T) - 1;
         uint8_t ioAddress = address & 0xFFF;
 
+        // Affine BG reference point regs
+        if(ioAddress < 0x40 && ioAddress > 0x27 - offset) {
+            memoryArray<T>(address) = value;
+            // Implementation dependent sign extends, todo: change these
+            if(ioAddress < 0x2C && ioAddress > 0x27 - offset) {
+                internalRefX[0] = memoryArray<int32_t>(0x4000028);
+                internalRefX[0] <<= 4;
+                internalRefX[0] >>= 4;
+            }
+            if(ioAddress < 0x30 && ioAddress > 0x2B - offset) {
+                internalRefY[0] = memoryArray<int32_t>(0x400002C);
+                internalRefY[0] <<= 4;
+                internalRefY[0] >>= 4;
+            }
+            if(ioAddress < 0x3C && ioAddress > 0x37 - offset) {
+                internalRefX[1] = memoryArray<int32_t>(0x4000038);
+                internalRefX[1] <<= 4;
+                internalRefX[1] >>= 4;
+            }
+            if(ioAddress < 0x40 && ioAddress > 0x3B - offset) {
+                internalRefY[1] = memoryArray<int32_t>(0x400003C);
+                internalRefY[1] <<= 4;
+                internalRefY[1] >>= 4;
+            }
+            return 0x0;
+        }
+
         // DMA regs
-        if(ioAddress < 0xE0 && ioAddress > 0xA8) {
+        if(ioAddress < 0xE0 && ioAddress > 0xA8 - offset) {
             uint8_t channel;
 
             if(address < 0x40000BC)
@@ -86,7 +113,7 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         }
         
         // Interrupt regs
-        else if(ioAddress < 0x400 && ioAddress > 0x12B) {
+        else if(ioAddress < 0x400 && ioAddress > 0x12B - offset) {
             // if writing to IE or IME
             // todo: check if I also need to check for interrupts when respective hardware register IRQ bits are written to
             if(address >= 0x4000200 - offset && address < 0x4000202 || address >= 0x4000208 - offset && address <= 0x4000208) { // respective bit range for IO regs

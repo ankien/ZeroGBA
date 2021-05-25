@@ -23,7 +23,7 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Branch=",cpuState.r[15]);
     #endif
-    // Implementation dependent sign extend
+    // Implementation dependent sign extend, todo: change this
     int32_t signedOffset = instruction & 0xFFFFFF;
     signedOffset <<= 8;
     signedOffset >>= 6;
