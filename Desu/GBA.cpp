@@ -30,7 +30,7 @@ GBA::GBA() {
     // Keypad init
     keypad.systemMemory = systemMemory;
     keypad.window = lcd.window;
-    keypad.width = (lcd.WIDTH * lcd.SCALE); keypad.height = (lcd.HEIGHT * lcd.SCALE);
+    keypad.initialWidth = (lcd.WIDTH * lcd.SCALE); keypad.initialHeight = (lcd.HEIGHT * lcd.SCALE);
     systemMemory->IORegisters[0x130] = 0xFF;
     systemMemory->IORegisters[0x131] = 3;
 

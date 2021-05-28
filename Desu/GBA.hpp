@@ -82,10 +82,11 @@ struct GBA {
         systemMemory->IORegisters[6] = (VCOUNT+1) % 228; // increment vcount
         VCOUNT == DISPSTAT_VCOUNT_SETTING ? systemMemory->IORegisters[4] |= 0x4 : systemMemory->IORegisters[4] &= 0xFB ; // set v-counter flag
         // Increment internal reference point registers
-        for(int8_t i = 0; i < 2; i++) {
-            systemMemory->internalRefX[i] += systemMemory->memoryArray<int16_t>(0x4000022 + i*0x10);
-            systemMemory->internalRefY[i] += systemMemory->memoryArray<int16_t>(0x4000026 + i*0x10);
-        }
+        if(VCOUNT < 160)
+            for(int8_t i = 0; i < 2; i++) {
+                systemMemory->internalRef[i].x += systemMemory->memoryArray<int16_t>(0x4000022 + i*0x10);
+                systemMemory->internalRef[i].y += systemMemory->memoryArray<int16_t>(0x4000026 + i*0x10);
+            }
         if(DISPSTAT_VCOUNT_IRQ) {
             if(DISPSTAT_VCOUNTER_FLAG)
                 systemMemory->IORegisters[0x202] |= 0x4;
@@ -100,13 +101,8 @@ struct GBA {
         systemMemory->IORegisters[4] |= 0x1; // set vblank
         // Copy reference point registers to internal ones
         for(int8_t i = 0; i < 2; i++) {
-            // Implementation dependent sign extends, todo: change these
-            systemMemory->internalRefX[i] = systemMemory->memoryArray<int32_t>(0x4000028 + i*0x10);
-            systemMemory->internalRefX[i] <<= 4;
-            systemMemory->internalRefX[i] >>= 4;
-            systemMemory->internalRefY[i] = systemMemory->memoryArray<int32_t>(0x400002C + i*0x10);
-            systemMemory->internalRefY[i] <<= 4;
-            systemMemory->internalRefY[i] >>= 4;
+            systemMemory->internalRef[i].x = systemMemory->memoryArray<int32_t>(0x4000028 + i*0x10);
+            systemMemory->internalRef[i].y = systemMemory->memoryArray<int32_t>(0x400002C + i*0x10);
         }
         if(DISPSTAT_VBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x1;// set vblank REG_IF

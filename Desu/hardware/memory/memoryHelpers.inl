@@ -53,27 +53,18 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         // Affine BG reference point regs
         if(ioAddress < 0x40 && ioAddress > 0x27 - offset) {
             memoryArray<T>(address) = value;
-            // Implementation dependent sign extends, todo: change these
-            if(ioAddress < 0x2C && ioAddress > 0x27 - offset) {
-                internalRefX[0] = memoryArray<int32_t>(0x4000028);
-                internalRefX[0] <<= 4;
-                internalRefX[0] >>= 4;
-            }
-            if(ioAddress < 0x30 && ioAddress > 0x2B - offset) {
-                internalRefY[0] = memoryArray<int32_t>(0x400002C);
-                internalRefY[0] <<= 4;
-                internalRefY[0] >>= 4;
-            }
-            if(ioAddress < 0x3C && ioAddress > 0x37 - offset) {
-                internalRefX[1] = memoryArray<int32_t>(0x4000038);
-                internalRefX[1] <<= 4;
-                internalRefX[1] >>= 4;
-            }
-            if(ioAddress < 0x40 && ioAddress > 0x3B - offset) {
-                internalRefY[1] = memoryArray<int32_t>(0x400003C);
-                internalRefY[1] <<= 4;
-                internalRefY[1] >>= 4;
-            }
+            if(ioAddress < 0x2C && ioAddress > 0x27 - offset)
+                internalRef[0].x = memoryArray<int32_t>(0x4000028);
+
+            if(ioAddress < 0x30 && ioAddress > 0x2B - offset)
+                internalRef[0].y = memoryArray<int32_t>(0x400002C);
+
+            if(ioAddress < 0x3C && ioAddress > 0x37 - offset) 
+                internalRef[1].x = memoryArray<int32_t>(0x4000038);
+
+            if(ioAddress < 0x40 && ioAddress > 0x3B - offset)
+                internalRef[1].y = memoryArray<int32_t>(0x400003C);
+
             return 0x0;
         }
 

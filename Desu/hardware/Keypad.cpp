@@ -1,12 +1,28 @@
 #include "Keypad.hpp"
 
 void Keypad::toggleFullscreen(SDL_Window* window) {
-    uint32_t fullscreenFlag = SDL_WINDOW_FULLSCREEN;
-    bool isFullscreen = SDL_GetWindowFlags(window) & fullscreenFlag;
-    SDL_SetWindowFullscreen(window, isFullscreen ? 0 : fullscreenFlag);
-    isFullscreen ? (displayMode.w = width, displayMode.h = height) : SDL_GetCurrentDisplayMode(0,&displayMode);
-    glViewport(0,0,displayMode.w,displayMode.h);
-    SDL_ShowCursor(isFullscreen);
+    bool isFullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN;
+    
+    if(isFullscreen) {
+        SDL_SetWindowFullscreen(window,false);
+        SDL_SetWindowSize(window,initialWidth,initialHeight);
+        glViewport(0, 0, initialWidth, initialHeight);
+        SDL_ShowCursor(true);
+    } else {
+        SDL_GetCurrentDisplayMode(0,&displayMode);
+        uint8_t possibleWidthScale = displayMode.w / initialWidth;
+        uint8_t possibleHeightScale = displayMode.h / initialHeight;
+        uint8_t scale;
+        if(possibleHeightScale > possibleWidthScale)
+            scale = possibleWidthScale;
+        else
+            scale = possibleHeightScale;
+        SDL_SetWindowSize(window, scale * initialWidth, scale * initialHeight);
+        SDL_SetWindowFullscreen(window, isFullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
+        SDL_GetCurrentDisplayMode(0,&displayMode);
+        glViewport(0, 0, displayMode.w, displayMode.h);
+        SDL_ShowCursor(false);
+    }
 }
 
 void Keypad::pollInputs() {

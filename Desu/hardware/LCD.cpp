@@ -97,8 +97,8 @@ void LCD::renderAffineBG(uint8_t bg) {
 
     // I don't check whether or not a non-2 or 3 bg uses this method, but I don't need to :-)
 
-    int32_t refX = systemMemory->internalRefX[bg - 2];
-    int32_t refY = systemMemory->internalRefY[bg - 2];
+    int32_t refX = systemMemory->internalRef[bg - 2].x;
+    int32_t refY = systemMemory->internalRef[bg - 2].y;
 
     int16_t pa = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x10 * bg]);
     int16_t pc = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[(0x10 * bg) + 0x4]);;
@@ -110,9 +110,8 @@ void LCD::renderAffineBG(uint8_t bg) {
     bool displayOverflow = bgcnt & 0x2000;
 
     uint8_t bgcntSize = (bgcnt & 0xC000) >> 14;
-    uint8_t tileNum = 16 << bgcntSize; // aff BGs are always squares of factor 16x16
+    uint8_t tileNum = 16 << bgcntSize; // aff BGs are always squares of factor 16x16 tiles
     uint16_t bgSize = tileNum * 8; // in pixels
-
 
     for(uint8_t i = 0; i < 240; i++) {
         int32_t intX = refX >> 8;
@@ -127,9 +126,13 @@ void LCD::renderAffineBG(uint8_t bg) {
         } else if(intX >= bgSize || intY >= bgSize || intX < 0 || intY < 0)
             continue;
 
+        if(systemMemory->IORegisters[6] == 3)
+            printf("fug");
+
         // Affine BG screen entries are only 8 bits and only contain the TIDs
-        uint16_t tid = screenBlockBase[intY*bgSize*8 + intX*8];
-        currLayer[i] = charBlockBase[tid * 0x40 + (intY % 8)*8 + intX%8]; // Affine BGs are 8bpp only
+        uint8_t tid = screenBlockBase[(intY/8)*tileNum + intX/8];
+        uint32_t fug = charBlockBase[tid * 0x40 + (intY % 8)*8 + intX%8];
+        currLayer[i] = fug;
     }
 }
 void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {

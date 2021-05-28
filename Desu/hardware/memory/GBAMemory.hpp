@@ -66,8 +66,10 @@ struct GBAMemory {
     uint32_t internalDst[4]{};
 
     // For affine BGs, BG 2 and 3 respectively
-    int32_t internalRefX[2];
-    int32_t internalRefY[2];
+    struct {
+        int32_t x : 28;
+        int32_t y : 28;
+    } internalRef[2];
 
     // DMA helpers
     template<uint16_t> void delayedDma();

@@ -18,7 +18,7 @@ struct Keypad {
     SDL_Event event;
     SDL_Window* window;
     SDL_DisplayMode displayMode;
-    int width, height;
+    int initialWidth, initialHeight;
     
     void toggleFullscreen(SDL_Window*);
     void pollInputs();
