@@ -5,7 +5,7 @@ LCD::LCD() {
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER);
 
     window = SDL_CreateWindow(
-        "Desu", 
+        "ZeroGBA", 
         SDL_WINDOWPOS_CENTERED, 
         SDL_WINDOWPOS_CENTERED, 
         WIDTH*SCALE, 
@@ -98,7 +98,7 @@ void LCD::renderAffineBG(uint8_t bg) {
     // I don't check whether or not a non-2 or 3 bg uses this method, but I don't need to :-)
 
     int32_t refX = systemMemory->internalRef[bg - 2].x;
-    int32_t refY = systemMemory->internalRef[bg - 2].y;
+    int32_t refY = systemMemory->internalRef[bg - 2].y-1;
 
     int16_t pa = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x10 * bg]);
     int16_t pc = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[(0x10 * bg) + 0x4]);;
@@ -126,13 +126,9 @@ void LCD::renderAffineBG(uint8_t bg) {
         } else if(intX >= bgSize || intY >= bgSize || intX < 0 || intY < 0)
             continue;
 
-        if(systemMemory->IORegisters[6] == 3)
-            printf("fug");
-
         // Affine BG screen entries are only 8 bits and only contain the TIDs
         uint8_t tid = screenBlockBase[(intY/8)*tileNum + intX/8];
-        uint32_t fug = charBlockBase[tid * 0x40 + (intY % 8)*8 + intX%8];
-        currLayer[i] = fug;
+        currLayer[i] = charBlockBase[tid * 0x40 + (intY % 8)*8 + intX%8];
     }
 }
 void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
@@ -485,7 +481,7 @@ void LCD::draw() {
     // If a second has passed
     currMillseconds = SDL_GetTicks();
     if(currMillseconds / 1000 != millisecondsElapsedAtLastSecond / 1000) {
-        std::string title = std::to_string(fps)+" fps - Desu";
+        std::string title = std::to_string(fps)+" fps - ZeroGBA";
         SDL_SetWindowTitle(window,title.c_str());
         fps = 0;
         millisecondsElapsedAtLastSecond = currMillseconds;

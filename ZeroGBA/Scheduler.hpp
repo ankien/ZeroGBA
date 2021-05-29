@@ -32,7 +32,6 @@ struct Scheduler {
     // only use for events that should be rescheduled!
     void rescheduleFront(uint32_t);
     void step();
-    void getInitialEventList();
     void resetEventList();
 };
 
@@ -60,8 +59,6 @@ inline void Scheduler::rescheduleFront(uint32_t cycleTimeStamp) {
         eventList.pop_front(); // else don't reschedule
 }
 inline void Scheduler::step() {
-    if(cyclesPassedSinceLastFrame >= 280896)
-        printf("fugglishousce");
     if(cyclesPassedSinceLastFrame >= eventList.front().timestamp) {
         if(eventList.front().shouldBeRescheduled)
             rescheduleFront(eventList.front().process());
@@ -71,11 +68,7 @@ inline void Scheduler::step() {
         }
     }
 }
-inline void Scheduler::getInitialEventList() {
-    initialEventList.reserve(eventList.size());
-    initialEventList.insert(initialEventList.begin(),eventList.begin(),eventList.end());
-}
 inline void Scheduler::resetEventList() {
-    for(Event e : initialEventList)
-        eventList.push_back(e);
+    for(Event const& e : initialEventList)
+        eventList.emplace_back(e);
 }

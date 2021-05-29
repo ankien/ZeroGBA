@@ -35,11 +35,13 @@ GBA::GBA() {
     systemMemory->IORegisters[0x131] = 3;
 
     // Initialize scheduler events
-    scheduler.addEventToBack(startHBlank,960,1);
-    scheduler.addEventToBack(endHBlank,1232,1);
-    scheduler.addEventToBack(startVBlank,197120,1);
-    scheduler.addEventToBack(postFrame,280896,1);
-    scheduler.getInitialEventList();
+    scheduler.initialEventList = {
+        {startHBlank,960,1},
+        {endHBlank,1232,1},
+        {startVBlank,197120,1},
+        {postFrame,280896,1}
+    };
+    scheduler.resetEventList();
 }
 
 // todo: DMA channels, audio channels, PPU, and timers

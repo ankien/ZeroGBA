@@ -52,7 +52,7 @@
     <ProjectGuid>{3E2A5125-EB69-49BB-A42B-827D70906EE5}</ProjectGuid>
     <RootNamespace>GBEmu</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Desu</ProjectName>
+    <ProjectName>ZeroGBA</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -120,7 +120,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Desu\dependencies\sdl\include;$(SolutionDir)Desu\dependencies\glew\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ZeroGBA\dependencies\sdl\include;$(SolutionDir)ZeroGBA\dependencies\glew\include</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -132,7 +132,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; glew32.lib;</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Desu\dependencies\sdl\lib;$(SolutionDir)Desu\dependencies\glew\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)ZeroGBA\dependencies\sdl\lib;$(SolutionDir)ZeroGBA\dependencies\glew\lib</AdditionalLibraryDirectories>
       <EntryPointSymbol>
       </EntryPointSymbol>
     </Link>
@@ -144,7 +144,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Desu\dependencies\sdl\include;$(SolutionDir)Desu\dependencies\glew\include;$(SolutionDir)Desu\dependencies\glm;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ZeroGBA\dependencies\sdl\include;$(SolutionDir)ZeroGBA\dependencies\glew\include;$(SolutionDir)ZeroGBA\dependencies\glm;</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -155,7 +155,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Desu\dependencies\sdl\lib\x86;$(SolutionDir)Desu\dependencies\glew\lib\Release\Win32;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)ZeroGBA\dependencies\sdl\lib\x86;$(SolutionDir)ZeroGBA\dependencies\glew\lib\Release\Win32;</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; SDL2main.lib; glew32.lib; glew32s.lib;</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
