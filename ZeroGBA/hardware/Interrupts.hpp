@@ -8,6 +8,7 @@ struct Interrupts {
     CPUState* cpuState;
     Scheduler* scheduler;
     uint8_t* IORegisters;
+    bool fuck = false;
 
     /// Scheduler Stuff ///
     void scheduleInterruptCheck();
@@ -21,7 +22,7 @@ inline void Interrupts::scheduleInterruptCheck() {
             if(irqsEnabled())
                 cpuState->handleException(NormalInterrupt,4,IRQ);
         return 0;
-    },0);
+    });
 }
 inline bool Interrupts::irqsEnabled() {
     if(IORegisters[0x208] & 0x1)

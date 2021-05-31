@@ -109,6 +109,8 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
+                if(arm7tdmi.cpuState.r[15] == 0x080005FE)
+                    printf("weewee");
                 #endif
 
                 #if defined(TRACE)

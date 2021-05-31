@@ -9,21 +9,31 @@ void Keypad::toggleFullscreen(SDL_Window* window) {
         glViewport(0, 0, initialWidth, initialHeight);
         SDL_ShowCursor(true);
     } else {
+        
         SDL_GetCurrentDisplayMode(0,&displayMode);
+        
         uint32_t oldWidth = displayMode.w;
-        float possibleWidthScale = (float)displayMode.w / initialWidth;
-        float possibleHeightScale = (float)displayMode.h / initialHeight;
-        float scale;
+        double possibleWidthScale = (double)displayMode.w / initialWidth;
+        double possibleHeightScale = (double)displayMode.h / initialHeight;
+        double scale;
+        
         if(possibleHeightScale > possibleWidthScale)
             scale = possibleWidthScale;
         else
             scale = possibleHeightScale;
+        
         uint32_t finalWidth = scale * initialWidth;
         uint32_t finalHeight = scale * initialHeight;
+        
         SDL_SetWindowSize(window,finalWidth,finalHeight);
         SDL_SetWindowFullscreen(window, isFullscreen ? 0 : SDL_WINDOW_FULLSCREEN);
         SDL_GetCurrentDisplayMode(0,&displayMode);
-        glViewport((oldWidth-finalWidth)/2-1, 0, finalWidth, finalHeight);
+        
+        int32_t xOffset = (oldWidth-finalWidth)/2;
+        if(xOffset > 0)
+            xOffset -= 1;
+        
+        glViewport(xOffset, 0, finalWidth, finalHeight);
         SDL_ShowCursor(false);
     }
 }

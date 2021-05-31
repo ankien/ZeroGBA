@@ -48,7 +48,7 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
     // Some IO regs have special behavior, this is how I handle them
     if(addressSection == 0x04) {
         constexpr uint8_t offset = sizeof(T) - 1;
-        uint8_t ioAddress = address & 0xFFF;
+        uint16_t ioAddress = address & 0xFFF;
 
         // Affine BG reference point regs
         if(ioAddress < 0x40 && ioAddress > 0x27 - offset) {

@@ -25,12 +25,12 @@ struct Scheduler {
     uint32_t cyclesPassedSinceLastFrame = 0;
 
     void addEventToBack(std::function<uint32_t()>,uint32_t, bool);
-    // for interrupts and events that don't have a schedule
-    void scheduleInterruptCheck(std::function<uint32_t()>,uint32_t);
+    // for interrupts and events that don't have a schedule, places event after current front
+    void scheduleInterruptCheck(std::function<uint32_t()>);
 
     // takes the return value of an event fuction and reschedules it
     // only use for events that should be rescheduled!
-    void rescheduleFront(uint32_t);
+    void rescheduleEvent(const std::list<Event>::iterator&,uint32_t); // executes then pops or reschedules the front event
     void step();
     void resetEventList();
 };
@@ -39,33 +39,37 @@ inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint32_t c
     eventList.emplace_back(func,cycleTimeStamp,reschedule);
 }
 
-inline void Scheduler::scheduleInterruptCheck(std::function<uint32_t()> func, uint32_t cycleTimeStamp) {
-    eventList.emplace_front(func,cycleTimeStamp,0);
-    eventList.splice(std::next(eventList.begin(),2),eventList,eventList.begin());
+inline void Scheduler::scheduleInterruptCheck(std::function<uint32_t()> func) {
+    eventList.emplace_front(func,0,false);
 }
 // todo: ask about and optimize this bihh, rescheduling seems slow for some reason
-inline void Scheduler::rescheduleFront(uint32_t cycleTimeStamp) {
-    uint32_t processRescheduledTime = eventList.front().timestamp + cycleTimeStamp;
+inline void Scheduler::rescheduleEvent(const std::list<Event>::iterator& currEvent, uint32_t cycleTimeStamp) {
+    uint32_t processRescheduledTime = currEvent->timestamp + cycleTimeStamp;
     
     if(processRescheduledTime <= 280896) {
-        for(auto it = std::next(eventList.begin(),1); it != eventList.end(); ++it) {
+        for(auto it = currEvent; it != eventList.end(); ++it) {
             if(processRescheduledTime <= it->timestamp) {
-                eventList.front().timestamp = processRescheduledTime;
-                eventList.splice(it,eventList,eventList.begin());
+                currEvent->timestamp = processRescheduledTime;
+                eventList.splice(it,eventList,currEvent); // move currEvent to "it"
                 return;
             }
         }
     } else
-        eventList.pop_front(); // else don't reschedule
+        eventList.erase(currEvent); // else don't reschedule
 }
 inline void Scheduler::step() {
-    if(cyclesPassedSinceLastFrame >= eventList.front().timestamp) {
-        if(eventList.front().shouldBeRescheduled)
-            rescheduleFront(eventList.front().process());
+    const auto front = eventList.begin();
+    if(cyclesPassedSinceLastFrame >= front->timestamp) {
+        if(front->shouldBeRescheduled)
+            rescheduleEvent(front,front->process());
         else {
-            eventList.front().process();
-            eventList.pop_front();
+            front->process();
+            eventList.erase(front);
         }
+
+        // check if there's another event we can step through
+        if(cyclesPassedSinceLastFrame >= eventList.front().timestamp)
+            step();
     }
 }
 inline void Scheduler::resetEventList() {
