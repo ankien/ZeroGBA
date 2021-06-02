@@ -345,7 +345,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
             for(int8_t priority = 3; priority >= 0; priority--) {
                 
                 // bgs
-                for(int8_t bg = 3, i = 0b1; bg >= 0; bg--, i << 1) {
+                for(int8_t bg = 3, i = 0b1000; bg >= 0; bg--, i >>= 1) {
                     if(enableList & i) {
                         if((*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]) & 0x3) == priority) {
                             if(bgLayer[bg][x] == 0)

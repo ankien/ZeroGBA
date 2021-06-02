@@ -7,9 +7,11 @@
 
 struct Scheduler {
 
+    enum immediateEventTypes {Interrupt,HaltCheck};
+
     struct Event {
 
-        std::function<uint32_t()> process;
+        std::function<uint32_t()> process; // the return valur for processes are the type of event (non-rescheduable) or the timestamp cycle delta (rescheduable)
         uint32_t timestamp;
         bool shouldBeRescheduled;
         
@@ -24,8 +26,9 @@ struct Scheduler {
     std::list<Event> eventList;
     uint32_t cyclesPassedSinceLastFrame = 0;
 
+    void addEventToFront(std::function<uint32_t()>,uint32_t, bool);
     void addEventToBack(std::function<uint32_t()>,uint32_t, bool);
-    // for interrupts and events that don't have a schedule, places event after current front
+    // for interrupts and events that don't have a schedule, places event at front
     void scheduleInterruptCheck(std::function<uint32_t()>);
 
     // takes the return value of an event fuction and reschedules it
@@ -34,6 +37,10 @@ struct Scheduler {
     void step();
     void resetEventList();
 };
+
+inline void Scheduler::addEventToFront(std::function<uint32_t()> func, uint32_t cycleTimeStamp, bool reschedule) {
+    eventList.emplace_front(func,cycleTimeStamp,reschedule);
+}
 
 inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint32_t cycleTimeStamp, bool reschedule) {
     eventList.emplace_back(func,cycleTimeStamp,reschedule);
@@ -63,8 +70,8 @@ inline void Scheduler::step() {
         if(front->shouldBeRescheduled)
             rescheduleEvent(front,front->process());
         else {
-            front->process();
-            eventList.erase(front);
+            if(front->process() == Interrupt)
+                eventList.erase(front);
         }
 
         // check if there's another event we can step through

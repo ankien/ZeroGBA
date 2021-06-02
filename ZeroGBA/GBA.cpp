@@ -109,10 +109,11 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
-                if(arm7tdmi.cpuState.r[15] == 0x080005FE)
+                if(instrCount == 209730)
                     printf("weewee");
                 #endif
 
+                // todo: buffer this output or use MIO so we don't destroy our hdd with a billion calls
                 #if defined(TRACE)
                 if(traceAmount < TRACE) {
                     for(uint8_t j = 0; j < 16; j++) {

@@ -69,7 +69,7 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         }
 
         // DMA regs
-        if(ioAddress < 0xE0 && ioAddress > 0xA8 - offset) {
+        else if(ioAddress < 0xE0 && ioAddress > 0xA9 - offset) {
             uint8_t channel;
 
             if(address < 0x40000BC)
@@ -104,7 +104,7 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         }
         
         // Interrupt regs
-        else if(ioAddress < 0x400 && ioAddress > 0x12B - offset) {
+        else if(ioAddress < 0x20A && ioAddress > 0x1FF - offset) {
             // if writing to IE or IME
             // todo: check if I also need to check for interrupts when respective hardware register IRQ bits are written to
             if(address >= 0x4000200 - offset && address < 0x4000202 || address >= 0x4000208 - offset && address <= 0x4000208) { // respective bit range for IO regs
@@ -118,6 +118,16 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
                 memoryArray<uint16_t>(0x4000202) = oldIF & ~memoryArray<uint16_t>(0x4000202);
                 return 0x0;
             }
+        }
+
+        // HALTCNT reg
+        else if(ioAddress < 0x302 && ioAddress > 0x300 - offset) {
+            // writing 0 here switches the GBA into power saving mode until the next interrupt (no instructions executed)
+            // schedule an event that skips to the next event and reschedules itself after the current front until (IE & IF) != 0
+            memoryArray<T>(address) = value;
+            if((memoryArray<uint8_t>(0x4000301) & 0x80) == 0)
+                interrupts->scheduleHaltCheck();
+            return 0x0;
         }
         
         return *reinterpret_cast<const uint32_t*>(&writeMask[ioAddress]);
