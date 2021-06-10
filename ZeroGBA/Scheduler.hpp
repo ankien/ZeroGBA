@@ -7,16 +7,18 @@
 
 struct Scheduler {
 
-    enum immediateEventTypes {Interrupt,HaltCheck};
+    enum EventTypes {Timer0,Timer1,Timer2,Timer3,GenericRescheduable,Interrupt,HaltCheck};
 
     struct Event {
 
-        std::function<uint32_t()> process; // the return valur for processes are the type of event (non-rescheduable) or the timestamp cycle delta (rescheduable)
+        std::function<uint32_t()> process; // the return value for processes is the timestamp cycle delta (how many cycles it takes for the next occurrence, if there is one)
+        uint8_t eventType;
         uint32_t timestamp;
         bool shouldBeRescheduled;
         
-        Event(std::function<uint32_t()> newProcess,uint32_t processCycles,bool reschedule) {
+        Event(std::function<uint32_t()> newProcess,uint8_t newEventType,uint32_t processCycles,bool reschedule) {
             process = newProcess;
+            eventType = newEventType;
             timestamp = processCycles;
             shouldBeRescheduled = reschedule;
         }
@@ -26,10 +28,9 @@ struct Scheduler {
     std::list<Event> eventList;
     uint32_t cyclesPassedSinceLastFrame = 0;
 
-    void addEventToFront(std::function<uint32_t()>,uint32_t, bool);
-    void addEventToBack(std::function<uint32_t()>,uint32_t, bool);
-    // for interrupts and events that don't have a schedule, places event at front
-    void scheduleInterruptCheck(std::function<uint32_t()>);
+    void scheduleEvent(std::function<uint32_t()>,uint8_t,uint32_t,bool); // inserts before event with higher timestamp
+    void addEventToFront(std::function<uint32_t()>,uint8_t,uint32_t, bool);
+    void addEventToBack(std::function<uint32_t()>,uint8_t,uint32_t, bool);
 
     // takes the return value of an event fuction and reschedules it
     // only use for events that should be rescheduled!
@@ -38,26 +39,38 @@ struct Scheduler {
     void resetEventList();
 };
 
-inline void Scheduler::addEventToFront(std::function<uint32_t()> func, uint32_t cycleTimeStamp, bool reschedule) {
-    eventList.emplace_front(func,cycleTimeStamp,reschedule);
+inline void Scheduler::scheduleEvent(std::function<uint32_t()> func, uint8_t eventType, uint32_t cycleTimeStamp, bool reschedule) {
+    for(auto it = eventList.begin(); it != eventList.end(); ++it) {
+            if(cycleTimeStamp <= it->timestamp) {
+                eventList.emplace(it,func,eventType,cycleTimeStamp,reschedule); // move currEvent to "it"
+                return;
+            }
+    }
 }
 
-inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint32_t cycleTimeStamp, bool reschedule) {
-    eventList.emplace_back(func,cycleTimeStamp,reschedule);
+inline void Scheduler::addEventToFront(std::function<uint32_t()> func, uint8_t eventType, uint32_t cycleTimeStamp, bool reschedule) {
+    eventList.emplace_front(func,eventType,cycleTimeStamp,reschedule);
 }
 
-inline void Scheduler::scheduleInterruptCheck(std::function<uint32_t()> func) {
-    eventList.emplace_front(func,0,false);
+inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint8_t eventType, uint32_t cycleTimeStamp, bool reschedule) {
+    eventList.emplace_back(func,eventType,cycleTimeStamp,reschedule);
 }
-// todo: ask about and optimize this bihh, rescheduling seems slow for some reason
+
+// todo: optimize this bitch
 inline void Scheduler::rescheduleEvent(const std::list<Event>::iterator& currEvent, uint32_t cycleTimeStamp) {
     uint32_t processRescheduledTime = currEvent->timestamp + cycleTimeStamp;
     
     if(processRescheduledTime <= 280896) {
+        const auto initialPos = currEvent;
         for(auto it = currEvent; it != eventList.end(); ++it) {
             if(processRescheduledTime <= it->timestamp) {
-                currEvent->timestamp = processRescheduledTime;
-                eventList.splice(it,eventList,currEvent); // move currEvent to "it"
+                // If we don't need to move the event, just increment the timestamp
+                if(initialPos == it)
+                    currEvent->timestamp = processRescheduledTime;
+                else {
+                    currEvent->timestamp = processRescheduledTime;
+                    eventList.splice(it,eventList,currEvent); // move currEvent to "it"
+                }
                 return;
             }
         }
@@ -70,7 +83,9 @@ inline void Scheduler::step() {
         if(front->shouldBeRescheduled)
             rescheduleEvent(front,front->process());
         else {
-            if(front->process() == Interrupt)
+            uint8_t eventType = front->eventType;
+            front->process();
+            if(eventType != HaltCheck)
                 eventList.erase(front);
         }
 

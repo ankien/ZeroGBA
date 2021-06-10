@@ -46,7 +46,7 @@ struct GBA {
 
     // Scheduler events
     const std::function<uint32_t()> postFrame = [&]() {
-        scheduler.cyclesPassedSinceLastFrame -= 280896;
+        scheduler.cyclesPassedSinceLastFrame = 0;
         systemMemory->IORegisters[4] &= 0xFE; // turn off vblank
         scheduler.resetEventList();
 

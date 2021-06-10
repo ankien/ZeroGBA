@@ -46,6 +46,8 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         return 0x0;
     
     // Some IO regs have special behavior, this is how I handle them
+    // Gotta keep in mind that this approach might not work if the MMIO fields overlap
+    // Also, word stores/reads are never unaligned
     if(addressSection == 0x04) {
         constexpr uint8_t offset = sizeof(T) - 1;
         uint16_t ioAddress = address & 0xFFF;
@@ -102,6 +104,40 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
 
             return 0x0;
         }
+
+        // Timer control regs
+        else if(ioAddress < 0x10F && ioAddress > 0x101 - offset) {
+            // a rescheduable timer event (ticking) is added to the scheduler when a timer is enabled (when disabled), and removed when disabled or cascaded
+            // if the timer cascading bit is modified while a timer is enabled, timer stops (or starts) immediately
+            uint8_t timerId;
+            if(ioAddress < 0x102)
+                timerId = 0;
+            else if(ioAddress < 0x106)
+                timerId = 1;
+            else if(ioAddress < 0x10A)
+                timerId = 2;
+            else
+                timerId = 3;
+
+            const uint32_t controlAddress = 0x4000102 + 4*timerId;
+
+            bool oldTimerEnable = memoryArray<uint8_t>(controlAddress) & 0x80;
+            bool oldTimerCascade = memoryArray<uint8_t>(controlAddress) & 0x4;
+
+            memoryArray<T>(address) = value;
+
+            bool newTimerEnable = memoryArray<uint8_t>(controlAddress) & 0x80;
+            bool newTimerCascade = memoryArray<uint8_t>(controlAddress) & 0x4;
+            const uint8_t prescalerSelection = memoryArray<uint8_t>(controlAddress) & 0x3;
+            if(newTimerEnable && !oldTimerEnable) {
+                internalTimer[timerId] = memoryArray<uint16_t>(controlAddress-2);
+                uint8_t shiftAmount = prescalerSelection > 0 ? 1 << prescalerSelection*2 + 4 : 1;
+                interrupts->scheduleTimerStep(timerId,shiftAmount);
+            } else if(!newTimerEnable && oldTimerEnable || !oldTimerCascade && newTimerCascade)
+                    interrupts->removeTimerSteps(timerId);
+
+            return 0x0;
+        }
         
         // Interrupt regs
         else if(ioAddress < 0x20A && ioAddress > 0x1FF - offset) {
@@ -134,6 +170,38 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
     }
 
     return 0xFFFFFFFF;
+}
+inline uint32_t GBAMemory::readValue(uint32_t address) {
+    uint32_t value = memoryArray<uint32_t>(address);
+
+    // handle special MMIO reads
+    if(address >> 24 == 0x04) {
+        uint16_t ioAddress = address & 0xFFF;
+        
+        // Timer Reload regs
+        if(ioAddress < 0x10D && ioAddress > 0xFD) {
+            uint8_t timerId;
+            if(ioAddress < 0x102)
+                timerId = 0;
+            else if(ioAddress < 0x106)
+                timerId = 1;
+            else if(ioAddress < 0x10A)
+                timerId = 2;
+            else
+                timerId = 3;
+
+            uint16_t tempTimer;
+            const uint32_t reloadAddress = 0x4000100 + 4*timerId;
+            tempTimer = memoryArray<uint16_t>(reloadAddress);
+            memoryArray<uint16_t>(reloadAddress) = internalTimer[timerId];
+
+            value = memoryArray<uint32_t>(address);
+            
+            memoryArray<uint16_t>(reloadAddress) = tempTimer;
+        }
+    }
+
+    return value;
 }
 inline void GBAMemory::storeValue(uint8_t value, uint32_t address) {
     switch(address >> 24) {
@@ -175,15 +243,14 @@ inline uint8_t GBAMemory::readByte(uint32_t address) {
     uint8_t memType = getUnusedMemType(address);
     if(memType)
         return readUnusedMem(cpuState->state,memType);
-    return memoryArray<uint8_t>(address);
+    return readValue(address);
 }
 inline uint16_t GBAMemory::readHalfWord(uint32_t address) {
     uint8_t memType = getUnusedMemType(address);
     if(memType)
         return readUnusedMem(cpuState->state,memType);
-    //if(address >> 16 == 0xE00)
-        //return readByte(address) * 0x0101;
-    return memoryArray<uint16_t>(address & ~1);
+    address = address & ~1;
+    return readValue(address);
 }
 inline uint32_t GBAMemory::readHalfWordRotate(uint32_t address) {
     uint8_t rorAmount = (address & 1) << 3;
@@ -193,9 +260,8 @@ inline uint32_t GBAMemory::readWord(uint32_t address) {
     uint8_t memType = getUnusedMemType(address);
     if(memType)
         return readUnusedMem(cpuState->state,memType);
-    //if(address >> 16 == 0xE00)
-        //return readByte(address) * 0x01010101;
-    return memoryArray<uint32_t>(address & ~3);
+    address = address & ~3;
+    return readValue(address);
 }
 inline uint32_t GBAMemory::readWordRotate(uint32_t address) {
     uint8_t rorAmount = (address & 3) << 3;

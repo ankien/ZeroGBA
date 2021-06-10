@@ -10,7 +10,7 @@
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
 // file-based trace, select # of instructions you want to trace from boot, prints to log.txt
-//#define TRACE 1000000
+//#define TRACE 500000
 
 struct GBAMemory {
 
@@ -45,6 +45,7 @@ struct GBAMemory {
     uint32_t ignore;
     template<typename T> T& memoryArray(uint32_t); // address is aligned by bytes for all types
     template<typename T> uint32_t writeable(uint32_t, T);
+    uint32_t readValue(uint32_t);
     void storeValue(uint8_t, uint32_t);
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);
@@ -78,7 +79,7 @@ struct GBAMemory {
 
     /// Timer stuff ///
     uint16_t internalTimer[4]{};
-    void onOverflow(uint8_t);
+    // for this function, uint8_t arg denotes channel #
 };
 
 #include "memoryHelpers.inl"

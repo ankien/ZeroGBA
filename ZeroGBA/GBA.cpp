@@ -23,6 +23,7 @@ GBA::GBA() {
     interrupts.scheduler = &scheduler;
     interrupts.cpuState = &arm7tdmi.cpuState;
     interrupts.IORegisters = systemMemory->IORegisters;
+    interrupts.internalTimer = systemMemory->internalTimer;
 
     // LCD init
     lcd.systemMemory = systemMemory;
@@ -36,10 +37,10 @@ GBA::GBA() {
 
     // Initialize scheduler events
     scheduler.initialEventList = {
-        {startHBlank,960,1},
-        {endHBlank,1232,1},
-        {startVBlank,197120,1},
-        {postFrame,280896,1}
+        {startHBlank,Scheduler::GenericRescheduable,960,1},
+        {endHBlank,Scheduler::GenericRescheduable,1232,1},
+        {startVBlank,Scheduler::GenericRescheduable,197120,1},
+        {postFrame,Scheduler::GenericRescheduable,280896,1}
     };
     scheduler.resetEventList();
 }
@@ -109,7 +110,7 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
-                if(instrCount == 209730)
+                if(instrCount == 95)
                     printf("weewee");
                 #endif
 
@@ -131,7 +132,6 @@ void GBA::run(char* fileName) {
                 #endif
 
                 // todo: make it so that we don't have to check what state we're in every instruction and alignment
-                // also todo: implement cpu halt mode (swi 0x20) for performance
                 if(arm7tdmi.cpuState.state)
                     interpretTHUMB();
                 else

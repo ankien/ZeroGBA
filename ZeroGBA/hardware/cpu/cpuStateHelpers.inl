@@ -23,6 +23,11 @@ inline void CPUState::setCPSR(uint32_t num) {
     signFlag = (num & 0x80000000) >> 31;
 }
 inline void CPUState::switchMode(uint8_t newMode) {
+
+    // because this can happen in an msr apparently
+    if(newMode == mode)
+        return;
+
     // bank current regs
     switch(mode) {
         case User:
@@ -197,8 +202,14 @@ inline void CPUState::setSPSR(uint8_t mode,uint32_t arg) {
 }
 
 inline void CPUState::handleException(uint8_t exception, int8_t nn, uint8_t newMode) {
-    setBankedReg(newMode,1,r[15]+nn); // save old PC
-    setBankedReg(newMode,'S',getCPSR()); // save old CPSR
+    if(newMode != mode) {
+        setBankedReg(newMode,1,r[15]+nn); // save old PC
+        setBankedReg(newMode,'S',getCPSR()); // save old CPSR
+    } else {
+        // just set the current registers
+        setReg(14,r[15]+nn); // don't need to set banked LR since nothing can read that anyways
+        setBankedReg(newMode,'S',getCPSR()); // don't need to set current CPSR, duh
+    }
     switchMode(newMode); // switch mode
     // new bits!
     mode = newMode;
