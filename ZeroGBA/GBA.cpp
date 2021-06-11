@@ -13,7 +13,7 @@ GBA::GBA() {
     arm7tdmi.cpuState.mode = 0x1F;
     arm7tdmi.cpuState.stateRelativeToBios = &systemMemory->stateRelativeToBios;
 
-    // Skip BIOS (for debugging)
+    // Skip BIOS
     arm7tdmi.cpuState.r[15] = 0x8000000;
     arm7tdmi.cpuState.r[13] = 0x3007F00;
     arm7tdmi.cpuState.setBankedReg(IRQ,0,0x3007FA0);

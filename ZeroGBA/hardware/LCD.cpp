@@ -303,8 +303,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     // composite a scanline from lowest priority windows (and within those, OBJs and BGs) to highest
     for(uint8_t x = 0; x < 240; x++) {
         
-        // backdrop color, rendered with no windows or BGs
-        uint16_t currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
+        uint16_t currPixelColor;
 
         // draw each window starting from the lowest priority one
         // Order: outside, obj, win1, win0
@@ -313,30 +312,35 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
             // set the bg enable list: OBJ (4), BG0-3 (0-3)
             if(windowList[window] == WIN0) {
                 if(win0Display && win0x1 <= x && x < win0x2 && win0YVisible) {
+                    currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
                     enableList = win0List;
                     specialEffects = win0Effects;
                 } else
                     continue;
             } else if(windowList[window] == WIN1) {
                 if(win1Display && win1x1 <= x && x < win1x2 && win1YVisible) {
+                    currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
                     enableList = win1List;
                     specialEffects = win1Effects;
                 } else
                     continue;
             } else if(windowList[window] == OBJ_WIN) {
                 if(objDisplay && spriteLayer[x].window) {
+                    currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
                     enableList = objList;
                     specialEffects = objEffects;
                 } else
                     continue;
             } else if(windowList[window] == WINOUT) { // WINOUT
                 if(win0Display || win1Display || objDisplay) {
+                    currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
                     enableList = outList;
                     specialEffects = outEffects;
                 } else
                     continue;
             } else {
-                // even with no windows, BGs are shown
+                currPixelColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
+                // even with no windows, BGs are shown    
                 enableList = (dispcnt & 0x1F00) >> 8;
                 specialEffects = true;
             }

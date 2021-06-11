@@ -56,7 +56,7 @@ inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint8_t ev
     eventList.emplace_back(func,eventType,cycleTimeStamp,reschedule);
 }
 
-// todo: optimize this bitch
+// todo: optimize this bitch, maybe make a custom linked list w/ arena allocator for cache friendliness?
 inline void Scheduler::rescheduleEvent(const std::list<Event>::iterator& currEvent, uint32_t cycleTimeStamp) {
     uint32_t processRescheduledTime = currEvent->timestamp + cycleTimeStamp;
     

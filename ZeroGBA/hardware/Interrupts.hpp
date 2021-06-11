@@ -67,19 +67,23 @@ inline void Interrupts::scheduleTimerStep(uint8_t timerId,uint32_t cycleTimestam
     // when a timer overflows, start at the current reload value
     // raise interrupt check on overflow if enabled
     scheduler->scheduleEvent([=]() mutable {
+        uint8_t initialTimerId = timerId;
         while(!(++internalTimer[timerId])) {
-            const uint8_t timerControlLo = IORegisters[0x102 + 4*timerId];
+            uint16_t controlAddress = 0x102 + 4*timerId;
+            const uint8_t timerControlLo = IORegisters[controlAddress];
             
             if(timerControlLo & 0x40) {
                 IORegisters[0x202] |= 1<<3+timerId;
                 scheduleInterruptCheck();
             }
+
+            internalTimer[timerId] = *reinterpret_cast<uint16_t*>(&IORegisters[controlAddress - 2]);
             
             if(timerId < 3)
                 if(IORegisters[0x102 + 4*(timerId+1)] & 0x84) // if i+1 is cascading and enabled
                     timerId++;
-            
         }
+        timerId = initialTimerId;
         return cycleTimestamp; // where cycleTimeStamp is the number of cycles it takes for this timer to tick
     },Scheduler::Timer0+timerId,scheduler->cyclesPassedSinceLastFrame+cycleTimestamp,true);
 }
