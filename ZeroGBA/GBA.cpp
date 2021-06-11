@@ -15,7 +15,7 @@ GBA::GBA() {
 
     // Skip BIOS (for debugging)
     arm7tdmi.cpuState.r[15] = 0x8000000;
-    arm7tdmi.cpuState.setReg(13,0x3007F00);
+    arm7tdmi.cpuState.r[13] = 0x3007F00;
     arm7tdmi.cpuState.setBankedReg(IRQ,0,0x3007FA0);
     arm7tdmi.cpuState.setBankedReg(Supervisor,0,0x3007FE0);
 
@@ -36,13 +36,12 @@ GBA::GBA() {
     systemMemory->IORegisters[0x131] = 3;
 
     // Initialize scheduler events
-    scheduler.initialEventList = {
+    scheduler.eventList = {
         {startHBlank,Scheduler::GenericRescheduable,960,1},
         {endHBlank,Scheduler::GenericRescheduable,1232,1},
         {startVBlank,Scheduler::GenericRescheduable,197120,1},
         {postFrame,Scheduler::GenericRescheduable,280896,1}
     };
-    scheduler.resetEventList();
 }
 
 // todo: DMA channels, audio channels, PPU, and timers
@@ -110,7 +109,7 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
-                if(instrCount == 95)
+                if(instrCount == 478052)
                     printf("weewee");
                 #endif
 
@@ -139,6 +138,8 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 instrCount++;
+                if(scheduler.cyclesPassedSinceLastFrame == 280896)
+                    printf("fug");
                 #endif
 
 

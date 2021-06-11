@@ -37,8 +37,11 @@ struct CPUState {
     void switchMode(uint8_t);
     uint32_t getBankedReg(uint8_t, uint8_t);
     void setBankedReg(uint8_t, uint8_t, uint32_t);
+    
+    // todo: remove these eventually since they might be arbitrary...
     uint32_t getReg(uint8_t);
     void setReg(uint8_t, uint32_t);
+
     uint32_t getSPSR(uint8_t);
     void setSPSR(uint8_t,uint32_t);
 

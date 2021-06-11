@@ -1045,18 +1045,16 @@ void ARM7TDMI::THUMBloadStoreRegOffset(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load Store Reg Offset=",cpuState.r[15]);
     #endif
-    uint32_t rd = instruction & 0x7;
+    uint8_t rd = instruction & 0x7;
     uint32_t rb = cpuState.getReg((instruction & 0x38) >> 3);
     uint32_t ro = cpuState.getReg((instruction & 0x1C0) >> 6);
 
     switch(instruction & 0xC00) {
         case 0x000: // STR
-            rd = cpuState.getReg(rd);
-            systemMemory->storeValue(rd,rb+ro);
+            systemMemory->storeValue(cpuState.getReg(rd),rb+ro);
             break;
         case 0x400: // STRB
-            rd = cpuState.getReg(rd);
-            systemMemory->storeValue(*reinterpret_cast<uint8_t*>(&rd),rb+ro);
+            systemMemory->storeValue(static_cast<uint8_t>(cpuState.getReg(rd)),rb+ro);
             break;
         case 0x800: // LDR
             cpuState.setReg(rd,systemMemory->readWordRotate(rb+ro));
@@ -1072,14 +1070,13 @@ void ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword(uint16_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Load Store Sign Extended Byte/Halfword=",cpuState.r[15]);
     #endif
-    uint32_t rd = instruction & 0x7;
+    uint8_t rd = instruction & 0x7;
     uint32_t rb = cpuState.getReg((instruction & 0x38) >> 3);
     uint32_t ro = cpuState.getReg((instruction & 0x1C0) >> 6);
 
     switch(instruction & 0xC00) {
         case 0x000: // STRH
-            rd = cpuState.getReg(rd);
-            systemMemory->storeValue(*reinterpret_cast<uint16_t*>(&rd),rb+ro);
+            systemMemory->storeValue(static_cast<uint16_t>(cpuState.getReg(rd)),rb+ro);
             break;
         case 0x400: // LDSB
             cpuState.setReg(rd,static_cast<int8_t>(systemMemory->readByte(rb+ro)));

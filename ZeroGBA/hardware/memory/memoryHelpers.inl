@@ -110,11 +110,11 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
             // a rescheduable timer event (ticking) is added to the scheduler when a timer is enabled (when disabled), and removed when disabled or cascaded
             // if the timer cascading bit is modified while a timer is enabled, timer stops (or starts) immediately
             uint8_t timerId;
-            if(ioAddress < 0x102)
+            if(ioAddress < 0x104)
                 timerId = 0;
-            else if(ioAddress < 0x106)
+            else if(ioAddress < 0x108)
                 timerId = 1;
-            else if(ioAddress < 0x10A)
+            else if(ioAddress < 0x10C)
                 timerId = 2;
             else
                 timerId = 3;
@@ -129,12 +129,19 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
             bool newTimerEnable = memoryArray<uint8_t>(controlAddress) & 0x80;
             bool newTimerCascade = memoryArray<uint8_t>(controlAddress) & 0x4;
             const uint8_t prescalerSelection = memoryArray<uint8_t>(controlAddress) & 0x3;
-            if(newTimerEnable && !oldTimerEnable) {
-                internalTimer[timerId] = memoryArray<uint16_t>(controlAddress-2);
-                uint8_t shiftAmount = prescalerSelection > 0 ? 1 << prescalerSelection*2 + 4 : 1;
-                interrupts->scheduleTimerStep(timerId,shiftAmount);
-            } else if(!newTimerEnable && oldTimerEnable || !oldTimerCascade && newTimerCascade)
+            if(newTimerEnable) {
+                if(newTimerCascade)
                     interrupts->removeTimerSteps(timerId);
+                else if(!oldTimerEnable || oldTimerCascade) { // if enabled or no longer cascade
+                    if(!oldTimerEnable)
+                        internalTimer[timerId] = memoryArray<uint16_t>(controlAddress-2);
+                    uint16_t shiftAmount = prescalerSelection > 0 ? 1 << prescalerSelection*2 + 4 : 1;
+                    interrupts->scheduleTimerStep(timerId,shiftAmount);
+                }
+            } else if(oldTimerEnable) { // if disabled
+                internalTimer[timerId] = 0;
+                interrupts->removeTimerSteps(timerId);
+            }
 
             return 0x0;
         }

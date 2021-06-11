@@ -48,7 +48,7 @@ struct GBA {
     const std::function<uint32_t()> postFrame = [&]() {
         scheduler.cyclesPassedSinceLastFrame = 0;
         systemMemory->IORegisters[4] &= 0xFE; // turn off vblank
-        scheduler.resetEventList();
+        scheduler.addEventToFront([&]() {scheduler.resetEventList(); return 0;},Scheduler::Interrupt,0,false);
 
         // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
         keypad.pollInputs();
@@ -109,6 +109,6 @@ struct GBA {
             interrupts.scheduleInterruptCheck();
         }
         systemMemory->delayedDma<0x1000>();
-        return 197120;
+        return 280896;
     };
 };

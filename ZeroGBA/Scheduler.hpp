@@ -24,7 +24,7 @@ struct Scheduler {
         }
     };
 
-    std::vector<Event> initialEventList; // to store reschedulable events (HBlank start/end, etc.)
+    std::list<Event> nextFrameQueue;
     std::list<Event> eventList;
     uint32_t cyclesPassedSinceLastFrame = 0;
 
@@ -42,7 +42,7 @@ struct Scheduler {
 inline void Scheduler::scheduleEvent(std::function<uint32_t()> func, uint8_t eventType, uint32_t cycleTimeStamp, bool reschedule) {
     for(auto it = eventList.begin(); it != eventList.end(); ++it) {
             if(cycleTimeStamp <= it->timestamp) {
-                eventList.emplace(it,func,eventType,cycleTimeStamp,reschedule); // move currEvent to "it"
+                eventList.emplace(it,func,eventType,cycleTimeStamp%280896,reschedule); // move currEvent to "it"
                 return;
             }
     }
@@ -61,11 +61,11 @@ inline void Scheduler::rescheduleEvent(const std::list<Event>::iterator& currEve
     uint32_t processRescheduledTime = currEvent->timestamp + cycleTimeStamp;
     
     if(processRescheduledTime <= 280896) {
-        const auto initialPos = currEvent;
         for(auto it = currEvent; it != eventList.end(); ++it) {
             if(processRescheduledTime <= it->timestamp) {
                 // If we don't need to move the event, just increment the timestamp
-                if(initialPos == it)
+                auto itCopy = it;
+                if(--itCopy == currEvent)
                     currEvent->timestamp = processRescheduledTime;
                 else {
                     currEvent->timestamp = processRescheduledTime;
@@ -74,8 +74,10 @@ inline void Scheduler::rescheduleEvent(const std::list<Event>::iterator& currEve
                 return;
             }
         }
-    } else
-        eventList.erase(currEvent); // else don't reschedule
+    } else {
+        currEvent->timestamp = processRescheduledTime - 280896;
+        nextFrameQueue.splice(nextFrameQueue.end(),eventList,currEvent);
+    }
 }
 inline void Scheduler::step() {
     const auto front = eventList.begin();
@@ -95,6 +97,6 @@ inline void Scheduler::step() {
     }
 }
 inline void Scheduler::resetEventList() {
-    for(Event const& e : initialEventList)
-        eventList.emplace_back(e);
+    nextFrameQueue.sort([](const Event& a, const Event& b) { return a.timestamp < b.timestamp; });
+    eventList.splice(eventList.begin(),nextFrameQueue);
 }

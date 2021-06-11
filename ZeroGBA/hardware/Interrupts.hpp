@@ -66,7 +66,7 @@ inline void Interrupts::scheduleTimerStep(uint8_t timerId,uint32_t cycleTimestam
     // tick the timer, if it has overflowed, repeat with (i+1) if that is cascading
     // when a timer overflows, start at the current reload value
     // raise interrupt check on overflow if enabled
-    scheduler->scheduleEvent([&]() {
+    scheduler->scheduleEvent([=]() mutable {
         while(!(++internalTimer[timerId])) {
             const uint8_t timerControlLo = IORegisters[0x102 + 4*timerId];
             
@@ -76,7 +76,7 @@ inline void Interrupts::scheduleTimerStep(uint8_t timerId,uint32_t cycleTimestam
             }
             
             if(timerId < 3)
-                if(IORegisters[0x102 + 4*(timerId+1)] & 0x4)
+                if(IORegisters[0x102 + 4*(timerId+1)] & 0x84) // if i+1 is cascading and enabled
                     timerId++;
             
         }
@@ -84,7 +84,5 @@ inline void Interrupts::scheduleTimerStep(uint8_t timerId,uint32_t cycleTimestam
     },Scheduler::Timer0+timerId,scheduler->cyclesPassedSinceLastFrame+cycleTimestamp,true);
 }
 inline void Interrupts::removeTimerSteps(uint8_t timerId) {
-    for(auto it = scheduler->eventList.begin(); it != scheduler->eventList.end(); it++)
-        if(it->eventType == Scheduler::Timer0 + timerId)
-            scheduler->eventList.erase(it);
+    scheduler->eventList.remove_if([=](const Scheduler::Event& event) { return event.eventType == timerId; });
 }

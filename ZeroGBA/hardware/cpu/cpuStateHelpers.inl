@@ -207,7 +207,7 @@ inline void CPUState::handleException(uint8_t exception, int8_t nn, uint8_t newM
         setBankedReg(newMode,'S',getCPSR()); // save old CPSR
     } else {
         // just set the current registers
-        setReg(14,r[15]+nn); // don't need to set banked LR since nothing can read that anyways
+        r[14] = r[15]+nn; // don't need to set banked LR since nothing can read that anyways
         setBankedReg(newMode,'S',getCPSR()); // don't need to set current CPSR, duh
     }
     switchMode(newMode); // switch mode
