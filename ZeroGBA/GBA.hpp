@@ -11,7 +11,7 @@
 #include "hardware/Keypad.hpp"
 #include "Scheduler.hpp"
 
-#define DEBUG_VARS
+//#define DEBUG_VARS
 
 // todo: convert every struct into a namespaced "global" for better inlining
 // we only need one of each class anyways

@@ -109,8 +109,6 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
-                if(instrCount == 478052)
-                    printf("weewee");
                 #endif
 
                 // todo: buffer this output or use MIO so we don't destroy our hdd with a billion calls
@@ -138,8 +136,6 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 instrCount++;
-                if(scheduler.cyclesPassedSinceLastFrame == 280896)
-                    printf("fug");
                 #endif
 
 

@@ -14,12 +14,10 @@ inline void ARM7TDMI::fillARM() {
             armTable[i] = &ARM7TDMI::ARMundefinedInstruction; // undefined opcode
         else if((i & 0b110000000000) == 0b010000000000)
             armTable[i] = &ARM7TDMI::ARMsingleDataTransfer;
-        else if((i & 0b110110010000) == 0b000100000000)
-            armTable[i] = &ARM7TDMI::ARMpsrTransfer;
-        else if((i & 0b111100001111) == 0b000000001001)
-            armTable[i] = &ARM7TDMI::ARMmultiplyAndMultiplyAccumulate;
         else if((i & 0b111110111111) == 0b000100001001)
             armTable[i] = &ARM7TDMI::ARMswap;
+        else if((i & 0b111100001111) == 0b000000001001)
+            armTable[i] = &ARM7TDMI::ARMmultiplyAndMultiplyAccumulate;
         else if((i & 0b111000011111) == 0b000000001011)
             armTable[i] = &ARM7TDMI::ARMhdsDataSTRH;
         else if((i & 0b111000011111) == 0b000000011011)
@@ -28,6 +26,8 @@ inline void ARM7TDMI::fillARM() {
             armTable[i] = &ARM7TDMI::ARMhdsDataLDRSB;
         else if((i & 0b111000011111) == 0b000000011111)
             armTable[i] = &ARM7TDMI::ARMhdsDataLDRSH;
+        else if((i & 0b110110010000) == 0b000100000000)
+            armTable[i] = &ARM7TDMI::ARMpsrTransfer;
         else if((i & 0b110000000000) == 0b000000000000)
             armTable[i] = &ARM7TDMI::ARMdataProcessing;
         else
