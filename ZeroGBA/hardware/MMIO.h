@@ -17,7 +17,9 @@
 
 #define VCOUNT (systemMemory->IORegisters[6])
 
+#define WIN0V_Y2 (systemMemory->IORegisters[0x44])
 #define WIN0V_Y1 (systemMemory->IORegisters[0x45])
+#define WIN1V_Y2 (systemMemory->IORegisters[0x46])
 #define WIN1V_Y1 (systemMemory->IORegisters[0x47])
 
 /// Interrupt Control ///

@@ -135,7 +135,7 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
     uint16_t dispCnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0]);
     if((dispCnt & 0x1000) == 0)
         return;
-    uint8_t* charBlockBase = &systemMemory->vram[0x10000]; // todo: adjust this and below offset for bitmap modes (GBAtek VRAM overview)
+    uint8_t* charBlockBase = &systemMemory->vram[baseAddress]; // todo: implement sprites for bitmapped modes
 
     std::fill_n(spriteLayer,240,Sprite{});
 
@@ -284,8 +284,8 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     win0Display = dispcnt & 0x2000;
     win1Display = dispcnt & 0x4000;
     objDisplay = dispcnt & 0x8000;
-    win0YVisible = WIN0V_Y1 <= vcount;
-    win1YVisible = WIN1V_Y1 <= vcount;
+    win0YVisible = WIN0V_Y1 <= vcount && vcount < WIN0V_Y2;
+    win1YVisible = WIN1V_Y1 <= vcount && vcount < WIN1V_Y2;
     win0Effects = winin & 0x20;
     win1Effects = winin & 0x2000;
     outEffects = winout & 0x20;

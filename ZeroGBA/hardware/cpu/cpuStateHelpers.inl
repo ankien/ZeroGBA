@@ -1,3 +1,5 @@
+#pragma once
+
 inline uint32_t CPUState::getCPSR() {
     return mode |
            (state << 5) |

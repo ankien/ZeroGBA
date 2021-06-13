@@ -1,3 +1,5 @@
+#pragma once
+
 inline void ARM7TDMI::fillARM() {
     for(uint16_t i = 0; i < 4096; i++) {
         // harder to distinguish opcodes at the bottom

@@ -44,7 +44,6 @@ GBA::GBA() {
     };
 }
 
-// todo: DMA channels, audio channels, PPU, and timers
 void GBA::interpretARM() {
     uint32_t instruction = systemMemory->memoryArray<uint32_t>(arm7tdmi.cpuState.r[15]);
 

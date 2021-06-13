@@ -1,3 +1,5 @@
+#pragma once
+
 template<typename T>
 inline T& GBAMemory::memoryArray(uint32_t i) {
     switch(i >> 24) {
