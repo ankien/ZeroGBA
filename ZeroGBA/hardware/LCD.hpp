@@ -70,6 +70,7 @@ struct LCD {
     };
 
     // for compositing a scanline
+    enum bgTypes {BG0,BG1,BG2,BG3,OBJ,BD};
     enum windowTypes {NONE,WINOUT,OBJ_WIN,WIN1,WIN0};
     // [highest window type][window type]
     // a list of the lowest to highest priority windows given the highest priority one, -1 is skipped
@@ -88,6 +89,8 @@ struct LCD {
 
     // Take the BG and sprite layers and output them into pixelBuffer 
     // with priority and alpha blending
+    template<bool> uint16_t brightnessFade(uint8_t,uint16_t);
+    uint16_t blend(uint8_t,uint16_t,uint8_t,uint16_t);
     void composeScanline(uint16_t*,uint8_t);
 
     void renderScanline();

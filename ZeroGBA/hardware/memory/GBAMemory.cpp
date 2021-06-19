@@ -71,7 +71,7 @@ bool GBAMemory::loadRom(std::string rom) {
     // load ROM
     std::ifstream romStream(rom.c_str(), std::ifstream::in | std::ifstream::binary);
     uint32_t romSizeInBytes = std::filesystem::file_size(rom);
-    if(romSizeInBytes > 0x1FFFFFF) {
+    if(romSizeInBytes > 0x02000000) {
         printf("ROM size too large!\n");
         return 0;
     }

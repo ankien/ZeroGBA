@@ -25,7 +25,7 @@ struct GBAMemory {
     uint8_t pram[0x400];
     uint8_t vram[0x18000];
     uint8_t oam[0x400];
-    uint8_t gamePak[0x1000000];
+    uint8_t gamePak[0x2000000];
     uint8_t gPakSram[0x10000];
 
     // This is the "address that's returned when there's an unmapped read

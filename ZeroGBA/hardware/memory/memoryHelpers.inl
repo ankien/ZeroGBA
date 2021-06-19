@@ -322,6 +322,7 @@ inline void GBAMemory::dmaTransfer(uint8_t channel, uint16_t dmaCntH) {
     int8_t destIncrement = transferSize * destCtrlFactor;
     int8_t srcIncrement = transferSize * srcCtrlFactor;
 
+    // todo: implement DMA latch
     if(wordTransfer) {
         internalSrc[channel] &= ~3;
         internalDst[channel] &= ~3;

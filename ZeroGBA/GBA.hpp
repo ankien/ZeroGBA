@@ -13,9 +13,6 @@
 
 //#define DEBUG_VARS
 
-// todo: convert every struct into a namespaced "global" for better inlining
-// we only need one of each class anyways
-
 struct GBA {
 
     /// Hardware ///
