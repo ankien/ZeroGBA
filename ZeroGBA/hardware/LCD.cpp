@@ -39,7 +39,7 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     uint8_t* charBlockBase = &systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)]; // tile data
     uint16_t* screenBlockBase = reinterpret_cast<uint16_t*>(&systemMemory->vram[(((bgcnt & 0x1F00) >> 8) * 0x800)]); // tile map
     bool eightBppEnabled = bgcnt & 0x80;
-    bool mosaic = bgcnt & 0x40; // todo
+    // todo: implement mosaic
 
     uint16_t width, height;
     uint16_t bgcntSize = bgcnt & 0xC000;
@@ -97,11 +97,11 @@ void LCD::renderAffineBG(uint8_t bg) {
 
     // I don't check whether or not a non-2 or 3 bg uses this method, but I don't need to :-)
 
-    int32_t refX = systemMemory->internalRef[bg - 2].x;
-    int32_t refY = systemMemory->internalRef[bg - 2].y-1;
+    int32_t internalX = systemMemory->internalRef[bg - 2].x;
+    int32_t internalY = systemMemory->internalRef[bg - 2].y-1;
 
-    int16_t pa = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x10 * bg]);
-    int16_t pc = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[(0x10 * bg) + 0x4]);;
+    int16_t pa = *reinterpret_cast<int16_t*>(&systemMemory->IORegisters[0x10 * bg]);
+    int16_t pc = *reinterpret_cast<int16_t*>(&systemMemory->IORegisters[(0x10 * bg) + 0x4]);;
     
     uint8_t* currLayer = bgLayer[bg];
     uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]);
@@ -114,21 +114,21 @@ void LCD::renderAffineBG(uint8_t bg) {
     uint16_t bgSize = tileNum * 8; // in pixels
 
     for(uint8_t i = 0; i < 240; i++) {
-        int32_t intX = refX >> 8;
-        int32_t intY = refY >> 8;
+        uint32_t pixX = internalX >> 8;
+        uint32_t pixY = internalY >> 8;
 
-        refX += pa;
-        refY += pc;
+        internalX += pa;
+        internalY += pc;
 
         if(displayOverflow) {
-            intX %= bgSize;
-            intY %= bgSize;
-        } else if(intX >= bgSize || intY >= bgSize || intX < 0 || intY < 0)
+            pixX %= bgSize;
+            pixY %= bgSize;
+        } else if(pixX >= bgSize || pixY >= bgSize || pixX < 0 || pixY < 0)
             continue;
 
         // Affine BG screen entries are only 8 bits and only contain the TIDs
-        uint8_t tid = screenBlockBase[(intY/8)*tileNum + intX/8];
-        currLayer[i] = charBlockBase[tid * 0x40 + (intY % 8)*8 + intX%8];
+        uint8_t tid = screenBlockBase[(pixY/8)*tileNum + pixX/8];
+        currLayer[i] = charBlockBase[tid * 0x40 + (pixY % 8)*8 + pixX%8];
     }
 }
 void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
@@ -232,7 +232,10 @@ void LCD::renderSprites(uint32_t baseAddress, int16_t vcount) {
             if(oneDimensionMapping) // 1D VRAM mapping
                 tileRowOffset *= spriteWidth / 8;
             else // 2D VRAM mapping
-                tileRowOffset *= 0x20; // offset is always 32 regardless of bit-depth
+                if(eightBitColors)
+                    tileRowOffset *= 0x10;
+                else
+                    tileRowOffset *= 0x20;
             tileRowOffset += texX / 8;
 
             uint8_t paletteIndex = 0;
@@ -393,9 +396,6 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                 specialEffects = true;
             }
 
-            if(x == 38 && vcount == 38)
-                printf("fug");
-
             // iterate through bgs and sprite of this window in lowest to highest priority
             for(int8_t priority = 3; priority >= 0; priority--) {
                 
@@ -413,38 +413,31 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                             if(specialEffects) { // if blending enabled
                                 switch(colorSpecialEffect) {
                                     case 0x0: // none
-                                        topColor = newColor;
-                                        topNonTransparentBg = bg;
-                                        break;
+                                        goto opaqueBG;
                                     case 0x1: // alpha blending
                                         if(bldcntFirstTargets & (1<<bg) && bldcntSecondTargets & (1<<topNonTransparentBg)) {
                                             topColor = blend(eva,newColor,evb,topColor);
                                             topNonTransparentBg = bg;
-                                        } else {
-                                            topColor = newColor;
-                                            topNonTransparentBg = bg;
-                                        }
+                                        } else 
+                                            goto opaqueBG;
                                         break;
                                     case 0x2: // brightness increase
                                         if(bldcntFirstTargets & (1<<bg)) {
                                             topColor = brightnessFade<true>(evy,newColor);
                                             topNonTransparentBg = bg;
-                                        } else {
-                                            topColor = newColor;
-                                            topNonTransparentBg = bg;
-                                        }
+                                        } else
+                                            goto opaqueBG;
                                         break;
                                     case 0x3: // brightness decrease
                                         if(bldcntFirstTargets & (1<<bg)) {
                                             topColor = brightnessFade<false>(evy,newColor);
                                             topNonTransparentBg = bg;
-                                        } else {
-                                            topColor = newColor;
-                                            topNonTransparentBg = bg;
-                                        }
+                                        } else
+                                            goto opaqueBG;
                                         break;
                                 }
                             } else {
+                                opaqueBG:
                                 topColor = newColor;
                                 topNonTransparentBg = bg;
                             }
@@ -468,61 +461,49 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                                             if(bldcntFirstTargets & (1 << OBJ)) {
                                                 topColor = brightnessFade<true>(evy, newColor);
                                                 topNonTransparentBg = OBJ;
-                                            } else {
-                                                topColor = newColor;
-                                                topNonTransparentBg = OBJ;
-                                            }
+                                            } else
+                                                goto opaqueSprite;
                                             break;
                                         case 0x3: // brightness decrease
                                             if(bldcntFirstTargets & (1 << OBJ)) {
                                                 topColor = brightnessFade<false>(evy, newColor);
                                                 topNonTransparentBg = OBJ;
-                                            } else {
-                                                topColor = newColor;
-                                                topNonTransparentBg = OBJ;
-                                            }
+                                            } else
+                                                goto opaqueSprite;
                                             break;
                                         default:
-                                            topColor = newColor;
-                                            topNonTransparentBg = OBJ;
+                                            goto opaqueSprite;
                                     }
                                 }
                             } else {
                                 switch(colorSpecialEffect) {
                                     case 0x0: // none
-                                        topColor = newColor;
-                                        topNonTransparentBg = OBJ;
-                                        break;
+                                        goto opaqueSprite;
                                     case 0x1: // alpha blending
                                         if(bldcntFirstTargets & (1 << OBJ) && bldcntSecondTargets & (1 << topNonTransparentBg)) {
                                             topColor = blend(eva, newColor, evb, topColor);
                                             topNonTransparentBg = OBJ;
-                                        } else {
-                                            topColor = newColor;
-                                            topNonTransparentBg = OBJ;
-                                        }
+                                        } else
+                                            goto opaqueSprite;
                                         break;
                                     case 0x2: // brightness increase
                                         if(bldcntFirstTargets & (1 << OBJ)) {
                                             topColor = brightnessFade<true>(evy, newColor);
                                             topNonTransparentBg = OBJ;
-                                        } else {
-                                            topColor = newColor;
-                                            topNonTransparentBg = OBJ;
-                                        }
+                                        } else
+                                            goto opaqueSprite;
                                         break;
                                     case 0x3: // brightness decrease
                                         if(bldcntFirstTargets & (1 << OBJ)) {
                                             topColor = brightnessFade<false>(evy, newColor);
                                             topNonTransparentBg = OBJ;
-                                        } else {
-                                            topColor = newColor;
-                                            topNonTransparentBg = OBJ;
-                                        }
+                                        } else
+                                            goto opaqueSprite;
                                         break;
                                 }
                             }
                         } else {
+                            opaqueSprite:
                             topColor = newColor;
                             topNonTransparentBg = OBJ;
                         }

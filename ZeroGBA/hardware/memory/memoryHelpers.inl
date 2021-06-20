@@ -58,16 +58,16 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         if(ioAddress < 0x40 && ioAddress > 0x27 - offset) {
             memoryArray<T>(address) = value;
             if(ioAddress < 0x2C && ioAddress > 0x27 - offset)
-                internalRef[0].x = memoryArray<int32_t>(0x4000028);
+                internalRef[0].x = memoryArray<uint32_t>(0x4000028) & 0xFFFFFFF;
 
             if(ioAddress < 0x30 && ioAddress > 0x2B - offset)
-                internalRef[0].y = memoryArray<int32_t>(0x400002C);
+                internalRef[0].y = memoryArray<uint32_t>(0x400002C) & 0xFFFFFFF;
 
             if(ioAddress < 0x3C && ioAddress > 0x37 - offset) 
-                internalRef[1].x = memoryArray<int32_t>(0x4000038);
+                internalRef[1].x = memoryArray<uint32_t>(0x4000038) & 0xFFFFFFF;
 
             if(ioAddress < 0x40 && ioAddress > 0x3B - offset)
-                internalRef[1].y = memoryArray<int32_t>(0x400003C);
+                internalRef[1].y = memoryArray<uint32_t>(0x400003C) & 0xFFFFFFF;
 
             return 0x0;
         }
@@ -141,6 +141,8 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
                     interrupts->scheduleTimerStep(timerId,shiftAmount);
                 }
             } else if(oldTimerEnable) { // if disabled
+                //IORegisters[0x202] |= 1<<3+timerId;   // this is a hack!
+                //interrupts->scheduleInterruptCheck(); // todo: figure out why mgba-suite's timer tests are broken without these lines
                 internalTimer[timerId] = 0;
                 interrupts->removeTimerSteps(timerId);
             }
