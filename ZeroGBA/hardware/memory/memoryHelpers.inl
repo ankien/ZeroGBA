@@ -1,5 +1,16 @@
 #pragma once
 
+inline void* GBAMemory::createFileMap(std::string saveFile, uint32_t sizeInBytes) {
+    HANDLE file = CreateFileA(saveFile.c_str(),GENERIC_READ | GENERIC_WRITE,FILE_SHARE_READ,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+    return MapViewOfFile(
+        CreateFileMappingA(file,NULL,PAGE_READWRITE,0,sizeInBytes,NULL),
+        FILE_MAP_ALL_ACCESS,
+        0,
+        0,
+        0
+    );
+}
+
 template<typename T>
 inline T& GBAMemory::memoryArray(uint32_t i) {
     switch(i >> 24) {
@@ -50,7 +61,7 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
     // Some IO regs have special behavior, this is how I handle them
     // Gotta keep in mind that this approach might not work if the MMIO fields overlap
     // Also, word stores/reads are never unaligned
-    if(addressSection == 0x04) {
+    else if(addressSection == 0x04) {
         constexpr uint8_t offset = sizeof(T) - 1;
         uint16_t ioAddress = address & 0xFFF;
 
@@ -153,7 +164,6 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         // Interrupt regs
         else if(ioAddress < 0x20A && ioAddress > 0x1FF - offset) {
             // if writing to IE or IME
-            // todo: check if I also need to check for interrupts when respective hardware register IRQ bits are written to
             if(address >= 0x4000200 - offset && address < 0x4000202 || address >= 0x4000208 - offset && address <= 0x4000208) { // respective bit range for IO regs
                 interrupts->scheduleInterruptCheck();
             }
@@ -180,13 +190,67 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
         return *reinterpret_cast<const uint32_t*>(&writeMask[ioAddress]);
     }
 
+    else if(addressSection == 0x0E) {
+        constexpr uint8_t offset = sizeof(T) - 1;
+        uint16_t addressLo = address & 0xFFFF;
+        if(romSaveType == FLASH_V) {
+            if(addressLo < 0xE002AAB && addressLo > 0xE002AA9 - offset) {
+                if(flashState == READY) {
+                    memoryArray<T>(address) = value;
+                    if(memoryArray<uint8_t>(0xE005555) == 0xAA)
+                        flashState = CMD_1;
+                }
+            }
+
+            else if(addressLo < 0xE005556 && addressLo > 0xE005554 - offset) {
+                switch(flashState) {
+                    case CMD_1:
+                        memoryArray<T>(address) = value;
+                        if(memoryArray<uint8_t>(0xE002AAA) == 0x55)
+                            flashState = CMD_2;
+                        break;
+                    case CMD_2:
+                        memoryArray<T>(address) = value;
+                        switch(memoryArray<uint8_t>(0xE002AAA)) {
+                            case ENTER_CHIP_ID_MODE:
+                                flashState = IDENTIFICATION_MODE;
+                                break;
+                            case EXIT_CHIP_ID_MODE:
+                                flashState = READY;
+                                break;
+                            case PREPARE_ERASE:
+                                
+                                break;
+                            case ERASE_CHIP:
+                                
+                                break;
+                            case ERASE_4KB_SECTOR:
+                                
+                                break;
+                            case PREPARE_WRITE:
+                                
+                                break;
+                            case SET_MEMORY_BANK:
+                                
+                                break;
+                        }
+                        break;
+                }
+            }
+
+            return 0x0;
+        }
+    }
+
     return 0xFFFFFFFF;
 }
 inline uint32_t GBAMemory::readValue(uint32_t address) {
     uint32_t value = memoryArray<uint32_t>(address);
 
+    uint8_t addressSection = address >> 24;
+
     // handle special MMIO reads
-    if(address >> 24 == 0x04) {
+    if(addressSection == 0x04) {
         uint16_t ioAddress = address & 0xFFF;
         
         // Timer Reload regs
@@ -210,6 +274,10 @@ inline uint32_t GBAMemory::readValue(uint32_t address) {
             
             memoryArray<uint16_t>(reloadAddress) = tempTimer;
         }
+    }
+
+    else if(addressSection == 0x0E) {
+        
     }
 
     return value;
@@ -325,28 +393,23 @@ inline void GBAMemory::dmaTransfer(uint8_t channel, uint16_t dmaCntH) {
     int8_t srcIncrement = transferSize * srcCtrlFactor;
 
     // todo: implement DMA latch
+    #define DMA_LOOP(dataType) \
+    for(uint32_t i = 0; i < length; i++) { \
+        dataType value = memoryArray<dataType>(internalSrc[channel]); \
+        dataType mask = writeable<dataType>(internalDst[channel], value); \
+        dataType* mem = &memoryArray<dataType>(internalDst[channel]); \
+        mem[0] = (value & mask) | (mem[0] & ~mask); \
+        internalSrc[channel] += srcIncrement; \
+        internalDst[channel] += destIncrement; \
+    }
     if(wordTransfer) {
         internalSrc[channel] &= ~3;
         internalDst[channel] &= ~3;
-        for(uint32_t i = 0; i < length; i++) {
-            uint32_t value = memoryArray<uint32_t>(internalSrc[channel]);
-            uint32_t mask = writeable<uint32_t>(internalDst[channel],value);
-            uint32_t* mem = &memoryArray<uint32_t>(internalDst[channel]);
-            mem[0] = (value & mask) | (mem[0] & ~mask);
-            internalSrc[channel] += srcIncrement;
-            internalDst[channel] += destIncrement;
-        }
+        DMA_LOOP(uint32_t)
     } else {
         internalSrc[channel] &= ~1;
         internalDst[channel] &= ~1;
-        for(uint32_t i = 0; i < length; i++) {
-            uint16_t value = memoryArray<uint16_t>(internalSrc[channel]);
-            uint16_t mask = writeable<uint16_t>(internalDst[channel],value);
-            uint16_t* mem = &memoryArray<uint16_t>(internalDst[channel]);
-            mem[0] = (value & mask) | (mem[0] & ~mask);
-            internalSrc[channel] += srcIncrement;
-            internalDst[channel] += destIncrement;
-        }
+        DMA_LOOP(uint16_t)
     }
 
     // reset destination address

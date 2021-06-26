@@ -2,8 +2,14 @@
 
 LCD::LCD() {
     // SDL + OpenGL setup
-    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER);
+    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
 
+    // Controller setup
+    for(uint8_t i = 0; i < SDL_NumJoysticks(); i++)
+        if(SDL_IsGameController(i))
+            SDL_GameControllerOpen(i);
+
+    // Window setup
     window = SDL_CreateWindow(
         "ZeroGBA", 
         SDL_WINDOWPOS_CENTERED, 
@@ -400,8 +406,8 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
             for(int8_t priority = 3; priority >= 0; priority--) {
                 
                 // bgs
-                for(int8_t bg = 3, i = 0b1000; bg >= 0; bg--, i >>= 1) {
-                    if(enableList & i) {
+                for(int8_t bg = 3; bg >= 0; bg--) {
+                    if(enableList & (1<<bg)) {
                         // if this bg lies on this priority
                         if((*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]) & 0x3) == priority) {
                             if(bgLayer[bg][x] == 0)
@@ -516,7 +522,6 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     }
 }
 
-// todo: implement sprites for bitmap modes
 #define RENDER_SPRITES_AND_COMPOSE(baseAddress) if(DISPCNT_OBJ) \
                                                     renderSprites(baseAddress,vcount); \
                                                 composeScanline(scanLine,vcount);

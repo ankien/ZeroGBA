@@ -63,7 +63,44 @@ uint32_t GBAMemory::readUnusedMem(bool thumb,uint8_t memType) {
     }
 }
 
-bool GBAMemory::loadRom(std::string rom) {
+void* GBAMemory::createSaveMap(std::string& romName) {
+    std::regex handler[5];
+    handler[0] = ("EEPROM_V\d\d\d"); // 512 bytes or 8KB
+    handler[1] = ("SRAM_V\d\d\d"); // uses SRAM (32KB)
+    handler[2] = ("FLASH_V\d\d\d"); // 64KB
+    handler[3] = ("FLASH512_V\d\d\d"); // 64KB
+    handler[4] = ("FLASH1M_V\d\d\d"); // 128KB
+    
+    uint8_t saveType = EEPROM_V;
+    std::string_view gamePakString(reinterpret_cast<char*>(gamePak));
+    for(const auto& handle : handler)
+        if(std::regex_search(gamePakString.begin(),gamePakString.end(),handle))
+            break;
+        else
+            saveType++;
+
+    switch(saveType) 	{
+        case EEPROM_V:
+            romSaveType = EEPROM_V;
+
+            break;
+        default: // just default to SRAM if unknown/unspecified
+        case SRAM_V:
+            romSaveType = SRAM_V;
+            return createFileMap(romName+".sav",0x8000);
+            break;
+        case FLASH_V:
+        case FLASH512_V:
+            romSaveType = FLASH_V;
+            createFileMap(romName+".sav",0x10000);
+            break;
+        case FLASH1M_V:
+            romSaveType = FLASH1M_V;
+            createFileMap(romName+".sav",0x20000);
+            break;
+    }
+}
+bool GBAMemory::loadRom(std::string& rom) {
     // load BIOS
     std::ifstream biosStream("gba_bios.bin", std::ifstream::in | std::ifstream::binary);
     biosStream.read(reinterpret_cast<char*>(bios),0x4000);
@@ -76,5 +113,14 @@ bool GBAMemory::loadRom(std::string rom) {
         return 0;
     }
     romStream.read(reinterpret_cast<char*>(gamePak),romSizeInBytes);
+
+    // detect / create save
+    rom.erase(rom.find_last_of("."),std::string::npos);
+    gPakSram = reinterpret_cast<uint8_t*>(createSaveMap(rom));
+    if(gPakSram == nullptr) {
+        printf("Error in detecting/creating save.\n");
+        return 0;
+    }
+
     return 1;
 }

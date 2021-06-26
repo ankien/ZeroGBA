@@ -30,7 +30,7 @@ struct GBA {
 
     GBA();
 
-    // todo: implement a cached interpreter (fetch a batch of instructions before interpretation)
+    // todo: implement a cached interpreter
     void interpretARM();
     void interpretTHUMB();
 

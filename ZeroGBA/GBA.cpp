@@ -86,12 +86,13 @@ bool GBA::parseArguments(uint64_t argc, char* argv[]) {
     return 1;
 }
 void GBA::run(char* fileName) {
+    std::string fileNameString(fileName);
     std::string fileExtension = std::filesystem::path(fileName).extension().string();
     std::transform(fileExtension.begin(),fileExtension.end(),fileExtension.begin(),[](char c){return std::tolower(c);});
     
     if(fileExtension == ".gba") {
        // load GBA game
-        if(!systemMemory->loadRom(fileName))
+        if(!systemMemory->loadRom(fileNameString))
             return;
 
         if(runtimeOptions.jit) { // GBA JIT
@@ -143,7 +144,7 @@ void GBA::run(char* fileName) {
                 if(arm7tdmi.cpuState.state)
                     arm7tdmi.cpuState.r[15] &= ~1;
                 else
-                    arm7tdmi.cpuState.r[15] &= ~2;
+                    arm7tdmi.cpuState.r[15] &= ~3;
 
                 scheduler.step();
             }

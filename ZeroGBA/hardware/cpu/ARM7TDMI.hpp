@@ -47,7 +47,6 @@ struct ARM7TDMI {
     void THUMBemptyInstruction(uint16_t);
 
     /// ARM Instructions ///
-    // todo: implement a templated instruction handler
     void ARMbranch(uint32_t);
     void ARMbranchExchange(uint32_t);
     void ARMsoftwareInterrupt(uint32_t);

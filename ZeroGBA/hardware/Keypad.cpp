@@ -137,5 +137,83 @@ void Keypad::pollInputs() {
                     notSkippingFrames = true;
             }
         }
+
+        if(event.type == SDL_CONTROLLERBUTTONDOWN) {
+            switch(event.cbutton.button) {
+                case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                    systemMemory->IORegisters[0x130] &= 0xBF;
+                    break;
+                case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                    systemMemory->IORegisters[0x130] &= 0x7F;
+                    break;
+                case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                    systemMemory->IORegisters[0x130] &= 0xDF;
+                    break;
+                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                    systemMemory->IORegisters[0x130] &= 0xEF;
+                    break;
+                case SDL_CONTROLLER_BUTTON_B:
+                    systemMemory->IORegisters[0x130] &= 0xFE;
+                    break;
+                case SDL_CONTROLLER_BUTTON_A:
+                    systemMemory->IORegisters[0x130] &= 0xFD;
+                    break;
+                case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                    systemMemory->IORegisters[0x131] &= 0xFD;
+                    break;
+                case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                    systemMemory->IORegisters[0x131] &= 0xFE;
+                    break;
+                case SDL_CONTROLLER_BUTTON_START:
+                    systemMemory->IORegisters[0x130] &= 0xF7;
+                    break;
+                case SDL_CONTROLLER_BUTTON_BACK:
+                    systemMemory->IORegisters[0x130] &= 0xFB;
+                    break;
+                case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+                    notSkippingFrames ^= true;
+            }
+        }
+
+        if(event.type == SDL_CONTROLLERBUTTONUP) {
+            switch(event.cbutton.button) {
+                case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                    systemMemory->IORegisters[0x130] |= 0x40;
+                    break;
+                case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                    systemMemory->IORegisters[0x130] |= 0x80;
+                    break;
+                case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+                    systemMemory->IORegisters[0x130] |= 0x20;
+                    break;
+                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+                    systemMemory->IORegisters[0x130] |= 0x10;
+                    break;
+                case SDL_CONTROLLER_BUTTON_B:
+                    systemMemory->IORegisters[0x130] |= 0x1;
+                    break;
+                case SDL_CONTROLLER_BUTTON_A:
+                    systemMemory->IORegisters[0x130] |= 0x2;
+                    break;
+                case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+                    systemMemory->IORegisters[0x131] |= 0x2;
+                    break;
+                case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+                    systemMemory->IORegisters[0x131] |= 0x1;
+                    break;
+                case SDL_CONTROLLER_BUTTON_START:
+                    systemMemory->IORegisters[0x130] |= 0x8;
+                    break;
+                case SDL_CONTROLLER_BUTTON_BACK:
+                    systemMemory->IORegisters[0x130] |= 0x4;
+            }
+        }
+
+        if(event.type == SDL_CONTROLLERAXISMOTION) {
+            switch(event.caxis.axis) {
+                case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                    event.caxis.value != 0 ? notSkippingFrames = false : notSkippingFrames = true;
+            }
+        }
     }
 }
