@@ -3,8 +3,6 @@
 #include <fstream>
 #include <filesystem>
 #include <Windows.h>
-#include <string_view>
-#include <regex>
 #include <cstdio>
 #include "../MMIO.h" // for getting mmio fields
 #include "../cpu/CPUState.hpp"
@@ -87,8 +85,9 @@ struct GBAMemory {
     enum saveTypes { None, EEPROM_V, SRAM_V, FLASH_V, FLASH512_V, FLASH1M_V };
     void* createFileMap(std::string,uint32_t); // helper
     void* createSaveMap(std::string&);
-    enum flashStates { READY, CMD_1, CMD_2, IDENTIFICATION_MODE, PREPARING_ERASE, PREPARING_WRITE, SET_MEMORY_BANK };
+    enum flashStates { READY, CMD_1, CMD_2 };
     enum flashCommands {
+        NONE = 0x00,
         ENTER_CHIP_ID_MODE = 0x90,
         EXIT_CHIP_ID_MODE = 0xF0,
         PREPARE_ERASE = 0x80,
@@ -99,6 +98,9 @@ struct GBAMemory {
     };
     uint8_t romSaveType;
     uint8_t flashState = READY;
+    uint8_t precedingFlashCommand = NONE;
+    bool idMode = false;
+    uint16_t id;
     bool secondFlashBank = false;
 };
 

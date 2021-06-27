@@ -64,21 +64,25 @@ uint32_t GBAMemory::readUnusedMem(bool thumb,uint8_t memType) {
 }
 
 void* GBAMemory::createSaveMap(std::string& romName) {
-    std::regex handler[5];
-    handler[0] = ("EEPROM_V\d\d\d"); // 512 bytes or 8KB
-    handler[1] = ("SRAM_V\d\d\d"); // uses SRAM (32KB)
-    handler[2] = ("FLASH_V\d\d\d"); // 64KB
-    handler[3] = ("FLASH512_V\d\d\d"); // 64KB
-    handler[4] = ("FLASH1M_V\d\d\d"); // 128KB
+    const char* handler[5];
+    handler[0] = ("EEPROM_"); // 512 bytes or 8KB
+    handler[1] = ("SRAM_"); // uses SRAM (32KB)
+    handler[2] = ("FLASH_"); // 64KB
+    handler[3] = ("FLASH512_"); // 64KB
+    handler[4] = ("FLASH1M_"); // 128KB
     
     uint8_t saveType = EEPROM_V;
-    std::string_view gamePakString(reinterpret_cast<char*>(gamePak));
-    for(const auto& handle : handler)
-        if(std::regex_search(gamePakString.begin(),gamePakString.end(),handle))
+    std::string gPakString((char*)gamePak,0x2000000);
+    for(const char* handle : handler)
+        if(gPakString.find(handle) != std::string::npos)
             break;
         else
             saveType++;
 
+    std::string saveFile = romName+".sav";
+    bool fileDidNotExist = !std::filesystem::exists(saveFile);
+    uint32_t fileSize;
+    void* fileEntry = nullptr;
     switch(saveType) 	{
         case EEPROM_V:
             romSaveType = EEPROM_V;
@@ -87,18 +91,28 @@ void* GBAMemory::createSaveMap(std::string& romName) {
         default: // just default to SRAM if unknown/unspecified
         case SRAM_V:
             romSaveType = SRAM_V;
-            return createFileMap(romName+".sav",0x8000);
+            fileSize = 0x8000;
+            fileEntry = createFileMap(romName+".sav",fileSize);
             break;
         case FLASH_V:
         case FLASH512_V:
+            id = 0x1B32;
             romSaveType = FLASH_V;
-            createFileMap(romName+".sav",0x10000);
+            fileSize = 0x10000;
+            fileEntry = createFileMap(romName+".sav",fileSize);
             break;
         case FLASH1M_V:
+            id = 0x1362;
             romSaveType = FLASH1M_V;
-            createFileMap(romName+".sav",0x20000);
+            fileSize = 0x20000;
+            fileEntry = createFileMap(romName+".sav",fileSize);
             break;
     }
+
+    if(fileDidNotExist)
+        memset(fileEntry,0xFF,fileSize);
+
+    return fileEntry;
 }
 bool GBAMemory::loadRom(std::string& rom) {
     // load BIOS

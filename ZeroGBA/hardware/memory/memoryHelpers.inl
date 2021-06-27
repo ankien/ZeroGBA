@@ -44,7 +44,10 @@ inline T& GBAMemory::memoryArray(uint32_t i) {
             return *reinterpret_cast<T*>(&gamePak[i-0xC000000]);
         case 0x0E:
         case 0x0F:
-            return *reinterpret_cast<T*>(&gPakSram[((i-0xE000000) % 0x10000) % 0x8000]);
+            if(romSaveType == SRAM_V)
+                return *reinterpret_cast<T*>(&gPakSram[((i-0xE000000) % 0x10000) % 0x8000]);
+            else
+                return *reinterpret_cast<T*>(&gPakSram[(i-0xE000000) % 0x10000 + (secondFlashBank * 0x10000)]);
         default:
             return *reinterpret_cast<T*>(&ignore); // ignore writes to misc addresses, reads are handled
     }
@@ -193,8 +196,14 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
     else if(addressSection == 0x0E) {
         constexpr uint8_t offset = sizeof(T) - 1;
         uint16_t addressLo = address & 0xFFFF;
-        if(romSaveType == FLASH_V) {
-            if(addressLo < 0xE002AAB && addressLo > 0xE002AA9 - offset) {
+        if(romSaveType == FLASH_V || romSaveType == FLASH1M_V) {
+            
+            if(address == 0xE000000 && precedingFlashCommand == SET_MEM_BANK) {
+                memoryArray<T>(address) = value;
+                secondFlashBank = gPakSram[0] & 1;
+            }
+
+            else if(addressLo < 0xE002AAB && addressLo > 0xE002AA9 - offset) {
                 if(flashState == READY) {
                     memoryArray<T>(address) = value;
                     if(memoryArray<uint8_t>(0xE005555) == 0xAA)
@@ -213,29 +222,46 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
                         memoryArray<T>(address) = value;
                         switch(memoryArray<uint8_t>(0xE002AAA)) {
                             case ENTER_CHIP_ID_MODE:
-                                flashState = IDENTIFICATION_MODE;
+                                idMode = true;
+                                precedingFlashCommand = ENTER_CHIP_ID_MODE;
+                                flashState = READY;
                                 break;
                             case EXIT_CHIP_ID_MODE:
+                                idMode = false;
+                                precedingFlashCommand = EXIT_CHIP_ID_MODE;
                                 flashState = READY;
                                 break;
                             case PREPARE_ERASE:
-                                
+                                precedingFlashCommand = PREPARE_ERASE;
+                                flashState = READY;
                                 break;
                             case ERASE_CHIP:
-                                
+                                if(precedingFlashCommand == PREPARE_ERASE)
+                                    memset(gPakSram,0xFF,0x10000);
+                                precedingFlashCommand = ERASE_CHIP;
+                                flashState = READY;
                                 break;
                             case ERASE_4KB_SECTOR:
-                                
+                                precedingFlashCommand = ERASE_4KB_SECTOR;
+                                flashState = READY;
                                 break;
                             case PREPARE_WRITE:
-                                
+                                precedingFlashCommand = PREPARE_WRITE;
+                                flashState = READY;
                                 break;
-                            case SET_MEMORY_BANK:
-                                
+                            case SET_MEM_BANK:
+                                precedingFlashCommand = SET_MEM_BANK;
+                                flashState = READY;
                                 break;
                         }
                         break;
                 }
+            }
+
+            else if((addressLo & 0xFFF) == 0 && precedingFlashCommand == PREPARE_ERASE && value == 0x30) {
+                memset(&gPakSram + 0x10000*secondFlashBank + addressLo,0xFF,0x1000);
+                precedingFlashCommand = ERASE_4KB_SECTOR;
+                flashState = READY;
             }
 
             return 0x0;
@@ -276,8 +302,13 @@ inline uint32_t GBAMemory::readValue(uint32_t address) {
         }
     }
 
-    else if(addressSection == 0x0E) {
-        
+    else if(address < 0x0E000002 && address >= 0x0DFFFFFD) {
+        if(idMode) {
+            uint16_t oldHalfword = memoryArray<uint16_t>(0x0E000000);
+            memoryArray<uint16_t>(0x0E000000) = id;
+            value = memoryArray<uint32_t>(address);
+            memoryArray<uint16_t>(0x0E000000) = oldHalfword;
+        }
     }
 
     return value;
