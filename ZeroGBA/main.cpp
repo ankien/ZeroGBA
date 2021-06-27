@@ -4,11 +4,11 @@
 
 // because SDL defines main for some reason
 // enable for console subsystem on VS
-//#undef main 
+#undef main 
 
 // For windows subsystem compatibility
 // https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem?view=msvc-160
-int _stdcall WinMain (struct HINSTANCE__*,struct HINSTANCE__*,char*,int) { return main (__argc, __argv); }
+//int _stdcall WinMain (struct HINSTANCE__*,struct HINSTANCE__*,char*,int) { return main (__argc, __argv); }
 
 int main(int argc, char* argv[]) {
     GBA gba;

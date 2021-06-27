@@ -46,7 +46,7 @@ struct GBAMemory {
     uint32_t ignore;
     template<typename T> T& memoryArray(uint32_t); // address is aligned by bytes for all types
     template<typename T> uint32_t writeable(uint32_t, T);
-    uint32_t readValue(uint32_t);
+    template<typename T> uint32_t readValue(uint32_t);
     void storeValue(uint8_t, uint32_t);
     void storeValue(uint16_t, uint32_t);
     void storeValue(uint32_t, uint32_t);

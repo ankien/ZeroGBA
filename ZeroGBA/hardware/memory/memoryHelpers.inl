@@ -195,32 +195,34 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
 
     else if(addressSection == 0x0E) {
         constexpr uint8_t offset = sizeof(T) - 1;
-        uint16_t addressLo = address & 0xFFFF;
         if(romSaveType == FLASH_V || romSaveType == FLASH1M_V) {
             
-            if(address == 0xE000000 && precedingFlashCommand == SET_MEM_BANK) {
+            if(address == 0xE000000 && precedingFlashCommand == SET_MEM_BANK && romSaveType == FLASH1M_V) {
                 memoryArray<T>(address) = value;
                 secondFlashBank = gPakSram[0] & 1;
+                return 0x0;
             }
 
-            else if(addressLo < 0xE002AAB && addressLo > 0xE002AA9 - offset) {
-                if(flashState == READY) {
+            else if(address < 0xE002AAB && address > 0xE002AA9 - offset) {
+                if(flashState == CMD_1) {
                     memoryArray<T>(address) = value;
-                    if(memoryArray<uint8_t>(0xE005555) == 0xAA)
-                        flashState = CMD_1;
+                    if(*reinterpret_cast<uint8_t*>(&gPakSram[0x2AAA]) == 0x55)
+                        flashState = CMD_2;
                 }
+                return 0x0;
             }
 
-            else if(addressLo < 0xE005556 && addressLo > 0xE005554 - offset) {
+            else if(address < 0xE005556 && address > 0xE005554 - offset) {
                 switch(flashState) {
-                    case CMD_1:
+                    case READY: {
                         memoryArray<T>(address) = value;
-                        if(memoryArray<uint8_t>(0xE002AAA) == 0x55)
-                            flashState = CMD_2;
+                        if(*reinterpret_cast<uint8_t*>(&gPakSram[0x5555]) == 0xAA)
+                            flashState = CMD_1;
                         break;
+                    }
                     case CMD_2:
                         memoryArray<T>(address) = value;
-                        switch(memoryArray<uint8_t>(0xE002AAA)) {
+                        switch(*reinterpret_cast<uint8_t*>(&gPakSram[0x5555])) {
                             case ENTER_CHIP_ID_MODE:
                                 idMode = true;
                                 precedingFlashCommand = ENTER_CHIP_ID_MODE;
@@ -252,35 +254,37 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
                             case SET_MEM_BANK:
                                 precedingFlashCommand = SET_MEM_BANK;
                                 flashState = READY;
-                                break;
                         }
-                        break;
                 }
+                return 0x0;
             }
 
-            else if((addressLo & 0xFFF) == 0 && precedingFlashCommand == PREPARE_ERASE && value == 0x30) {
-                memset(&gPakSram + 0x10000*secondFlashBank + addressLo,0xFF,0x1000);
+            else if((address & 0xFFF) == 0 && precedingFlashCommand == PREPARE_ERASE && value == 0x30) {
+                uint16_t addressLo = address & 0xFFFF;
+                memset(gPakSram + 0x10000*secondFlashBank + addressLo,0xFF,0x1000);
                 precedingFlashCommand = ERASE_4KB_SECTOR;
                 flashState = READY;
+                return 0x0;
             }
 
-            return 0x0;
         }
     }
 
     return 0xFFFFFFFF;
 }
+template<typename T>
 inline uint32_t GBAMemory::readValue(uint32_t address) {
-    uint32_t value = memoryArray<uint32_t>(address);
+    uint32_t value = memoryArray<T>(address);
 
     uint8_t addressSection = address >> 24;
+    constexpr uint8_t offset = sizeof(T) - 1;
 
     // handle special MMIO reads
     if(addressSection == 0x04) {
         uint16_t ioAddress = address & 0xFFF;
         
         // Timer Reload regs
-        if(ioAddress < 0x10D && ioAddress > 0xFD) {
+        if(ioAddress < 0x10D && ioAddress >= 0x100-offset) {
             uint8_t timerId;
             if(ioAddress < 0x102)
                 timerId = 0;
@@ -302,12 +306,12 @@ inline uint32_t GBAMemory::readValue(uint32_t address) {
         }
     }
 
-    else if(address < 0x0E000002 && address >= 0x0DFFFFFD) {
+    else if(address < 0x0E000002 && address >= 0x0E000000-offset) {
         if(idMode) {
-            uint16_t oldHalfword = memoryArray<uint16_t>(0x0E000000);
-            memoryArray<uint16_t>(0x0E000000) = id;
+            uint16_t oldHalfword = *reinterpret_cast<uint16_t*>(&gPakSram[0x0]);
+            *reinterpret_cast<uint16_t*>(&gPakSram[0x0]) = id;
             value = memoryArray<uint32_t>(address);
-            memoryArray<uint16_t>(0x0E000000) = oldHalfword;
+            *reinterpret_cast<uint16_t*>(&gPakSram[0x0]) = oldHalfword;
         }
     }
 
@@ -353,14 +357,14 @@ inline uint8_t GBAMemory::readByte(uint32_t address) {
     uint8_t memType = getUnusedMemType(address);
     if(memType)
         return readUnusedMem(cpuState->state,memType);
-    return readValue(address);
+    return readValue<uint8_t>(address);
 }
 inline uint16_t GBAMemory::readHalfWord(uint32_t address) {
     uint8_t memType = getUnusedMemType(address);
     if(memType)
         return readUnusedMem(cpuState->state,memType);
     address = address & ~1;
-    return readValue(address);
+    return readValue<uint16_t>(address);
 }
 inline uint32_t GBAMemory::readHalfWordRotate(uint32_t address) {
     uint8_t rorAmount = (address & 1) << 3;
@@ -371,7 +375,7 @@ inline uint32_t GBAMemory::readWord(uint32_t address) {
     if(memType)
         return readUnusedMem(cpuState->state,memType);
     address = address & ~3;
-    return readValue(address);
+    return readValue<uint32_t>(address);
 }
 inline uint32_t GBAMemory::readWordRotate(uint32_t address) {
     uint8_t rorAmount = (address & 3) << 3;
