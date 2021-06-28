@@ -545,7 +545,7 @@ void ARM7TDMI::ARMhdsDataLDRSB(uint32_t instruction) {
         }
     }
 
-    cpuState.setReg(rd,static_cast<int>(systemMemory->memoryArray<int8_t>(address)));
+    cpuState.setReg(rd,static_cast<int>(systemMemory->readByte(address)));
 
     if(!p) {
         switch(u) {

@@ -11,7 +11,7 @@
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
 // file-based trace, select # of instructions you want to trace from boot, prints to log.txt
-//#define TRACE 5000000
+//#define TRACE 500000
 
 struct GBAMemory {
 
@@ -45,7 +45,7 @@ struct GBAMemory {
     // todo: implement SRAM access behavior, and mirrored SRAM + IO port at offset 0x800
     uint32_t ignore;
     template<typename T> T& memoryArray(uint32_t); // address is aligned by bytes for all types
-    template<typename T> uint32_t writeable(uint32_t, T);
+    template<typename T> uint32_t writeable(uint32_t, uint32_t, T);
     template<typename T> uint32_t readValue(uint32_t);
     void storeValue(uint8_t, uint32_t);
     void storeValue(uint16_t, uint32_t);
@@ -57,7 +57,7 @@ struct GBAMemory {
     uint32_t readWord(uint32_t);
     uint32_t readWordRotate(uint32_t);
 
-    uint32_t ror(uint32_t, uint8_t);
+    template<typename T> uint32_t ror(T, uint8_t);
 
     /// DMA stuff ///
     const uint32_t sourceAddressMasks[4] = {0x07FFFFFF,0x0FFFFFFF,0x0FFFFFFF,0x0FFFFFFF}; 

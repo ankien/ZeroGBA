@@ -47,6 +47,9 @@
     <None Include="shaders\GBA.frag" />
     <None Include="shaders\GBA.vert" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="logo.bmp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{3E2A5125-EB69-49BB-A42B-827D70906EE5}</ProjectGuid>

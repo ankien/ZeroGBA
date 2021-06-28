@@ -111,6 +111,8 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
+                if(arm7tdmi.cpuState.r[15] == 0x8000180)
+                    printf("fug");
                 #endif
 
                 // todo: buffer this output or use MIO so we don't destroy our hdd with a billion calls

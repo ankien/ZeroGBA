@@ -54,7 +54,7 @@ inline T& GBAMemory::memoryArray(uint32_t i) {
 }
 // return bitmask to write with, also handles special write behavior for certain regions (like IF regs)
 template<typename T>
-inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
+inline uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T value) {
     
     uint8_t addressSection = address >> 24;
     
@@ -194,35 +194,37 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
     }
 
     else if(addressSection == 0x0E) {
-        constexpr uint8_t offset = sizeof(T) - 1;
+
+        if(sizeof(T) > 1) {
+            value = ror<T>(value,unalignedAddress*8);
+            address = unalignedAddress;
+        }
+
         if(romSaveType == FLASH_V || romSaveType == FLASH1M_V) {
             
-            if(address == 0xE000000 && precedingFlashCommand == SET_MEM_BANK && romSaveType == FLASH1M_V) {
-                memoryArray<T>(address) = value;
-                secondFlashBank = gPakSram[0] & 1;
-                return 0x0;
-            }
+            // Prepare write and set bank are not part of the "state machine"
+            if(precedingFlashCommand = PREPARE_WRITE)
+                memoryArray<uint8_t>(address) = value;
 
-            else if(address < 0xE002AAB && address > 0xE002AA9 - offset) {
+            else if(address == 0xE000000 && precedingFlashCommand == SET_MEM_BANK && romSaveType == FLASH1M_V)
+                secondFlashBank = value & 1;
+
+            else if(address == 0xE002AAA) {
                 if(flashState == CMD_1) {
-                    memoryArray<T>(address) = value;
-                    if(*reinterpret_cast<uint8_t*>(&gPakSram[0x2AAA]) == 0x55)
+                    if(value == 0x55)
                         flashState = CMD_2;
                 }
-                return 0x0;
             }
 
-            else if(address < 0xE005556 && address > 0xE005554 - offset) {
+            else if(address == 0xE005555) {
                 switch(flashState) {
                     case READY: {
-                        memoryArray<T>(address) = value;
-                        if(*reinterpret_cast<uint8_t*>(&gPakSram[0x5555]) == 0xAA)
+                        if(value == 0xAA)
                             flashState = CMD_1;
                         break;
                     }
                     case CMD_2:
-                        memoryArray<T>(address) = value;
-                        switch(*reinterpret_cast<uint8_t*>(&gPakSram[0x5555])) {
+                        switch(value) {
                             case ENTER_CHIP_ID_MODE:
                                 idMode = true;
                                 precedingFlashCommand = ENTER_CHIP_ID_MODE;
@@ -243,10 +245,6 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
                                 precedingFlashCommand = ERASE_CHIP;
                                 flashState = READY;
                                 break;
-                            case ERASE_4KB_SECTOR:
-                                precedingFlashCommand = ERASE_4KB_SECTOR;
-                                flashState = READY;
-                                break;
                             case PREPARE_WRITE:
                                 precedingFlashCommand = PREPARE_WRITE;
                                 flashState = READY;
@@ -254,20 +252,28 @@ inline uint32_t GBAMemory::writeable(uint32_t address, T value) {
                             case SET_MEM_BANK:
                                 precedingFlashCommand = SET_MEM_BANK;
                                 flashState = READY;
+                                break;
+                            default:
+                                flashState = READY;
+                                break;
                         }
                 }
-                return 0x0;
             }
 
-            else if((address & 0xFFF) == 0 && precedingFlashCommand == PREPARE_ERASE && value == 0x30) {
+            else if((address & 0xFFF) == 0 && precedingFlashCommand == PREPARE_ERASE && value == ERASE_4KB_SECTOR) {
                 uint16_t addressLo = address & 0xFFFF;
                 memset(gPakSram + 0x10000*secondFlashBank + addressLo,0xFF,0x1000);
                 precedingFlashCommand = ERASE_4KB_SECTOR;
                 flashState = READY;
-                return 0x0;
             }
 
+            return 0x0;
+
+        } else {
+            memoryArray<uint8_t>(address) = value;
+            return 0x0;
         }
+        
     }
 
     return 0xFFFFFFFF;
@@ -300,19 +306,27 @@ inline uint32_t GBAMemory::readValue(uint32_t address) {
             tempTimer = memoryArray<uint16_t>(reloadAddress);
             memoryArray<uint16_t>(reloadAddress) = internalTimer[timerId];
 
-            value = memoryArray<uint32_t>(address);
+            value = memoryArray<T>(address);
             
             memoryArray<uint16_t>(reloadAddress) = tempTimer;
         }
     }
 
-    else if(address < 0x0E000002 && address >= 0x0E000000-offset) {
-        if(idMode) {
-            uint16_t oldHalfword = *reinterpret_cast<uint16_t*>(&gPakSram[0x0]);
-            *reinterpret_cast<uint16_t*>(&gPakSram[0x0]) = id;
-            value = memoryArray<uint32_t>(address);
-            *reinterpret_cast<uint16_t*>(&gPakSram[0x0]) = oldHalfword;
+    else if(addressSection == 0x0E) {
+    
+        if(address < 0x0E000002 && address >= 0x0E000000 - offset) {
+            if(idMode) {
+                uint16_t oldHalfword = *reinterpret_cast<uint16_t*>(&gPakSram[0x0]);
+                *reinterpret_cast<uint16_t*>(&gPakSram[0x0]) = id;
+                value = memoryArray<T>(address);
+                *reinterpret_cast<uint16_t*>(&gPakSram[0x0]) = oldHalfword;
+            }
         }
+
+        if(sizeof(T) == 4)
+            value = (value & 0xFF) * 0x01010101;
+        else if(sizeof(T) == 2)
+            value = (value & 0xFF) * 0x0101;
     }
 
     return value;
@@ -335,22 +349,20 @@ inline void GBAMemory::storeValue(uint8_t value, uint32_t address) {
             return;
         default:
         {
-            uint8_t mask = writeable<uint8_t>(address,value);
+            uint8_t mask = writeable<uint8_t>(address,address,value);
             uint8_t* mem = &memoryArray<uint8_t>(address);
             mem[0] = (value & mask) | (mem[0] & ~mask);
         }
     }
 }
 inline void GBAMemory::storeValue(uint16_t value, uint32_t address) {
-    address = address & ~1;
-    uint16_t mask = writeable<uint16_t>(address,value);
-    uint16_t* mem = &memoryArray<uint16_t>(address);
+    uint16_t mask = writeable<uint16_t>(address & ~1,address,value);
+    uint16_t* mem = &memoryArray<uint16_t>(address & ~1);
     mem[0] = (value & mask) | (mem[0] & ~mask);
 }
 inline void GBAMemory::storeValue(uint32_t value, uint32_t address) {
-    address = address & ~3;
-    uint32_t mask = writeable<uint32_t>(address,value);
-    uint32_t* mem = &memoryArray<uint32_t>(address);
+    uint32_t mask = writeable<uint32_t>(address & ~3,address,value);
+    uint32_t* mem = &memoryArray<uint32_t>(address & ~3);
     mem[0] = (value & mask) | (mem[0] & ~mask);
 }
 inline uint8_t GBAMemory::readByte(uint32_t address) {
@@ -382,8 +394,9 @@ inline uint32_t GBAMemory::readWordRotate(uint32_t address) {
     return ror(readWord(address),rorAmount);
 }
 
-inline uint32_t GBAMemory::ror(uint32_t value, uint8_t shiftAmount) {
-    shiftAmount &= 0x1F;
+template<typename T>
+inline uint32_t GBAMemory::ror(T value, uint8_t shiftAmount) {
+    shiftAmount &= sizeof(T)*8 - 1;
     return (value >> shiftAmount) | (value << (32 - shiftAmount));
 }
 
@@ -431,7 +444,7 @@ inline void GBAMemory::dmaTransfer(uint8_t channel, uint16_t dmaCntH) {
     #define DMA_LOOP(dataType) \
     for(uint32_t i = 0; i < length; i++) { \
         dataType value = memoryArray<dataType>(internalSrc[channel]); \
-        dataType mask = writeable<dataType>(internalDst[channel], value); \
+        dataType mask = writeable<dataType>(internalDst[channel], internalDst[channel], value); \
         dataType* mem = &memoryArray<dataType>(internalDst[channel]); \
         mem[0] = (value & mask) | (mem[0] & ~mask); \
         internalSrc[channel] += srcIncrement; \

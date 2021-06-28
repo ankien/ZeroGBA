@@ -96,4 +96,9 @@
       <Filter>Hardware\CPU</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="logo.bmp">
+      <Filter>Source Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>
