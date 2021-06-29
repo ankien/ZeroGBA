@@ -202,12 +202,16 @@ inline uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress
 
         if(romSaveType == FLASH_V || romSaveType == FLASH1M_V) {
             
-            // Prepare write and set bank are not part of the "state machine"
-            if(precedingFlashCommand = PREPARE_WRITE)
+            // Prepare write and set bank can be considered extra "states" after PREPARE_WRITE and SET_MEM_BANK commands
+            if(precedingFlashCommand == PREPARE_WRITE) {
+                precedingFlashCommand = NONE;
                 memoryArray<uint8_t>(address) = value;
+            }
 
-            else if(address == 0xE000000 && precedingFlashCommand == SET_MEM_BANK && romSaveType == FLASH1M_V)
+            else if(address == 0xE000000 && precedingFlashCommand == SET_MEM_BANK && romSaveType == FLASH1M_V) {
+                precedingFlashCommand = NONE;
                 secondFlashBank = value & 1;
+            }
 
             else if(address == 0xE002AAA) {
                 if(flashState == CMD_1) {
