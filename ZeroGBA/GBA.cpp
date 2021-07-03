@@ -3,6 +3,7 @@
 GBA::GBA() {
     // Memory init
     systemMemory = new GBAMemory();
+    systemMemory->memoryArray<uint16_t>(0x4000204) = 0x4317;
     systemMemory->interrupts = &interrupts;
     systemMemory->cpuState = &arm7tdmi.cpuState;
 
@@ -111,6 +112,8 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
+                if(arm7tdmi.cpuState.r[15] == 0x8000244)
+                    printf("fug");
                 #endif
 
                 // todo: buffer this output or use MIO so we don't destroy our hdd with a billion calls

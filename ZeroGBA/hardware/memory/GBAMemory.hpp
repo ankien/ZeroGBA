@@ -27,7 +27,7 @@ struct GBAMemory {
     uint8_t vram[0x18000];
     uint8_t oam[0x400];
     uint8_t gamePak[0x2000000];
-    uint8_t* gPakSram;
+    uint8_t* gPakSaveMem;
 
     // This is the "address that's returned when there's an unmapped read
     enum unusedMemTypes { NotUnused, Bios, GenericUnused };
@@ -85,6 +85,10 @@ struct GBAMemory {
     enum saveTypes { None, EEPROM_V, SRAM_V, FLASH_V, FLASH512_V, FLASH1M_V };
     void* createFileMap(std::string,uint32_t); // helper
     void* createSaveMap(std::string&);
+    uint8_t romSaveType;
+    std::string saveFile;
+    
+    // Flash memory
     enum flashStates { READY, CMD_1, CMD_2 };
     enum flashCommands {
         NONE = 0x00,
@@ -96,12 +100,27 @@ struct GBAMemory {
         PREPARE_WRITE = 0xA0,
         SET_MEM_BANK = 0xB0
     };
-    uint8_t romSaveType;
     uint8_t flashState = READY;
     uint8_t precedingFlashCommand = NONE;
     bool idMode = false;
     uint16_t id;
     bool secondFlashBank = false;
+
+    // EEPROM
+    enum eepromSizes { EEPROM_8KB, EEPROM_512B };
+    uint8_t eepromAddressBits;
+    uint8_t eepromState = BEFORE_REQUEST;
+    uint8_t currentEepromRequest = EEPROM_NONE;
+    enum eepromStates { BEFORE_REQUEST, AFTER_REQUEST, AFTER_ADDRESS, READ_DATA, WRITE_DATA };
+    enum eepromRequests { EEPROM_NONE, EEPROM_WRITE = 0b10, EEPROM_READ = 0b11 };
+    bool largerThan16KB;
+    uint64_t serialBuffer{}; // represents the data we currently work on in serial transmission, reset after state change
+    uint8_t transmittedBits = 0;
+    uint16_t eepromAddress; // converted to byte offset from 64-bit chunk offset
+    void eepromWrite(uint8_t);
+    bool eepromRead();
+    bool addressesEepromChip(uint32_t);
+    void resetSerialBuffer();
 };
 
 #include "memoryHelpers.inl"

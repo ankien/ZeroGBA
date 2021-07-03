@@ -71,22 +71,22 @@ void* GBAMemory::createSaveMap(std::string& romName) {
     handler[3] = ("FLASH512_"); // 64KB
     handler[4] = ("FLASH1M_"); // 128KB
     
-    uint8_t saveType = EEPROM_V;
+    romSaveType = EEPROM_V;
     std::string gPakString((char*)gamePak,0x2000000);
     for(const char* handle : handler)
         if(gPakString.find(handle) != std::string::npos)
             break;
         else
-            saveType++;
+            romSaveType++;
 
-    std::string saveFile = romName+".sav";
+    saveFile = romName+".sav";
     bool fileDidNotExist = !std::filesystem::exists(saveFile);
     uint32_t fileSize;
     void* fileEntry = nullptr;
-    switch(saveType) 	{
+    switch(romSaveType) 	{
         case EEPROM_V:
             romSaveType = EEPROM_V;
-
+            // leave EEPROM memory uninitialized for now and determine size on the first read
             break;
         default: // just default to SRAM if unknown/unspecified
         case SRAM_V:
@@ -109,7 +109,7 @@ void* GBAMemory::createSaveMap(std::string& romName) {
             break;
     }
 
-    if(fileDidNotExist)
+    if(fileDidNotExist && romSaveType != EEPROM_V)
         memset(fileEntry,0xFF,fileSize);
 
     return fileEntry;
@@ -126,12 +126,13 @@ bool GBAMemory::loadRom(std::string& rom) {
         printf("ROM size too large!\n");
         return 0;
     }
+    largerThan16KB = romSizeInBytes > 0x1000000 ? true : false ;
     romStream.read(reinterpret_cast<char*>(gamePak),romSizeInBytes);
 
     // detect / create save
     rom.erase(rom.find_last_of("."),std::string::npos);
-    gPakSram = reinterpret_cast<uint8_t*>(createSaveMap(rom));
-    if(gPakSram == nullptr) {
+    gPakSaveMem = reinterpret_cast<uint8_t*>(createSaveMap(rom));
+    if(gPakSaveMem == nullptr && romSaveType != EEPROM_V) {
         printf("Error in detecting/creating save.\n");
         return 0;
     }
