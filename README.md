@@ -1,6 +1,7 @@
+<h1>ZeroGBA</h1>
 Just a GBA emulator I decided to work on for fun.<br>
 The long-term goal is to boot most commercial games with stable 60 fps framerate.<br>
-<h1>Current Progress</h1>
+<h2>Current Progress</h2>
 <img src="/ZeroGBA/non-code/screenshots/m7Demo.gif" width="400">
 <img src="/ZeroGBA/non-code/screenshots/mmbn.gif" width="400">
 <img src="/ZeroGBA/non-code/screenshots/kirby.gif" width="400">
