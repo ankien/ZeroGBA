@@ -47,17 +47,17 @@ uint32_t GBAMemory::readUnusedMem(bool thumb,uint8_t memType) {
             switch(pcVal >> 24) {
                 case 0x00:
                 case 0x07:
-                    if(pcVal % 4)
+                    if(pcVal & 3)
                         return memoryArray<uint32_t>(pcVal+2);
                     else
-                        return memoryArray<uint32_t>(pcVal+4);
+                        return memoryArray<uint16_t>(pcVal+4) * 0x00010001;
                 case 0x03:
-                    if(pcVal % 4)
+                    if(pcVal & 3)
                         return memoryArray<uint16_t>(pcVal+4) << 16 | memoryArray<uint16_t>(pcVal+2);
                     else
-                        return memoryArray<uint32_t>(pcVal+2);
+                        return memoryArray<uint16_t>(pcVal+2) << 16 | memoryArray<uint16_t>(pcVal+4);
                 default:
-                    return memoryArray<uint16_t>(pcVal+4) << 16 | memoryArray<uint16_t>(pcVal+4);
+                    return memoryArray<uint16_t>(pcVal+4) * 0x00010001;
             }
         }
     }

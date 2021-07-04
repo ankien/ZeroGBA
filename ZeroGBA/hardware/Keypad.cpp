@@ -77,6 +77,11 @@ void Keypad::pollInputs() {
                 case SDL_SCANCODE_RSHIFT:
                     systemMemory->IORegisters[0x130] &= 0xFB;
                     break;
+                #ifdef TRACE
+                case SDL_SCANCODE_T:
+                    systemMemory->tracing ^= true;
+                    break;
+                #endif
                 case SDL_SCANCODE_LALT:
                     altDown = true;
                     break;

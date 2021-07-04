@@ -18,7 +18,8 @@ Below "Xbox 360" controls describe position, they should work for other controll
 <h3>Emulator Controls</h3>
 <p><b>Close Window: </b>Esc, or the window X bar</p>
 <p><b>Frame Skip: </b>Tab / Xbox 360 Right Trigger Button / Xbox 360 Left Stick Button (Toggle)</p>
-<p><b>Toggle Fullscreen: </b>Alt+Enter</p><br>
+<p><b>Toggle Fullscreen: </b>Alt+Enter</p>
+<p><b>Trace Log: </b>T (Toggle, when enabled in GBAMemory.hpp)</p><br>
 <h2>Usage</h2>
 <i>Since there are no user builds yet, this is merely how it's planned to work.</i><br><br>
 <code>ZeroGBA.exe [-options] [your rom.gba]</code><br>

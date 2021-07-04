@@ -11,7 +11,7 @@
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
 // file-based trace, select # of instructions you want to trace from boot, prints to log.txt
-//#define TRACE 500000
+#define TRACE 1000000
 
 struct GBAMemory {
 
@@ -28,6 +28,11 @@ struct GBAMemory {
     uint8_t oam[0x400];
     uint8_t gamePak[0x2000000];
     uint8_t* gPakSaveMem;
+
+    #ifdef TRACE
+    bool tracing = false;
+    #endif
+
 
     // This is the "address that's returned when there's an unmapped read
     enum unusedMemTypes { NotUnused, Bios, GenericUnused };
@@ -52,12 +57,13 @@ struct GBAMemory {
     void storeValue(uint32_t, uint32_t);
     // memory getters, rotates are for misaligned ldr+swp
     uint8_t readByte(uint32_t);
+    // for my future self; please do not touch these! they look uneccessary but are required
     uint16_t readHalfWord(uint32_t);
     uint32_t readHalfWordRotate(uint32_t);
     uint32_t readWord(uint32_t);
     uint32_t readWordRotate(uint32_t);
 
-    template<typename T> uint32_t ror(T, uint8_t);
+    uint32_t ror(uint32_t, uint8_t);
 
     /// DMA stuff ///
     const uint32_t sourceAddressMasks[4] = {0x07FFFFFF,0x0FFFFFFF,0x0FFFFFFF,0x0FFFFFFF}; 

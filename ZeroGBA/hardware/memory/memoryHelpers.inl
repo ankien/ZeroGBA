@@ -200,11 +200,19 @@ inline uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress
             return *reinterpret_cast<const uint32_t*>(&writeMask[ioAddress]);
         }
         break;
+
+        case 0x08:
+            return 0x0;
         
         case 0x09:
             if(address >= 0x9FFFF00 && romSaveType == EEPROM_V)
                 eepromWrite(value);
-            break;
+            return 0x0;
+
+        case 0x0A:
+        case 0x0B:
+        case 0x0C:
+            return 0x0;
 
         case 0x0D:
             if(romSaveType == EEPROM_V) {
@@ -213,12 +221,12 @@ inline uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress
                 else
                     eepromWrite(value);
             }
-            break;
+            return 0x0;
 
         case 0x0E:
 
             if(sizeof(T) > 1) {
-                value = ror<T>(value, unalignedAddress * 8);
+                value = ror(value, unalignedAddress * 8);
                 address = unalignedAddress;
             }
 
@@ -441,9 +449,8 @@ inline uint32_t GBAMemory::readWordRotate(uint32_t address) {
     return ror(readWord(address),rorAmount);
 }
 
-template<typename T>
-inline uint32_t GBAMemory::ror(T value, uint8_t shiftAmount) {
-    shiftAmount &= sizeof(T)*8 - 1;
+inline uint32_t GBAMemory::ror(uint32_t value, uint8_t shiftAmount) {
+    shiftAmount &= 0x1F;
     return (value >> shiftAmount) | (value << (32 - shiftAmount));
 }
 

@@ -112,13 +112,13 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
-                if(arm7tdmi.cpuState.r[15] == 0x8000244)
+                if(arm7tdmi.cpuState.r[15] == 0x080039fe)
                     printf("fug");
                 #endif
 
                 // todo: buffer this output or use MIO so we don't destroy our hdd with a billion calls
                 #if defined(TRACE)
-                if(traceAmount < TRACE) {
+                if(systemMemory->tracing && traceAmount < TRACE) {
                     for(uint8_t j = 0; j < 16; j++) {
                         if(j == 15)
                             arm7tdmi.cpuState.state ? fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j] + 2) : fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j] + 4);
@@ -127,7 +127,7 @@ void GBA::run(char* fileName) {
                     }
                     fprintf(traceFile, "cpsr: %08X\n", arm7tdmi.cpuState.getCPSR());
                     traceAmount++;
-                } else {
+                } else if(traceAmount >= TRACE) {
                     fclose(traceFile);
                     exit(0);
                 }
