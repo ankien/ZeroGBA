@@ -48,6 +48,7 @@ inline T& GBAMemory::memoryArray(uint32_t i) {
                 case SRAM_V:
                     return *reinterpret_cast<T*>(&gPakSaveMem[((i - 0xE000000) % 0x10000) % 0x8000]);
                 case FLASH_V:
+                case FLASH1M_V:
                     return *reinterpret_cast<T*>(&gPakSaveMem[(i - 0xE000000) % 0x10000 + (secondFlashBank * 0x10000)]);
                 case EEPROM_V:
                     return *reinterpret_cast<T*>(&ignore);
@@ -230,7 +231,7 @@ inline uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress
                 address = unalignedAddress;
             }
 
-            if(romSaveType == FLASH_V) {
+            if(romSaveType == FLASH_V || romSaveType == FLASH1M_V) {
 
                 // Prepare write and set bank can be considered extra "states" after PREPARE_WRITE and SET_MEM_BANK commands
                 if(precedingFlashCommand == PREPARE_WRITE) {
@@ -329,7 +330,7 @@ inline uint32_t GBAMemory::readValue(uint32_t address) {
             uint16_t ioAddress = address & 0xFFF;
 
             // Timer Reload regs
-            if(ioAddress < 0x10D && ioAddress >= 0x100 - offset) {
+            if(ioAddress < 0x10E && ioAddress >= 0x100 - offset) {
                 uint8_t timerId;
                 if(ioAddress < 0x102)
                     timerId = 0;

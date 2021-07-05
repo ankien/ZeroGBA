@@ -216,7 +216,7 @@ inline void CPUState::handleException(uint8_t exception, int8_t nn, uint8_t newM
     switchMode(newMode); // switch mode
     // new bits!
     mode = newMode;
-    state = 0;
+    state = 0; // IRQs and SWIs are handled in ARM mode
     irqDisable = 1;
     
     if((newMode == Reset) || (newMode == FIQ))

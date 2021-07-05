@@ -20,7 +20,7 @@ GBA::GBA() {
     arm7tdmi.cpuState.setBankedReg(Supervisor,0,0x3007FE0);
 
     // Skip BIOS
-    arm7tdmi.cpuState.r[15] = 0x8000000;
+    //arm7tdmi.cpuState.r[15] = 0x8000000;
 
     // Interrupts init
     interrupts.scheduler = &scheduler;
@@ -112,7 +112,7 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 uint32_t oldPC = arm7tdmi.cpuState.r[15];
-                if(arm7tdmi.cpuState.r[15] == 0x080039fe)
+                if((arm7tdmi.cpuState.irqReg[2] & 0xFF) == 0xB2)
                     printf("fug");
                 #endif
 
@@ -141,6 +141,7 @@ void GBA::run(char* fileName) {
 
                 #ifdef DEBUG_VARS
                 instrCount++;
+                uint32_t oldIRQSPSR = arm7tdmi.cpuState.irqReg[2];
                 #endif
 
 
