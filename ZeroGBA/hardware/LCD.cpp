@@ -531,24 +531,6 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                                                 composeScanline(scanLine,vcount);
 void LCD::renderScanline() {
 
-    /*
-        - Quick 101 on the PPU -   See "https://www.coranac.com/tonc/text/toc.htm" for more
-        First step of rendering BG/Sprites: read control registers in BGCNT(BGs) or OAM attributes(Sprites)
-        PRAM contains color data for BGs and Sprites (attributes for sprites are objects in OAM)
-        Tiled BGs can range from 128x128px to 1024x1024px(affine only), sprites up to 64x64px, each tiled BG + sprite is comprised of 8x8px bitmaps (tiles)
-        Palettes and tiles can be 4bpp(16colors/16banked palettes) or 8bpp(256colors/1palette), all affine BGs are 8bpp
-        4bpp takes up less space than 8bpp in VRAM since only color index needs to be stored, palette index is also located in VRAM for BGs, OAM for sprites
-        In 8-bit color, the pixel value in the tile is the palette-index; in 4-bit color, the lower nibble is the palette index, the higher nibble is the palbank index (can be found in attributes for sprites, or upper nibble of the tiles)
-        Sprites have one tile-map entry, but BGs comprised of many. Both BGs and sprites have 10 bits for tile-indices
-        VRAM is basically a big bitmap 8 pixels wide, and store the tile data + maps for tile BG modes (attributes for sprites in OAM as well)
-        Charblocks - 6 16kb chunks in VRAM, 4 for BGs and 2 for sprites, tile-indexing is different for sprites and BGs
-        Charblocks contain tile data and may overlap with screenblocks (for tile maps), so they must be chose carefully
-        You must increase the base address for sprite data (from 0x10000 to 0x14000) in VRAM for bitmap modes (since the bitmaps extend into the lower sprite range)
-        
-        Idea behind render order of a scanline:
-        render BGs in line, render sprites in line, compose result
-    */
-
     // todo: implement rotation + scaling (affine), and objs for bitmap modes
     uint8_t vcount = VCOUNT;
 

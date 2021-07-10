@@ -40,21 +40,18 @@ inline void CPUState::switchMode(uint8_t newMode) {
         case FIQ:
             for(uint8_t i = 8; i < 15; i++)
                 fiqReg[i-8] = r[i];
-            fiqReg[7] = getCPSR();
             break;
         case Supervisor:
             for(uint8_t i = 8; i < 13; i++)
                 sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 svcReg[i-13] = r[i];
-            svcReg[2] = getCPSR();
             break;
         case Abort:
             for(uint8_t i = 8; i < 13; i++)
                 sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 abtReg[i-13] = r[i];
-            abtReg[2] = getCPSR();
             break;
         case IRQ:
             *stateRelativeToBios = 2;
@@ -62,17 +59,13 @@ inline void CPUState::switchMode(uint8_t newMode) {
                 sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 irqReg[i-13] = r[i];
-            irqReg[2] = getCPSR();
             break;
         case Undefined:
             for(uint8_t i = 8; i < 13; i++)
                 sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
                 undReg[i-13] = r[i];
-            undReg[2] = getCPSR();
     }
-
-    mode = newMode;
 
     // get new regs
     switch(newMode) {
@@ -115,6 +108,8 @@ inline void CPUState::switchMode(uint8_t newMode) {
             setCPSR(undReg[2]);
             break;
     }
+
+    mode = newMode;
 }
 inline uint32_t CPUState::getBankedReg(uint8_t mode, uint8_t reg) {
     if(reg == 'S')
@@ -215,7 +210,6 @@ inline void CPUState::handleException(uint8_t exception, int8_t nn, uint8_t newM
     }
     switchMode(newMode); // switch mode
     // new bits!
-    mode = newMode;
     state = 0; // IRQs and SWIs are handled in ARM mode
     irqDisable = 1;
     
