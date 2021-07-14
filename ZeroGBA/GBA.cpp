@@ -6,6 +6,7 @@ GBA::GBA() {
     systemMemory->memoryArray<uint16_t>(0x4000204) = 0x4317;
     systemMemory->interrupts = &interrupts;
     systemMemory->cpuState = &arm7tdmi.cpuState;
+    systemMemory->soundController = &soundController;
 
     // CPU init
     arm7tdmi.interrupts = &interrupts;
@@ -27,9 +28,13 @@ GBA::GBA() {
     interrupts.cpuState = &arm7tdmi.cpuState;
     interrupts.IORegisters = systemMemory->IORegisters;
     interrupts.internalTimer = systemMemory->internalTimer;
+    interrupts.soundController = &soundController;
 
     // LCD init
     lcd.systemMemory = systemMemory;
+
+    // SoundController init
+    soundController.systemMemory = systemMemory;
 
     // Keypad init
     keypad.systemMemory = systemMemory;

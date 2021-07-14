@@ -20,6 +20,9 @@
     <Filter Include="Hardware\Memory">
       <UniqueIdentifier>{734ac93b-3f03-475a-aa45-6c5473aead63}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{39dd0bda-8b38-4637-a4bc-ea257def6746}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -39,6 +42,12 @@
     </ClCompile>
     <ClCompile Include="hardware\memory\GBAMemory.cpp">
       <Filter>Hardware\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\SoundController.cpp">
+      <Filter>Hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="hardware\Interrupts.cpp">
+      <Filter>Hardware</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -68,6 +77,12 @@
     </ClInclude>
     <ClInclude Include="hardware\Interrupts.hpp">
       <Filter>Hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\SoundController.hpp">
+      <Filter>Hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="common\bits.hpp">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -8,6 +8,7 @@
 #include "hardware/Interrupts.hpp"
 #include "hardware/memory/GBAMemory.hpp"
 #include "hardware/LCD.hpp"
+#include "hardware/SoundController.hpp"
 #include "hardware/Keypad.hpp"
 #include "Scheduler.hpp"
 
@@ -20,6 +21,7 @@ struct GBA {
     Interrupts interrupts{};
     GBAMemory* systemMemory;
     LCD lcd{};
+    SoundController soundController{}; // initialized after SDL in LCD
     Keypad keypad{};
     Scheduler scheduler{};
     

@@ -7,6 +7,7 @@
 #include "../MMIO.h" // for getting mmio fields
 #include "../cpu/CPUState.hpp"
 #include "../Interrupts.hpp"
+#include "../SoundController.hpp"
 
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
@@ -28,6 +29,7 @@ struct GBAMemory {
     uint8_t oam[0x400];
     uint8_t gamePak[0x2000000];
     uint8_t* gPakSaveMem;
+    SoundController* soundController;
 
     #ifdef TRACE
     bool tracing = false;
@@ -47,7 +49,6 @@ struct GBAMemory {
     bool loadRom(std::string&);
 
     // memory helper functions
-    // todo: implement SRAM access behavior, and mirrored SRAM + IO port at offset 0x800
     uint32_t ignore;
     template<typename T> T& memoryArray(uint32_t); // address is aligned by bytes for all types
     template<typename T> uint32_t writeable(uint32_t, uint32_t, T);
@@ -81,6 +82,7 @@ struct GBAMemory {
 
     // DMA helpers
     template<uint16_t> void delayedDma();
+    void soundDma(uint8_t);
     void dmaTransfer(uint8_t,uint16_t);
     int8_t getIncrementFactor(uint8_t);
 

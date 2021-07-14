@@ -4,12 +4,15 @@
 #include "cpu/CPUState.hpp"
 #include "../Scheduler.hpp"
 
+struct SoundController;
+
 struct Interrupts {
 
     CPUState* cpuState;
     Scheduler* scheduler;
     uint8_t* IORegisters;
     uint16_t* internalTimer;
+    SoundController* soundController;
 
     /// Scheduler Stuff ///
     void scheduleInterruptCheck();
@@ -62,39 +65,6 @@ inline void Interrupts::haltCheck() {
     scheduler->step();
 }
 
-inline void Interrupts::scheduleTimerStep(uint8_t timerId,uint32_t cycleTimestamp) {
-    // tick the timer, if it has overflowed, repeat with (i+1) if that is cascading and enabled
-    // when a timer overflows, start at the current reload value
-    // raise interrupt check on overflow if enabled
-    scheduler->scheduleEvent([=]() mutable {
-        uint8_t initialTimerId = timerId;
-        bool tick = true;
-        while(tick) {
-            internalTimer[timerId]++;
-            if(internalTimer[timerId] == 0) {
-                tick = false;
-                uint16_t controlAddress = 0x102 + 4 * timerId;
-                const uint8_t timerControlLo = IORegisters[controlAddress];
-
-                if(timerControlLo & 0x40) {
-                    IORegisters[0x202] |= 1 << 3 + timerId;
-                    scheduleInterruptCheck();
-                }
-
-                internalTimer[timerId] = *reinterpret_cast<uint16_t*>(&IORegisters[controlAddress - 2]);
-
-                if(timerId < 3)
-                    if(IORegisters[0x102 + 4 * (timerId + 1)] & 0x84) { // if i+1 is cascading and enabled
-                        timerId++;
-                        tick = true;
-                    }
-            } else
-                tick = false;
-        }
-        timerId = initialTimerId;
-        return cycleTimestamp; // where cycleTimeStamp is the number of cycles it takes for this timer to tick
-    },Scheduler::Timer0+timerId,scheduler->cyclesPassedSinceLastFrame+cycleTimestamp,true);
-}
 inline void Interrupts::removeTimerSteps(uint8_t timerId) {
     scheduler->eventList.remove_if([=](const Scheduler::Event& event) { return event.eventType == timerId; });
 }

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="common\bits.hpp" />
     <ClInclude Include="GBA.hpp" />
     <ClInclude Include="hardware\cpu\ARM7TDMI.hpp" />
     <ClInclude Include="hardware\cpu\CPUState.hpp" />
@@ -27,14 +28,17 @@
     <ClInclude Include="hardware\LCD.hpp" />
     <ClInclude Include="hardware\memory\GBAMemory.hpp" />
     <ClInclude Include="hardware\MMIO.h" />
+    <ClInclude Include="hardware\SoundController.hpp" />
     <ClInclude Include="Scheduler.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GBA.cpp" />
     <ClCompile Include="hardware\cpu\ARM7TDMI.cpp" />
+    <ClCompile Include="hardware\Interrupts.cpp" />
     <ClCompile Include="hardware\Keypad.cpp" />
     <ClCompile Include="hardware\LCD.cpp" />
     <ClCompile Include="hardware\memory\GBAMemory.cpp" />
+    <ClCompile Include="hardware\SoundController.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -189,6 +193,7 @@
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ZeroGBA\dependencies\sdl\lib;$(SolutionDir)ZeroGBA\dependencies\glew\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; glew32.lib;</AdditionalDependencies>
+      <AdditionalOptions>/LTCG %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

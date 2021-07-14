@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
+#include "../../common/bits.hpp"
 #include "CPUState.hpp"
 #include "../memory/GBAMemory.hpp"
 #include "../../Scheduler.hpp"
