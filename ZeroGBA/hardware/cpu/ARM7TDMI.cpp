@@ -23,7 +23,7 @@ void ARM7TDMI::ARMbranch(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Branch=",cpuState.r[15]);
     #endif
-    int32_t signedOffset = signExtend<int32_t,24>(instruction & 0xFFFFFF);
+    int32_t signedOffset = signExtend<int32_t,24>(instruction & 0xFFFFFF) * 4;
     if(instruction & 0x1000000)
         cpuState.setReg(14,cpuState.r[15]+4);
     cpuState.r[15] += 8 + signedOffset;

@@ -14,7 +14,7 @@ struct Keypad {
     bool enterDown = false;
     bool altDown = false;
     bool running = true;
-    bool notSkippingFrames = true;
+    bool noAudioSync = false;
     SDL_Event event;
     SDL_Window* window;
     SDL_DisplayMode displayMode;

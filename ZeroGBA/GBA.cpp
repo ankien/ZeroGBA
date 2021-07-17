@@ -34,6 +34,7 @@ GBA::GBA() {
     lcd.systemMemory = systemMemory;
 
     // SoundController init
+    soundController.noAudioSync = &keypad.noAudioSync;
     soundController.systemMemory = systemMemory;
 
     // Keypad init
@@ -44,12 +45,12 @@ GBA::GBA() {
     systemMemory->IORegisters[0x131] = 3;
 
     // Initialize scheduler events
-    scheduler.eventList = {
-        {startHBlank,Scheduler::GenericRescheduable,960,1},
-        {endHBlank,Scheduler::GenericRescheduable,1232,1},
-        {startVBlank,Scheduler::GenericRescheduable,197120,1},
-        {postFrame,Scheduler::GenericRescheduable,280896,1}
-    };
+    scheduler.addEventToBack(soundController.tickFrameSequencer,Scheduler::GenericRescheduable,0,1);
+    scheduler.addEventToBack(soundController.getSample,Scheduler::GenericRescheduable,0,1);
+    scheduler.addEventToBack(startHBlank,Scheduler::GenericRescheduable,960,1);
+    scheduler.addEventToBack(endHBlank,Scheduler::GenericRescheduable,1232,1);
+    scheduler.addEventToBack(startVBlank,Scheduler::GenericRescheduable,197120,1);
+    scheduler.addEventToBack(postFrame,Scheduler::GenericRescheduable,280896,1);
 }
 
 void GBA::interpretARM() {

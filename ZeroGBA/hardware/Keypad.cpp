@@ -92,7 +92,7 @@ void Keypad::pollInputs() {
                     running = false;
                     break;
                 case SDL_SCANCODE_TAB:
-                    notSkippingFrames = false;
+                    noAudioSync = true;
             }
 
             if(altDown && enterDown)
@@ -139,7 +139,7 @@ void Keypad::pollInputs() {
                     altDown = false;
                     break;
                 case SDL_SCANCODE_TAB:
-                    notSkippingFrames = true;
+                    noAudioSync = false;
             }
         }
 
@@ -176,7 +176,7 @@ void Keypad::pollInputs() {
                     systemMemory->IORegisters[0x130] &= 0xFB;
                     break;
                 case SDL_CONTROLLER_BUTTON_LEFTSTICK:
-                    notSkippingFrames ^= true;
+                    noAudioSync ^= true;
             }
         }
 
@@ -217,7 +217,7 @@ void Keypad::pollInputs() {
         if(event.type == SDL_CONTROLLERAXISMOTION) {
             switch(event.caxis.axis) {
                 case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-                    event.caxis.value != 0 ? notSkippingFrames = false : notSkippingFrames = true;
+                    event.caxis.value != 0 ? noAudioSync = true : noAudioSync = false;
             }
         }
     }

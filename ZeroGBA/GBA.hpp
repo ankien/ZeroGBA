@@ -17,13 +17,13 @@
 struct GBA {
 
     /// Hardware ///
+    Scheduler scheduler{};
     ARM7TDMI arm7tdmi{};
     Interrupts interrupts{};
     GBAMemory* systemMemory;
     LCD lcd{};
     SoundController soundController{}; // initialized after SDL in LCD
     Keypad keypad{};
-    Scheduler scheduler{};
     
     #ifdef DEBUG_VARS
     uint64_t instrCount = 0;
@@ -53,13 +53,6 @@ struct GBA {
         keypad.pollInputs();
 
         lcd.draw();
-
-        // naive sync to video approach
-        // roughly 1000ms / 60fps - delay since start of last frame draw
-        // todo: add error accumulation (to account for 2 frames over 60),
-        // and fix it so that frame times > 16 don't delay the next frame (frame time accumulation)
-        if(keypad.notSkippingFrames)
-            SDL_Delay(16 - ((lcd.currMillseconds - lcd.millisecondsElapsedAtLastFrame) % 16));
 
         lcd.millisecondsElapsedAtLastFrame = SDL_GetTicks();
 

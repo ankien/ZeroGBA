@@ -12,7 +12,7 @@
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
 // file-based trace, select # of instructions you want to trace from boot, prints to log.txt
-//#define TRACE 2000000
+//#define TRACE 500000
 
 struct GBAMemory {
 
@@ -32,7 +32,7 @@ struct GBAMemory {
     SoundController* soundController;
 
     #ifdef TRACE
-    bool tracing = false;
+    bool tracing = true;
     #endif
 
 
