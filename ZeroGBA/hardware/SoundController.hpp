@@ -45,4 +45,5 @@ struct SoundController {
     uint8_t fifos[2][32]{};
     int16_t fifoLatch[2]{};
     void timerOverflow(uint8_t);
+    void fillFifo(uint8_t,const uint32_t,uint8_t);
 };

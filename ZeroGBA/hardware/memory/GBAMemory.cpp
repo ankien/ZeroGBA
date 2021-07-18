@@ -190,11 +190,8 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
 
             // DMA sound
             else if(ioAddress < 0xA7 && ioAddress > 0x9F - offset) {
-                const bool fifoChannel = ioAddress > 0xA3;
-                if(soundController->currFifoSize[fifoChannel] < 32) {
-                    soundController->fifos[fifoChannel][(soundController->currFifoBytePos[fifoChannel] + soundController->currFifoSize[fifoChannel]) % 32] = value;
-                    soundController->currFifoSize[fifoChannel]++;
-                }
+                soundController->fillFifo(ioAddress,value,sizeof(T));
+                return 0x0;
             }
 
             // DMA regs

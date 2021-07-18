@@ -67,11 +67,12 @@ SoundController::SoundController() {
         // DMA channels
         int16_t volumeScaledLatch[2];
         for(uint8_t fifoChannel = 0; fifoChannel < 2; fifoChannel++)
-            volumeScaledLatch[fifoChannel] = fifoLatch[fifoChannel] << (soundCntH & (1 << 2+fifoChannel));
-        int16_t dmaLeft = volumeScaledLatch[0]*(soundCntH&2) + volumeScaledLatch[1]*(soundCntH&0x20);
-        int16_t dmaRight = volumeScaledLatch[0]*(soundCntH&1) + volumeScaledLatch[1]*(soundCntH&0x10);
+            volumeScaledLatch[fifoChannel] = fifoLatch[fifoChannel] << static_cast<bool>(soundCntH & (1 << 2+fifoChannel));
+        int16_t dmaLeft = volumeScaledLatch[0]*static_cast<bool>(soundCntH&0x200) + volumeScaledLatch[1]*static_cast<bool>(soundCntH&0x2000);
+        int16_t dmaRight = volumeScaledLatch[0]*static_cast<bool>(soundCntH&0x100) + volumeScaledLatch[1]*static_cast<bool>(soundCntH&0x1000);
 
         int16_t total[2];
+        // to unsigned
         total[0] = dmaLeft + biasLevel;
         total[1] = dmaRight + biasLevel;
         for(auto& num : total) {
@@ -80,12 +81,13 @@ SoundController::SoundController() {
             else if(num < 0)
                 num = 0;
         }
+        // back to signed
         total[0] -= biasLevel;
         total[1] -= biasLevel;
 
-        // bring 0-3FFh range to 16 bit unsigned
-        buffer[bufferPos] = total[0];
-        buffer[bufferPos + 1] = total[1];
+        // bring 10-bit signed to 16-bit signed range
+        buffer[bufferPos] = total[0] << 6;
+        buffer[bufferPos + 1] = total[1] << 6;
         bufferPos += 2;
 
         if(bufferPos >= BufferSize) {
@@ -133,4 +135,16 @@ void SoundController::timerOverflow(uint8_t timerId) {
         if(currFifoSize[fifoChannel] <= 16)
             systemMemory->soundDma(fifoChannel);
     }
+}
+
+void SoundController::fillFifo(uint8_t ioAddress,const uint32_t value,uint8_t sizeOfThisInBytes) {
+    const bool fifoChannel = ioAddress > 0xA3;
+
+    if(currFifoSize[fifoChannel] < 32) {
+        fifos[fifoChannel][(currFifoBytePos[fifoChannel] + currFifoSize[fifoChannel]) % 32] = value;
+        currFifoSize[fifoChannel]++;
+    }
+
+    if(ioAddress+1 < 0xA8 && sizeOfThisInBytes > 0)
+        fillFifo(ioAddress+1,value >> 8,sizeOfThisInBytes-1);
 }
