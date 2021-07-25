@@ -196,9 +196,11 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
                 memoryArray<T>(address) = value;
                 if(ioAddress < 0x63 && ioAddress > 0x61 - offset)
                     soundController->lengthCounter[0] = 64 - (IORegisters[0x62] & 0x3F);
-                if(ioAddress < 0x64 && ioAddress > 0x62 - offset)
-                    soundController->enabled[0] = soundController->dacEnabled[0] = IORegisters[0x63] & 0xF8;
-                if(ioAddress < 0x66 && ioAddress > 0x64 - offset) {
+                if(ioAddress < 0x64 && ioAddress > 0x62 - offset) {
+                    soundController->dacEnabled[0] = IORegisters[0x63] & 0xF8;
+                    if(!soundController->dacEnabled[0])
+                        soundController->enabled[0] = false;
+                } if(ioAddress < 0x66 && ioAddress > 0x64 - offset) {
                     if(IORegisters[0x65] & 0x80) {
                         if(soundController->dacEnabled[0])
                             soundController->enabled[0] = true;
@@ -231,9 +233,11 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
                 memoryArray<T>(address) = value;
                 if(ioAddress < 0x69 && ioAddress > 0x67 - offset)
                     soundController->lengthCounter[1] = 64 - (IORegisters[0x68] & 0x3F);
-                if(ioAddress < 0x6A && ioAddress > 0x68 - offset)
-                    soundController->enabled[1] = soundController->dacEnabled[1] = IORegisters[0x69] & 0xF8;
-                if(ioAddress < 0x6E && ioAddress > 0x6C - offset) {
+                if(ioAddress < 0x6A && ioAddress > 0x68 - offset) {
+                    soundController->dacEnabled[1] = IORegisters[0x69] & 0xF8;
+                    if(!soundController->dacEnabled[1])
+                        soundController->enabled[1] = false;
+                } if(ioAddress < 0x6E && ioAddress > 0x6C - offset) {
                     if(IORegisters[0x6D] & 0x80) {
                         if(soundController->dacEnabled[1])
                             soundController->enabled[1] = true;
@@ -256,9 +260,11 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
                     return 0x0;
 
                 memoryArray<T>(address) = value;
-                if(ioAddress < 0x71 && ioAddress > 0x6F - offset)
-                    soundController->enabled[2] = soundController->dacEnabled[2] = IORegisters[0x70] & 0x80;
-                if(ioAddress < 0x73 && ioAddress > 0x71 - offset)
+                if(ioAddress < 0x71 && ioAddress > 0x6F - offset) {
+                    soundController->dacEnabled[2] = IORegisters[0x70] & 0x80;
+                    if(!soundController->dacEnabled[2])
+                        soundController->enabled[2] = false;
+                } if(ioAddress < 0x73 && ioAddress > 0x71 - offset)
                     soundController->lengthCounter[2] = 256 - (IORegisters[0x72] & 0x7F);
                 if(ioAddress < 0x76 && ioAddress > 0x74 - offset) {
                     if(soundController->dacEnabled[2])
@@ -284,9 +290,11 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
                 memoryArray<T>(address) = value;
                 if(ioAddress < 0x79 && ioAddress > 0x77 - offset)
                     soundController->lengthCounter[3] = 64 - (IORegisters[0x78] & 0x3F);
-                if(ioAddress < 0x7A && ioAddress > 0x78 - offset)
-                    soundController->enabled[3] = soundController->dacEnabled[3] = IORegisters[0x79] & 0xF8;
-                if(ioAddress < 0x7E && ioAddress > 0x7C - offset) {
+                if(ioAddress < 0x7A && ioAddress > 0x78 - offset) {
+                    soundController->dacEnabled[3] = IORegisters[0x79] & 0xF8;
+                    if(!soundController->dacEnabled[3])
+                        soundController->enabled[3] = false;
+                } if(ioAddress < 0x7E && ioAddress > 0x7C - offset) {
                     if(IORegisters[0x7D] & 0x80) {
                         if(soundController->dacEnabled[3])
                             soundController->enabled[3] = true;
@@ -322,10 +330,7 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
 
             // Wave Ram
             else if(ioAddress < 0xA0 && ioAddress > 0x8F - offset) {
-                if(soundController->enabled[2])
-                    *reinterpret_cast<T*>(&soundController->waveRam[static_cast<bool>(IORegisters[0x70] & 0x40)][soundController->waveRamPosition/2]) = value;
-                else
-                    *reinterpret_cast<T*>(&soundController->waveRam[static_cast<bool>(IORegisters[0x70] & 0x40)][ioAddress - 0x90]) = value;
+                *reinterpret_cast<T*>(&soundController->waveRam[!static_cast<bool>(IORegisters[0x70] & 0x40)][ioAddress - 0x90]) = value;
                 return 0x0;
             }
 
@@ -579,10 +584,7 @@ uint32_t GBAMemory::readValue(uint32_t address) {
             
             // Wave Ram
             else if(ioAddress < 0xA0 && ioAddress > 0x8F - offset) {
-                if(soundController->enabled[2])
-                    value = *reinterpret_cast<T*>(&soundController->waveRam[static_cast<bool>(IORegisters[0x70] & 0x40)][soundController->waveRamPosition/2]);
-                else
-                    value = *reinterpret_cast<T*>(&soundController->waveRam[static_cast<bool>(IORegisters[0x70] & 0x40)][ioAddress - 0x90]);
+                value = *reinterpret_cast<T*>(&soundController->waveRam[!static_cast<bool>(IORegisters[0x70] & 0x40)][ioAddress - 0x90]);
             }
             
             // Timer Reload regs

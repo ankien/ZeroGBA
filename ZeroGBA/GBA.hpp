@@ -12,7 +12,7 @@
 #include "hardware/Keypad.hpp"
 #include "Scheduler.hpp"
 
-#define DEBUG_VARS
+//#define DEBUG_VARS
 
 struct GBA {
 

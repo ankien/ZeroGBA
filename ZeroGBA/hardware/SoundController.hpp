@@ -55,7 +55,7 @@ struct SoundController {
     uint8_t waveRam[2][32]{};
     uint16_t lfsr{};
     void removeWaveGenStep(uint8_t);
-    template<uint8_t> uint16_t calculateFrequencyTimer();
+    template<uint8_t> uint32_t calculateFrequencyTimer();
     void scheduleWaveGenStep(uint8_t);
     template<uint8_t> int16_t getAmplitude();
     void initEnvelope(uint8_t);

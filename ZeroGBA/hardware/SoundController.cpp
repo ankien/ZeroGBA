@@ -60,51 +60,37 @@ SoundController::SoundController() {
     getSample = [&]() {
         const uint16_t soundCntL = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x80]);
         const uint16_t soundCntH = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x82]);
-        const uint16_t biasLevel = (*reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x88]) & 0x3FE) >> 1;
         
         // Channels 1-4
-        int16_t volumeScaledAnalogue[2];
-        for(uint8_t analogueSide : {0,1})
-            volumeScaledAnalogue[analogueSide] = (getAmplitude<1>() * static_cast<bool>(soundCntL & (1 << 12-4*analogueSide))) +
-                                                 (getAmplitude<2>() * static_cast<bool>(soundCntL & (1 << 13-4*analogueSide))) +
-                                                 (getAmplitude<3>() * static_cast<bool>(soundCntL & (1 << 14-4*analogueSide))) +
-                                                 (getAmplitude<4>() * static_cast<bool>(soundCntL & (1 << 15-4*analogueSide)));
-        uint8_t analogueChannelMixVol;
-        switch(soundCntH & 0x3) {
-            case 0:
-                analogueChannelMixVol = 4;
-                break;
-            case 1:
-                analogueChannelMixVol = 2;
-                break;
-            case 2:
-            case 3:
-                analogueChannelMixVol = 1;
-                break;
-        }
-        int16_t analogueLeft = (volumeScaledAnalogue[0] * ((soundCntL & 0x70) >> 4)) / analogueChannelMixVol;
-        int16_t analogueRight = (volumeScaledAnalogue[1] * (soundCntL & 0x7)) / analogueChannelMixVol;
+        int16_t volumeScaledPsg[2];
+        for(uint8_t psgSide : {0,1})
+            volumeScaledPsg[psgSide] = (getAmplitude<1>() * static_cast<bool>(soundCntL & (1 << 12-4*psgSide))) +
+                                       (getAmplitude<2>() * static_cast<bool>(soundCntL & (1 << 13-4*psgSide))) +
+                                       (getAmplitude<3>() * static_cast<bool>(soundCntL & (1 << 14-4*psgSide))) +
+                                       (getAmplitude<4>() * static_cast<bool>(soundCntL & (1 << 15-4*psgSide)));
+        
+        uint8_t psgChannelVol = soundCntH & 0x3;
+        // -0x200 to 0x200, each channel amplitude is -0x80 to 0x80
+        int16_t psgLeft = (volumeScaledPsg[0] * ((soundCntL & 0x70) >> 4)) >> (5-psgChannelVol);
+        int16_t psgRight = (volumeScaledPsg[1] * (soundCntL & 0x7)) >> (5-psgChannelVol);
 
         // DMA channels
         int16_t volumeScaledDma[2];
         for(uint8_t fifoChannel : {0,1})
             volumeScaledDma[fifoChannel] = fifoLatch[fifoChannel] << static_cast<bool>(soundCntH & (1 << 2+fifoChannel));
+        // -0x400 to 0x400
         int16_t dmaLeft = volumeScaledDma[0]*static_cast<bool>(soundCntH&0x200) + volumeScaledDma[1]*static_cast<bool>(soundCntH&0x2000);
         int16_t dmaRight = volumeScaledDma[0]*static_cast<bool>(soundCntH&0x100) + volumeScaledDma[1]*static_cast<bool>(soundCntH&0x1000);
 
         int16_t total[2];
-        // to unsigned
-        total[0] = analogueLeft + dmaLeft + biasLevel;
-        total[1] = analogueRight + dmaRight + biasLevel;
+        total[0] = psgLeft + dmaLeft;
+        total[1] = psgRight + dmaRight;
         for(auto& num : total) {
-            if(num > 0x3FF)
-                num = 0x3FF;
-            else if(num < 0)
-                num = 0;
+            if(num > 0x1FF)
+                num = 0x1FF;
+            else if(num < -0x200)
+                num = -0x200;
         }
-        // back to signed
-        total[0] -= biasLevel;
-        total[1] -= biasLevel;
 
         // bring 10-bit signed to 16-bit signed range @ 9-bit depth (divided by 2) (?)
         buffer[bufferPos] = total[0] << 5;
@@ -132,17 +118,18 @@ void SoundController::removeWaveGenStep(uint8_t eventType) {
 }
 
 template<uint8_t soundChannelId>
-uint16_t SoundController::calculateFrequencyTimer() {
+uint32_t SoundController::calculateFrequencyTimer() {
     switch(soundChannelId) {
         case 1:
         case 2:
-            return (2048 - (systemMemory->IORegisters[0x5C + 8*soundChannelId] & 0x7FF)) * 16;
+            return (2048 - (*reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x5C + 8*soundChannelId]) & 0x7FF)) * 16;
         case 3:
-            return (2048 - (systemMemory->IORegisters[0x74] & 0x7FF)) * 8;
+            return (2048 - (*reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x74]) & 0x7FF)) * 8;
         case 4:
         {
-            uint16_t divisorCode = systemMemory->IORegisters[0x7C] & 0x7;
-            return ((divisorCode > 0 ? (divisorCode << 4) : 8) << ((systemMemory->IORegisters[0x7C] & 0xF0) >> 4)) * 4;
+            uint8_t divisorCode = systemMemory->IORegisters[0x7C] & 0x7;
+            uint8_t shiftFrequency = (systemMemory->IORegisters[0x7C] & 0xF0) >> 4;
+            return ((divisorCode > 0 ? (divisorCode << 4) : 8) << shiftFrequency) * 4;
         }
     }
 }
@@ -165,15 +152,15 @@ void SoundController::scheduleWaveGenStep(uint8_t soundChannelId) {
             scheduler->scheduleEvent([&]() {
                 waveRamPosition = (waveRamPosition + 1) % 32;
                 if((waveRamPosition == 0) && (systemMemory->IORegisters[0x70] & 0x20))
-                    systemMemory->IORegisters[0x70] ^= 40;
+                    systemMemory->IORegisters[0x70] ^= 0x40;
                 uint8_t waveRamByte = waveRam[static_cast<bool>(systemMemory->IORegisters[0x70] & 0x40)][waveRamPosition / 2];
-                waveRamSample = waveRamPosition & 1 ? waveRamByte >> 4 : waveRamByte & 0xF;
+                waveRamSample = waveRamPosition & 1 ? waveRamByte & 0xF : waveRamByte >> 4;
                 return calculateFrequencyTimer<3>();
             },Scheduler::SoundChannel3,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<3>(),true);
             return;
         case 4:
             scheduler->scheduleEvent([&]() {
-                uint16_t xorResult = (lfsr & 1) ^ ((lfsr & 1) >> 1);
+                uint16_t xorResult = (lfsr & 0b1) ^ ((lfsr & 0b10) >> 1);
                 lfsr = (lfsr >> 1) | (xorResult << 14);
                 
                 if(systemMemory->IORegisters[0x7C] & 0x8) {
@@ -200,11 +187,11 @@ int16_t SoundController::getAmplitude() {
                 // 4-bit sample to 8-bit
                 constexpr uint8_t volumeRatio[4] = {0,4,2,1};
                 const uint8_t soundVolume = (systemMemory->IORegisters[0x73] & 0x60) >> 5;
-                return ((static_cast<int16_t>(waveRamSample) << 3) << 2) * (systemMemory->IORegisters[0x73] & 0x80 ? 3 : volumeRatio[soundVolume]);
+                return (static_cast<int16_t>(waveRamSample) << 1) * (systemMemory->IORegisters[0x73] & 0x80 ? 3 : volumeRatio[soundVolume]);
             }
             case 4:
-                // 0th bit amplified
-                return ((~lfsr & 1) ? 8 : -8) * currentVolume[volIdx];
+                // inverted 0th bit amplified
+                return static_cast<int16_t>(((~lfsr) & 1) ? 8 : -5) * currentVolume[volIdx];
         }
     } else 
         return 0;
@@ -212,9 +199,9 @@ int16_t SoundController::getAmplitude() {
 
 void SoundController::initEnvelope(uint8_t soundChannelId) {
     uint8_t idx = soundChannelId == 4 ? 2 : soundChannelId - 1;
-    uint8_t envelopAddresses[4] = {0x62,0x68,NULL,0x78};
+    constexpr uint8_t envelopAddresses[4] = {0x63,0x69,NULL,0x79};
     uint8_t envelopeRegIdx = envelopAddresses[soundChannelId-1];
-    uint16_t envelopeReg = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[envelopeRegIdx]);
+    uint8_t envelopeReg = systemMemory->IORegisters[envelopeRegIdx];
     periodTimer[idx] = envelopeReg & 0x7;
     currentVolume[idx] = (envelopeReg >> 4) & 0xF;
 }
@@ -224,7 +211,7 @@ void SoundController::envelopeStep() {
     constexpr uint8_t envelopAddresses[4] = {0x63,0x69,NULL,0x79};
     constexpr uint8_t envelopeRegIdx = envelopAddresses[soundChannelId-1];
     constexpr uint8_t periodIdx = soundChannelId == 4 ? 2 : soundChannelId - 1;
-    uint16_t envelopeReg = systemMemory->IORegisters[envelopeRegIdx];
+    uint8_t envelopeReg = systemMemory->IORegisters[envelopeRegIdx];
     uint8_t period = envelopeReg & 0x7;
     if(period) {
         if(periodTimer[periodIdx] > 0)
@@ -284,7 +271,7 @@ void SoundController::sweepStep() {
         if(sweepEnabled && sweepPeriod > 0) {
             uint16_t newFrequency = calculateNewFrequency();
             
-            if(newFrequency <= 0x7FF && (systemMemory->IORegisters[0x60] & 0x7) > 0) {
+            if(newFrequency <= 0x7FF) {
                 shadowFrequency = newFrequency;
                 systemMemory->memoryArray<uint16_t>(0x4000064) &= 0xF800;
                 systemMemory->memoryArray<uint16_t>(0x4000064) |= newFrequency;
