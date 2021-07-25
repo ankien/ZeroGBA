@@ -21,7 +21,7 @@ GBA::GBA() {
     arm7tdmi.cpuState.setBankedReg(Supervisor,0,0x3007FE0);
 
     // Skip BIOS
-    //arm7tdmi.cpuState.r[15] = 0x8000000;
+    arm7tdmi.cpuState.r[15] = 0x8000000;
 
     // Interrupts init
     interrupts.scheduler = &scheduler;
@@ -36,6 +36,7 @@ GBA::GBA() {
     // SoundController init
     soundController.noAudioSync = &keypad.noAudioSync;
     soundController.systemMemory = systemMemory;
+    soundController.scheduler = &scheduler;
 
     // Keypad init
     keypad.systemMemory = systemMemory;

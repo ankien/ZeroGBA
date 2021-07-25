@@ -65,6 +65,6 @@ inline void Interrupts::haltCheck() {
     scheduler->step();
 }
 
-inline void Interrupts::removeTimerSteps(uint8_t timerId) {
-    scheduler->eventList.remove_if([=](const Scheduler::Event& event) { return event.eventType == timerId; });
+inline void Interrupts::removeTimerSteps(uint8_t eventType) {
+    scheduler->eventList.remove_if([=](const Scheduler::Event& event) { return event.eventType == eventType; });
 }

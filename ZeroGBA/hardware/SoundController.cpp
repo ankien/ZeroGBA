@@ -61,20 +61,41 @@ SoundController::SoundController() {
         const uint16_t soundCntL = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x80]);
         const uint16_t soundCntH = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x82]);
         const uint16_t biasLevel = (*reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x88]) & 0x3FE) >> 1;
+        
         // Channels 1-4
-
+        int16_t volumeScaledAnalogue[2];
+        for(uint8_t analogueSide : {0,1})
+            volumeScaledAnalogue[analogueSide] = (getAmplitude<1>() * static_cast<bool>(soundCntL & (1 << 12-4*analogueSide))) +
+                                                 (getAmplitude<2>() * static_cast<bool>(soundCntL & (1 << 13-4*analogueSide))) +
+                                                 (getAmplitude<3>() * static_cast<bool>(soundCntL & (1 << 14-4*analogueSide))) +
+                                                 (getAmplitude<4>() * static_cast<bool>(soundCntL & (1 << 15-4*analogueSide)));
+        uint8_t analogueChannelMixVol;
+        switch(soundCntH & 0x3) {
+            case 0:
+                analogueChannelMixVol = 4;
+                break;
+            case 1:
+                analogueChannelMixVol = 2;
+                break;
+            case 2:
+            case 3:
+                analogueChannelMixVol = 1;
+                break;
+        }
+        int16_t analogueLeft = (volumeScaledAnalogue[0] * ((soundCntL & 0x70) >> 4)) / analogueChannelMixVol;
+        int16_t analogueRight = (volumeScaledAnalogue[1] * (soundCntL & 0x7)) / analogueChannelMixVol;
 
         // DMA channels
-        int16_t volumeScaledLatch[2];
-        for(uint8_t fifoChannel = 0; fifoChannel < 2; fifoChannel++)
-            volumeScaledLatch[fifoChannel] = fifoLatch[fifoChannel] << static_cast<bool>(soundCntH & (1 << 2+fifoChannel));
-        int16_t dmaLeft = volumeScaledLatch[0]*static_cast<bool>(soundCntH&0x200) + volumeScaledLatch[1]*static_cast<bool>(soundCntH&0x2000);
-        int16_t dmaRight = volumeScaledLatch[0]*static_cast<bool>(soundCntH&0x100) + volumeScaledLatch[1]*static_cast<bool>(soundCntH&0x1000);
+        int16_t volumeScaledDma[2];
+        for(uint8_t fifoChannel : {0,1})
+            volumeScaledDma[fifoChannel] = fifoLatch[fifoChannel] << static_cast<bool>(soundCntH & (1 << 2+fifoChannel));
+        int16_t dmaLeft = volumeScaledDma[0]*static_cast<bool>(soundCntH&0x200) + volumeScaledDma[1]*static_cast<bool>(soundCntH&0x2000);
+        int16_t dmaRight = volumeScaledDma[0]*static_cast<bool>(soundCntH&0x100) + volumeScaledDma[1]*static_cast<bool>(soundCntH&0x1000);
 
         int16_t total[2];
         // to unsigned
-        total[0] = dmaLeft + biasLevel;
-        total[1] = dmaRight + biasLevel;
+        total[0] = analogueLeft + dmaLeft + biasLevel;
+        total[1] = analogueRight + dmaRight + biasLevel;
         for(auto& num : total) {
             if(num > 0x3FF)
                 num = 0x3FF;
@@ -85,9 +106,9 @@ SoundController::SoundController() {
         total[0] -= biasLevel;
         total[1] -= biasLevel;
 
-        // bring 10-bit signed to 16-bit signed range
-        buffer[bufferPos] = total[0] << 6;
-        buffer[bufferPos + 1] = total[1] << 6;
+        // bring 10-bit signed to 16-bit signed range @ 9-bit depth (divided by 2) (?)
+        buffer[bufferPos] = total[0] << 5;
+        buffer[bufferPos + 1] = total[1] << 5;
         bufferPos += 2;
 
         if(bufferPos >= BufferSize) {
@@ -106,18 +127,171 @@ SoundController::SoundController() {
     SDL_PauseAudio(0);
 }
 
+void SoundController::removeWaveGenStep(uint8_t eventType) {
+    scheduler->eventList.remove_if([=](const Scheduler::Event& event) { return event.eventType == eventType; });
+}
+
+template<uint8_t soundChannelId>
+uint16_t SoundController::calculateFrequencyTimer() {
+    switch(soundChannelId) {
+        case 1:
+        case 2:
+            return (2048 - (systemMemory->IORegisters[0x5C + 8*soundChannelId] & 0x7FF)) * 16;
+        case 3:
+            return (2048 - (systemMemory->IORegisters[0x74] & 0x7FF)) * 8;
+        case 4:
+        {
+            uint16_t divisorCode = systemMemory->IORegisters[0x7C] & 0x7;
+            return ((divisorCode > 0 ? (divisorCode << 4) : 8) << ((systemMemory->IORegisters[0x7C] & 0xF0) >> 4)) * 4;
+        }
+    }
+}
+
+void SoundController::scheduleWaveGenStep(uint8_t soundChannelId) {
+    switch(soundChannelId) {
+        case 1:
+            scheduler->scheduleEvent([&]() {
+                waveDutyPosition[0] = (waveDutyPosition[0] + 1) % 8;
+                return calculateFrequencyTimer<1>();
+            },Scheduler::SoundChannel1,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<1>(),true);
+            return;
+        case 2:
+            scheduler->scheduleEvent([&]() {
+                waveDutyPosition[1] = (waveDutyPosition[1] + 1) % 8;
+                return calculateFrequencyTimer<2>();
+            },Scheduler::SoundChannel2,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<2>(),true);
+            return;
+        case 3:
+            scheduler->scheduleEvent([&]() {
+                waveRamPosition = (waveRamPosition + 1) % 32;
+                if((waveRamPosition == 0) && (systemMemory->IORegisters[0x70] & 0x20))
+                    systemMemory->IORegisters[0x70] ^= 40;
+                uint8_t waveRamByte = waveRam[static_cast<bool>(systemMemory->IORegisters[0x70] & 0x40)][waveRamPosition / 2];
+                waveRamSample = waveRamPosition & 1 ? waveRamByte >> 4 : waveRamByte & 0xF;
+                return calculateFrequencyTimer<3>();
+            },Scheduler::SoundChannel3,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<3>(),true);
+            return;
+        case 4:
+            scheduler->scheduleEvent([&]() {
+                uint16_t xorResult = (lfsr & 1) ^ ((lfsr & 1) >> 1);
+                lfsr = (lfsr >> 1) | (xorResult << 14);
+                
+                if(systemMemory->IORegisters[0x7C] & 0x8) {
+                    lfsr &= ~(1 << 6);
+                    lfsr |= xorResult << 6;
+                }
+                return calculateFrequencyTimer<4>();
+            },Scheduler::SoundChannel4,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<4>(),true);
+            return;
+    }
+}
+
+template<uint8_t soundChannelId>
+int16_t SoundController::getAmplitude() {
+    constexpr uint8_t index = soundChannelId - 1;
+    if(enabled[index] && dacEnabled[index]) {    
+        constexpr uint8_t volIdx = soundChannelId == 4 ? 2 : soundChannelId - 1;
+        switch(soundChannelId) {
+            case 1:
+            case 2:
+                return static_cast<int16_t>(wavePatternDuty[(systemMemory->IORegisters[0x5C + soundChannelId*6] & 0xC0) >> 6][waveDutyPosition[index]]) * currentVolume[volIdx];
+            case 3:
+            {
+                // 4-bit sample to 8-bit
+                constexpr uint8_t volumeRatio[4] = {0,4,2,1};
+                const uint8_t soundVolume = (systemMemory->IORegisters[0x73] & 0x60) >> 5;
+                return ((static_cast<int16_t>(waveRamSample) << 3) << 2) * (systemMemory->IORegisters[0x73] & 0x80 ? 3 : volumeRatio[soundVolume]);
+            }
+            case 4:
+                // 0th bit amplified
+                return ((~lfsr & 1) ? 8 : -8) * currentVolume[volIdx];
+        }
+    } else 
+        return 0;
+}
+
+void SoundController::initEnvelope(uint8_t soundChannelId) {
+    uint8_t idx = soundChannelId == 4 ? 2 : soundChannelId - 1;
+    uint8_t envelopAddresses[4] = {0x62,0x68,NULL,0x78};
+    uint8_t envelopeRegIdx = envelopAddresses[soundChannelId-1];
+    uint16_t envelopeReg = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[envelopeRegIdx]);
+    periodTimer[idx] = envelopeReg & 0x7;
+    currentVolume[idx] = (envelopeReg >> 4) & 0xF;
+}
+
 template<uint8_t soundChannelId>
 void SoundController::envelopeStep() {
+    constexpr uint8_t envelopAddresses[4] = {0x63,0x69,NULL,0x79};
+    constexpr uint8_t envelopeRegIdx = envelopAddresses[soundChannelId-1];
+    constexpr uint8_t periodIdx = soundChannelId == 4 ? 2 : soundChannelId - 1;
+    uint16_t envelopeReg = systemMemory->IORegisters[envelopeRegIdx];
+    uint8_t period = envelopeReg & 0x7;
+    if(period) {
+        if(periodTimer[periodIdx] > 0)
+            periodTimer[periodIdx]--;
 
+        if(periodTimer[periodIdx] == 0) {
+            periodTimer[periodIdx] = period;
+
+            bool isUpwards = envelopeReg & 0x8;
+            if((currentVolume[periodIdx] < 0xF && isUpwards) || (currentVolume[periodIdx] > 0x0 && !isUpwards))
+                currentVolume[periodIdx] += isUpwards ? 1 : -1 ;
+        }
+    }
 }
 
 template<uint8_t soundChannelId>
 void SoundController::lengthStep() {
+    constexpr uint8_t index = soundChannelId - 1;
+    bool lengthFlag;
+    switch(soundChannelId) {
+        case 1:
+            lengthFlag = systemMemory->IORegisters[0x65] & 0x40;
+            break;
+        case 2:
+            lengthFlag = systemMemory->IORegisters[0x6D] & 0x40;
+            break;
+        case 3:
+            lengthFlag = systemMemory->IORegisters[0x75] & 0x40;
+            break;
+        case 4:
+            lengthFlag = systemMemory->IORegisters[0x7D] & 0x40;
+            break;
+    }
+    if(lengthFlag && lengthCounter[index] > 0) {
+        lengthCounter[index]--;
+        enabled[index] = lengthCounter[index];
+    }
+}
 
+uint16_t SoundController::calculateNewFrequency() {
+    const uint8_t sweepReg = systemMemory->IORegisters[0x60];
+    uint16_t newFrequency = shadowFrequency >> (sweepReg & 0x7);
+    newFrequency = shadowFrequency + (sweepReg & 0x8 ? -1 : 1) * newFrequency;
+    if(newFrequency > 0x7FF)
+        enabled[0] = false;
+    return newFrequency;
 }
 
 void SoundController::sweepStep() {
+    if(sweepTimer > 0)
+        sweepTimer--;
 
+    if(sweepTimer == 0) {
+        uint8_t sweepPeriod = (systemMemory->IORegisters[0x60] & 0x70) >> 4;
+        sweepTimer = sweepPeriod > 0 ? sweepPeriod : 8;
+
+        if(sweepEnabled && sweepPeriod > 0) {
+            uint16_t newFrequency = calculateNewFrequency();
+            
+            if(newFrequency <= 0x7FF && (systemMemory->IORegisters[0x60] & 0x7) > 0) {
+                shadowFrequency = newFrequency;
+                systemMemory->memoryArray<uint16_t>(0x4000064) &= 0xF800;
+                systemMemory->memoryArray<uint16_t>(0x4000064) |= newFrequency;
+                calculateNewFrequency();
+            }
+        }
+    }
 }
 
 void SoundController::timerOverflow(uint8_t timerId) {
@@ -137,7 +311,7 @@ void SoundController::timerOverflow(uint8_t timerId) {
     }
 }
 
-void SoundController::fillFifo(uint8_t ioAddress,const uint32_t value,uint8_t sizeOfThisInBytes) {
+void SoundController::fillFifo(uint8_t ioAddress,uint32_t value,uint8_t sizeOfThisInBytes) {
     const bool fifoChannel = ioAddress > 0xA3;
 
     if(currFifoSize[fifoChannel] < 32) {

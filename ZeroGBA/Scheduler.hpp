@@ -7,7 +7,11 @@
 
 struct Scheduler {
 
-    enum EventTypes {Timer0,Timer1,Timer2,Timer3,GenericRescheduable,Interrupt,HaltCheck};
+    enum EventTypes {
+        SoundChannel1,SoundChannel2,SoundChannel3,SoundChannel4,
+        Timer0,Timer1,Timer2,Timer3,
+        GenericRescheduable,Interrupt,HaltCheck
+    };
 
     struct Event {
 
@@ -41,10 +45,10 @@ struct Scheduler {
 
 inline void Scheduler::scheduleEvent(std::function<uint32_t()> func, uint8_t eventType, uint32_t cycleTimeStamp, bool reschedule) {
     for(auto it = eventList.begin(); it != eventList.end(); ++it) {
-            if(cycleTimeStamp <= it->timestamp) {
-                eventList.emplace(it,func,eventType,cycleTimeStamp%280896,reschedule); // move currEvent to "it"
-                return;
-            }
+        if(cycleTimeStamp <= it->timestamp) {
+            eventList.emplace(it, func, eventType, cycleTimeStamp % 280896, reschedule); // move currEvent to "it"
+            return;
+        }
     }
 }
 
@@ -56,7 +60,7 @@ inline void Scheduler::addEventToBack(std::function<uint32_t()> func, uint8_t ev
     eventList.emplace_back(func,eventType,cycleTimeStamp,reschedule);
 }
 
-// todo: optimize this bitch, maybe make a custom linked list w/ arena allocator for cache friendliness?
+// todo: optimize this bitch
 inline void Scheduler::rescheduleEvent(const std::list<Event>::iterator& currEvent, uint32_t cycleTimeStamp) {
     uint32_t processRescheduledTime = currEvent->timestamp + cycleTimeStamp;
     
