@@ -35,6 +35,7 @@ LCD::LCD() {
 
     // initialize pixel buffer
     pixelBuffer = new uint16_t[38400];
+    std::fill_n(pixelBuffer,38400,0x7FFF);
 
     compileShaders();
 }
@@ -420,7 +421,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                                     break;
                             }
                         } else {
-                        opaqueBG:
+                            opaqueBG:
                             topColor = newColor;
                             topNonTransparentBg = bg;
                         }
@@ -487,7 +488,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                             }
                         }
                     } else {
-                    opaqueSprite:
+                        opaqueSprite:
                         topColor = newColor;
                         topNonTransparentBg = OBJ;
                     }
@@ -500,27 +501,20 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
             if(specialEffects) { // if blending enabled
                 switch(colorSpecialEffect) {
                     case 0x0: // none
-                        goto opaqueBG;
                     case 0x1: // alpha blending
-                        // todo: check if the backdrop can blend
-                        goto opaqueBD;
-                        break;
+                        // todo: check if the backdrop can blend with the previous window
+                        continue;
                     case 0x2: // brightness increase
                         if(bldcntFirstTargets & 0x20) {
                             topColor = brightnessFade<true>(evy, topColor);
-                        } else
-                            goto opaqueBD;
+                        }
                         break;
                     case 0x3: // brightness decrease
                         if(bldcntFirstTargets & 0x20) {
                             topColor = brightnessFade<false>(evy, topColor);
-                        } else
-                            goto opaqueBD;
+                        }
                         break;
                 }
-            } else {
-                opaqueBD:
-                topColor = topColor;
             }
         }
 
