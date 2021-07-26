@@ -71,12 +71,6 @@ struct LCD {
 
     // for compositing a scanline
     enum bgTypes {BG0,BG1,BG2,BG3,OBJ,BD};
-    enum windowTypes {NONE,WINOUT,OBJ_WIN,WIN1,WIN0};
-    // [highest window type][window type]
-    // a list of the lowest to highest priority windows given the highest priority one, -1 is skipped
-    const int8_t windowList[5] = {
-        NONE,WINOUT,OBJ_WIN,WIN1,WIN0
-    };
     
     LCD();
 

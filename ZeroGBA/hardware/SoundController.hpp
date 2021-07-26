@@ -15,7 +15,7 @@ struct SoundController {
 
     enum sampleData {
         Channels = 2,
-        BufferSize = 8192,
+        BufferSize = 4096,
         SampleRate = 48000,
         SamplePeriod = 16777216 / SampleRate
     };
