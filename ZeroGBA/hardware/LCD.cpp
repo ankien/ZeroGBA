@@ -500,10 +500,11 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
         if(topNonTransparentBg == BD) {
             if(specialEffects) { // if blending enabled
                 switch(colorSpecialEffect) {
+                    // todo: check if this behavior is right
                     case 0x0: // none
-                    case 0x1: // alpha blending
-                        // todo: check if the backdrop can blend with the previous window
                         continue;
+                    case 0x1: // alpha blending
+                        break;
                     case 0x2: // brightness increase
                         if(bldcntFirstTargets & 0x20) {
                             topColor = brightnessFade<true>(evy, topColor);
