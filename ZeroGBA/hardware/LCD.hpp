@@ -70,7 +70,7 @@ struct LCD {
     };
 
     // for compositing a scanline
-    enum bgTypes {BG0,BG1,BG2,BG3,OBJ,BD};
+    enum bgTypes {BG0,BG1,BG2,BG3,OBJ,BD,NONE};
     
     LCD();
 
@@ -79,13 +79,13 @@ struct LCD {
     uint16_t screenEntryIndex(uint16_t,uint16_t,uint16_t);
     void renderTextBG(uint8_t,uint8_t);
     void renderAffineBG(uint8_t);
-    void renderSprites(uint32_t,int16_t);
+    template<bool> void renderSprites(int16_t);
 
     // Take the BG and sprite layers and output them into pixelBuffer 
     // with priority and alpha blending
     template<bool> uint16_t brightnessFade(uint8_t,uint16_t);
     uint16_t blend(uint8_t,uint16_t,uint8_t,uint16_t);
-    void composeScanline(uint16_t*,uint8_t);
+    template<bool> void composeScanline(uint16_t*,uint8_t);
 
     void renderScanline();
 
