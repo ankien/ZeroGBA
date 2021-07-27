@@ -448,56 +448,31 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                     uint16_t newColor = halfWordPram[spriteLayer[x].pindex];
 
                     if(specialEffects) {
-                        if(spriteLayer[x].alpha) {
-                            if(bldcntFirstTargets & (1 << OBJ) && bldcntSecondTargets & (1 << topNonTransparentBg)) {
-                                topColor = blend(eva, newColor, evb, topColor);
-                                topNonTransparentBg = OBJ;
-                            } else {
-                                switch(colorSpecialEffect) {
-                                    case 0x2: // brightness increase
-                                        if(bldcntFirstTargets & (1 << OBJ)) {
-                                            topColor = brightnessFade<true>(evy, newColor);
-                                            topNonTransparentBg = OBJ;
-                                        } else
-                                            goto opaqueSprite;
-                                        break;
-                                    case 0x3: // brightness decrease
-                                        if(bldcntFirstTargets & (1 << OBJ)) {
-                                            topColor = brightnessFade<false>(evy, newColor);
-                                            topNonTransparentBg = OBJ;
-                                        } else
-                                            goto opaqueSprite;
-                                        break;
-                                    default:
-                                        goto opaqueSprite;
-                                }
-                            }
-                        } else {
-                            switch(colorSpecialEffect) {
-                                case 0x0: // none
+
+                        switch(colorSpecialEffect) {
+                            case 0x0: // none
+                                goto opaqueSprite;
+                            case 0x1: // alpha blending
+                                if((bldcntFirstTargets & (1 << OBJ) || spriteLayer[x].alpha)  && bldcntSecondTargets & (1 << topNonTransparentBg)) {
+                                    topColor = blend(eva, newColor, evb, topColor);
+                                    topNonTransparentBg = OBJ;
+                                } else
                                     goto opaqueSprite;
-                                case 0x1: // alpha blending
-                                    if(bldcntFirstTargets & (1 << OBJ) && bldcntSecondTargets & (1 << topNonTransparentBg)) {
-                                        topColor = blend(eva, newColor, evb, topColor);
-                                        topNonTransparentBg = OBJ;
-                                    } else
-                                        goto opaqueSprite;
-                                    break;
-                                case 0x2: // brightness increase
-                                    if(bldcntFirstTargets & (1 << OBJ)) {
-                                        topColor = brightnessFade<true>(evy, newColor);
-                                        topNonTransparentBg = OBJ;
-                                    } else
-                                        goto opaqueSprite;
-                                    break;
-                                case 0x3: // brightness decrease
-                                    if(bldcntFirstTargets & (1 << OBJ)) {
-                                        topColor = brightnessFade<false>(evy, newColor);
-                                        topNonTransparentBg = OBJ;
-                                    } else
-                                        goto opaqueSprite;
-                                    break;
-                            }
+                                break;
+                            case 0x2: // brightness increase
+                                if(bldcntFirstTargets & (1 << OBJ)) {
+                                    topColor = brightnessFade<true>(evy, newColor);
+                                    topNonTransparentBg = OBJ;
+                                } else
+                                    goto opaqueSprite;
+                                break;
+                            case 0x3: // brightness decrease
+                                if(bldcntFirstTargets & (1 << OBJ)) {
+                                    topColor = brightnessFade<false>(evy, newColor);
+                                    topNonTransparentBg = OBJ;
+                                } else
+                                    goto opaqueSprite;
+                                break;
                         }
                     } else {
                         opaqueSprite:
