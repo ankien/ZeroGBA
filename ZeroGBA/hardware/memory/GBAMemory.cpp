@@ -401,18 +401,16 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
                 const uint8_t prescalerSelection = memoryArray<uint8_t>(controlAddress) & 0x3;
                 if(newTimerEnable) {
                     if(newTimerCascade)
-                        timers->removeTimerStep(Scheduler::Timer0 + timerId);
+                        timers->removeOverflow(Scheduler::Timer0 + timerId);
                     else if(!oldTimerEnable || oldTimerCascade) { // if enabled or no longer cascade
                         if(!oldTimerEnable)
                             timers->internalTimer[timerId] = memoryArray<uint16_t>(controlAddress - 2);
-                        uint16_t shiftAmount = prescalerSelection > 0 ? 1 << prescalerSelection * 2 + 4 : 1;
-                        timers->scheduleTimerStep(timerId, shiftAmount);
+                        timers->scheduleOverflow(timerId, prescalerSelection);
                     }
                 } else if(oldTimerEnable) { // if disabled
                     //IORegisters[0x202] |= 1<<3+timerId;   // this is a hack!
                     //interrupts->scheduleInterruptCheck(); // todo: figure out why mgba-suite's timer tests are broken without these lines
-                    timers->internalTimer[timerId] = 0;
-                    timers->removeTimerStep(Scheduler::Timer0 + timerId);
+                    timers->removeOverflow(Scheduler::Timer0 + timerId);
                 }
 
                 return 0x0;
@@ -602,6 +600,7 @@ uint32_t GBAMemory::readValue(uint32_t address) {
                 uint16_t tempTimer;
                 const uint32_t reloadAddress = 0x4000100 + 4 * timerId;
                 tempTimer = memoryArray<uint16_t>(reloadAddress);
+                timers->updateTimer(timerId,memoryArray<uint8_t>(reloadAddress+2));
                 memoryArray<uint16_t>(reloadAddress) = timers->internalTimer[timerId];
 
                 value = memoryArray<T>(address);

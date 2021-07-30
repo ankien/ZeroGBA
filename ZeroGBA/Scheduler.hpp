@@ -42,12 +42,16 @@ struct Scheduler {
 };
 
 inline void Scheduler::scheduleEvent(std::function<uint64_t()> func, uint8_t eventType, uint64_t cycleTimeStamp, bool reschedule) {
-    for(auto it = eventList.begin(); it != eventList.end(); ++it) {
+    auto it = eventList.begin();
+    for(;it != eventList.end(); ++it) {
         if(cycleTimeStamp <= it->timestamp) {
             eventList.emplace(it, func, eventType, cycleTimeStamp, reschedule); // move currEvent to "it"
             return;
         }
     }
+
+    // if last event
+    eventList.emplace(it, func, eventType, cycleTimeStamp, reschedule);
 }
 
 inline void Scheduler::addEventToFront(std::function<uint64_t()> func, uint8_t eventType, uint64_t cycleTimeStamp, bool reschedule) {
