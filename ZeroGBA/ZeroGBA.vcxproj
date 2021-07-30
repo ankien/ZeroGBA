@@ -21,16 +21,17 @@
     <ClInclude Include="hardware\memory\GBAMemory.hpp" />
     <ClInclude Include="hardware\MMIO.h" />
     <ClInclude Include="hardware\SoundController.hpp" />
+    <ClInclude Include="hardware\Timers.hpp" />
     <ClInclude Include="Scheduler.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GBA.cpp" />
     <ClCompile Include="hardware\cpu\ARM7TDMI.cpp" />
-    <ClCompile Include="hardware\Interrupts.cpp" />
     <ClCompile Include="hardware\Keypad.cpp" />
     <ClCompile Include="hardware\LCD.cpp" />
     <ClCompile Include="hardware\memory\GBAMemory.cpp" />
     <ClCompile Include="hardware\SoundController.cpp" />
+    <ClCompile Include="hardware\Timers.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>

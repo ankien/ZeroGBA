@@ -4,15 +4,11 @@
 #include "cpu/CPUState.hpp"
 #include "../Scheduler.hpp"
 
-struct SoundController;
-
 struct Interrupts {
 
     CPUState* cpuState;
     Scheduler* scheduler;
     uint8_t* IORegisters;
-    uint16_t* internalTimer;
-    SoundController* soundController;
 
     /// Scheduler Stuff ///
     void scheduleInterruptCheck();
@@ -20,9 +16,6 @@ struct Interrupts {
 
     void scheduleHaltCheck();
     void haltCheck();
-
-    void scheduleTimerStep(uint8_t,uint64_t); // called when timers are enabled
-    void removeTimerSteps(uint8_t);
 };
 
 
@@ -35,6 +28,7 @@ inline void Interrupts::scheduleInterruptCheck() {
         return 0;
     },Scheduler::Interrupt,0,false);
 }
+
 inline bool Interrupts::irqsEnabled() {
     if(IORegisters[0x208] & 0x1)
         return !cpuState->irqDisable;
@@ -63,8 +57,4 @@ inline void Interrupts::haltCheck() {
         scheduler->step();
     }
     scheduler->step();
-}
-
-inline void Interrupts::removeTimerSteps(uint8_t eventType) {
-    scheduler->eventList.remove_if([=](const Scheduler::Event& event) { return event.eventType == eventType; });
 }

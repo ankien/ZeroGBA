@@ -7,6 +7,7 @@
 #include "hardware/cpu/ARM7TDMI.hpp"
 #include "hardware/Interrupts.hpp"
 #include "hardware/memory/GBAMemory.hpp"
+#include "hardware/Timers.hpp"
 #include "hardware/LCD.hpp"
 #include "hardware/SoundController.hpp"
 #include "hardware/Keypad.hpp"
@@ -21,6 +22,7 @@ struct GBA {
     ARM7TDMI arm7tdmi{};
     Interrupts interrupts{};
     GBAMemory* systemMemory;
+    Timers timers;
     LCD lcd{};
     SoundController soundController{}; // initialized after SDL in LCD
     Keypad keypad{};
@@ -38,7 +40,7 @@ struct GBA {
 
     // Control helpers
     struct {
-        uint8_t jit : 1; // not implemented lol
+        uint8_t whatever : 1;
     } runtimeOptions{};
     bool parseArguments(uint64_t argc, char* argv[]);
     void run(char*);

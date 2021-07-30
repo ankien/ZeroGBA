@@ -8,6 +8,7 @@
 #include "../cpu/CPUState.hpp"
 #include "../Interrupts.hpp"
 #include "../SoundController.hpp"
+#include "../Timers.hpp"
 
 // debug console print, reeeally slow, like 1 fps slow
 //#define PRINT_INSTR
@@ -18,6 +19,7 @@ struct GBAMemory {
 
     CPUState* cpuState;
     Interrupts* interrupts;
+    Timers* timers;
 
     // System memory
     uint8_t bios[0x4000];
@@ -85,9 +87,6 @@ struct GBAMemory {
     void soundDma(uint8_t);
     void dmaTransfer(uint8_t,uint16_t);
     int8_t getIncrementFactor(uint8_t);
-
-    /// Timer stuff ///
-    uint16_t internalTimer[4]{};
 
     /// Save Memory stuff ///
     enum saveTypes { None, EEPROM_V, SRAM_V, FLASH_V, FLASH512_V, FLASH1M_V };

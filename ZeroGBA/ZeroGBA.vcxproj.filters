@@ -46,7 +46,7 @@
     <ClCompile Include="hardware\SoundController.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\Interrupts.cpp">
+    <ClCompile Include="hardware\Timers.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,6 +83,9 @@
     </ClInclude>
     <ClInclude Include="common\bits.hpp">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="hardware\Timers.hpp">
+      <Filter>Hardware</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

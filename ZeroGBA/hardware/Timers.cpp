@@ -1,7 +1,11 @@
-#include "Interrupts.hpp"
+#include "Timers.hpp"
 #include "SoundController.hpp"
 
-void Interrupts::scheduleTimerStep(uint8_t timerId,uint64_t cycleTimestamp) {
+void Timers::removeTimerStep(uint8_t eventType) {
+    scheduler->eventList.remove_if([=](const Scheduler::Event& event) { return event.eventType == eventType; });
+}
+
+void Timers::scheduleTimerStep(uint8_t timerId,uint64_t cycleTimestamp) {
     // tick the timer, if it has overflowed, repeat with (i+1) if that is cascading and enabled
     // when a timer overflows, start at the current reload value
     // raise interrupt check on overflow if enabled
@@ -20,7 +24,7 @@ void Interrupts::scheduleTimerStep(uint8_t timerId,uint64_t cycleTimestamp) {
 
                 if(timerControlLo & 0x40) { // timer IRQ
                     IORegisters[0x202] |= 1 << 3 + timerId;
-                    scheduleInterruptCheck();
+                    interrupts->scheduleInterruptCheck();
                 }
 
                 internalTimer[timerId] = *reinterpret_cast<uint16_t*>(&IORegisters[controlAddress - 2]);

@@ -7,6 +7,7 @@ GBA::GBA() {
     systemMemory->interrupts = &interrupts;
     systemMemory->cpuState = &arm7tdmi.cpuState;
     systemMemory->soundController = &soundController;
+    systemMemory->timers = &timers;
 
     // CPU init
     arm7tdmi.interrupts = &interrupts;
@@ -27,8 +28,12 @@ GBA::GBA() {
     interrupts.scheduler = &scheduler;
     interrupts.cpuState = &arm7tdmi.cpuState;
     interrupts.IORegisters = systemMemory->IORegisters;
-    interrupts.internalTimer = systemMemory->internalTimer;
-    interrupts.soundController = &soundController;
+
+    // Timers init
+    timers.interrupts = &interrupts;
+    timers.scheduler = &scheduler;
+    timers.IORegisters = systemMemory->IORegisters;
+    timers.soundController = &soundController;
 
     // LCD init
     lcd.systemMemory = systemMemory;
@@ -78,14 +83,14 @@ void GBA::interpretTHUMB() {
     scheduler.cyclesPassed += arm7tdmi.cycleTicks;
 }
 
-// todo: not really urgent, but change this to use regex
+// todo: not really urgent, but parse this with regex
 bool GBA::parseArguments(uint64_t argc, char* argv[]) {
     if(argc < 2)
         return 0;
     
     if(argc > 2)
         for(uint64_t i = 1; i < (argc - 1); i++) {
-            if(strcmp(argv[i], "-j") == 0);
+            if(strcmp(argv[i], "-whatever") == 0);
                 // do shit
             else
                 return 0;
@@ -103,60 +108,58 @@ void GBA::run(char* fileName) {
         if(!systemMemory->loadRom(fileNameString))
             return;
 
-        if(runtimeOptions.jit) { // GBA JIT
-            // no implementation yet
-            return;
-        } else { // GBA interpreter
-            arm7tdmi.fillARM();
-            arm7tdmi.fillTHUMB();
+        // GBA interpreter
+        arm7tdmi.fillARM();
+        arm7tdmi.fillTHUMB();
+        #if defined(TRACE)
+        static uint64_t traceAmount = 0;
+        FILE* traceFile = fopen("log.txt", "wb");
+        #endif
+
+        //if(runtimeOptions.whatever)
+        //    doShit();
+
+        while(keypad.running) {
+
+            #ifdef DEBUG_VARS
+            volatile uint32_t oldPC = arm7tdmi.cpuState.r[15];
+            #endif
+
+            // todo: buffer this output or use MIO so we don't destroy our hdd with a billion calls
             #if defined(TRACE)
-                static uint64_t traceAmount = 0;
-                FILE* traceFile = fopen("log.txt","wb");
+            if(systemMemory->tracing && traceAmount < TRACE) {
+                for(uint8_t j = 0; j < 16; j++) {
+                    if(j == 15)
+                        arm7tdmi.cpuState.state ? fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j] + 2) : fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j] + 4);
+                    else
+                        fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j]);
+                }
+                fprintf(traceFile, "cpsr: %08X\n", arm7tdmi.cpuState.getCPSR());
+                traceAmount++;
+            } else if(traceAmount >= TRACE) {
+                fclose(traceFile);
+                exit(0);
+            }
+            #endif
+
+            // todo: make it so that we don't have to check what state we're in every instruction and alignment
+            if(arm7tdmi.cpuState.state)
+                interpretTHUMB();
+            else
+                interpretARM();
+
+            #ifdef DEBUG_VARS
+            instrCount++;
+            uint32_t oldIRQSPSR = arm7tdmi.cpuState.irqReg[2];
             #endif
 
 
-            while(keypad.running) {
+            if(arm7tdmi.cpuState.state)
+                arm7tdmi.cpuState.r[15] &= ~1;
+            else
+                arm7tdmi.cpuState.r[15] &= ~3;
 
-                #ifdef DEBUG_VARS
-                volatile uint32_t oldPC = arm7tdmi.cpuState.r[15];
-                #endif
-
-                // todo: buffer this output or use MIO so we don't destroy our hdd with a billion calls
-                #if defined(TRACE)
-                if(systemMemory->tracing && traceAmount < TRACE) {
-                    for(uint8_t j = 0; j < 16; j++) {
-                        if(j == 15)
-                            arm7tdmi.cpuState.state ? fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j] + 2) : fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j] + 4);
-                        else
-                            fprintf(traceFile, "%08X ", arm7tdmi.cpuState.r[j]);
-                    }
-                    fprintf(traceFile, "cpsr: %08X\n", arm7tdmi.cpuState.getCPSR());
-                    traceAmount++;
-                } else if(traceAmount >= TRACE) {
-                    fclose(traceFile);
-                    exit(0);
-                }
-                #endif
-
-                // todo: make it so that we don't have to check what state we're in every instruction and alignment
-                if(arm7tdmi.cpuState.state)
-                    interpretTHUMB();
-                else
-                    interpretARM();
-
-                #ifdef DEBUG_VARS
-                instrCount++;
-                uint32_t oldIRQSPSR = arm7tdmi.cpuState.irqReg[2];
-                #endif
-
-
-                if(arm7tdmi.cpuState.state)
-                    arm7tdmi.cpuState.r[15] &= ~1;
-                else
-                    arm7tdmi.cpuState.r[15] &= ~3;
-
-                scheduler.step();
-            }
+            scheduler.step();
         }
 
     } else
