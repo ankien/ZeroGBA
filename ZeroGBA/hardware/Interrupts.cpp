@@ -1,7 +1,7 @@
 #include "Interrupts.hpp"
 #include "SoundController.hpp"
 
-void Interrupts::scheduleTimerStep(uint8_t timerId,uint32_t cycleTimestamp) {
+void Interrupts::scheduleTimerStep(uint8_t timerId,uint64_t cycleTimestamp) {
     // tick the timer, if it has overflowed, repeat with (i+1) if that is cascading and enabled
     // when a timer overflows, start at the current reload value
     // raise interrupt check on overflow if enabled
@@ -35,5 +35,5 @@ void Interrupts::scheduleTimerStep(uint8_t timerId,uint32_t cycleTimestamp) {
         }
         timerId = initialTimerId;
         return cycleTimestamp; // where cycleTimeStamp is the number of cycles it takes for this timer to tick
-    },Scheduler::Timer0+timerId,scheduler->cyclesPassedSinceLastFrame+cycleTimestamp,true);
+    },Scheduler::Timer0+timerId,scheduler->cyclesPassed+cycleTimestamp,true);
 }

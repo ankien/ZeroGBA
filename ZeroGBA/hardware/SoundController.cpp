@@ -118,7 +118,7 @@ void SoundController::removeWaveGenStep(uint8_t eventType) {
 }
 
 template<uint8_t soundChannelId>
-uint32_t SoundController::calculateFrequencyTimer() {
+uint64_t SoundController::calculateFrequencyTimer() {
     switch(soundChannelId) {
         case 1:
         case 2:
@@ -140,13 +140,13 @@ void SoundController::scheduleWaveGenStep(uint8_t soundChannelId) {
             scheduler->scheduleEvent([&]() {
                 waveDutyPosition[0] = (waveDutyPosition[0] + 1) % 8;
                 return calculateFrequencyTimer<1>();
-            },Scheduler::SoundChannel1,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<1>(),true);
+            },Scheduler::SoundChannel1,scheduler->cyclesPassed+calculateFrequencyTimer<1>(),true);
             return;
         case 2:
             scheduler->scheduleEvent([&]() {
                 waveDutyPosition[1] = (waveDutyPosition[1] + 1) % 8;
                 return calculateFrequencyTimer<2>();
-            },Scheduler::SoundChannel2,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<2>(),true);
+            },Scheduler::SoundChannel2,scheduler->cyclesPassed+calculateFrequencyTimer<2>(),true);
             return;
         case 3:
             scheduler->scheduleEvent([&]() {
@@ -156,7 +156,7 @@ void SoundController::scheduleWaveGenStep(uint8_t soundChannelId) {
                 uint8_t waveRamByte = waveRam[static_cast<bool>(systemMemory->IORegisters[0x70] & 0x40)][waveRamPosition / 2];
                 waveRamSample = waveRamPosition & 1 ? waveRamByte & 0xF : waveRamByte >> 4;
                 return calculateFrequencyTimer<3>();
-            },Scheduler::SoundChannel3,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<3>(),true);
+            },Scheduler::SoundChannel3,scheduler->cyclesPassed+calculateFrequencyTimer<3>(),true);
             return;
         case 4:
             scheduler->scheduleEvent([&]() {
@@ -168,7 +168,7 @@ void SoundController::scheduleWaveGenStep(uint8_t soundChannelId) {
                     lfsr |= xorResult << 6;
                 }
                 return calculateFrequencyTimer<4>();
-            },Scheduler::SoundChannel4,scheduler->cyclesPassedSinceLastFrame+calculateFrequencyTimer<4>(),true);
+            },Scheduler::SoundChannel4,scheduler->cyclesPassed+calculateFrequencyTimer<4>(),true);
             return;
     }
 }

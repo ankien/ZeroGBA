@@ -21,7 +21,7 @@ struct Interrupts {
     void scheduleHaltCheck();
     void haltCheck();
 
-    void scheduleTimerStep(uint8_t,uint32_t); // called when timers are enabled
+    void scheduleTimerStep(uint8_t,uint64_t); // called when timers are enabled
     void removeTimerSteps(uint8_t);
 };
 
@@ -55,10 +55,10 @@ inline void Interrupts::haltCheck() {
     while(((*reinterpret_cast<uint16_t*>(&IORegisters[0x200]) & 0x3FFF) &
            (*reinterpret_cast<uint16_t*>(&IORegisters[0x202]) & 0x3FFF)) == 0) {
 
-        const uint32_t frontTimestamp = scheduler->eventList.front().timestamp;
+        const uint64_t frontTimestamp = scheduler->eventList.front().timestamp;
         // update cycles passed
         if(frontTimestamp != 0)
-            scheduler->cyclesPassedSinceLastFrame = frontTimestamp;
+            scheduler->cyclesPassed = frontTimestamp;
 
         scheduler->step();
     }

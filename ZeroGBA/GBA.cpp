@@ -65,7 +65,7 @@ void GBA::interpretARM() {
         #endif
     } else
         arm7tdmi.cpuState.r[15]+=4;
-    scheduler.cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
+    scheduler.cyclesPassed += arm7tdmi.cycleTicks;
 }
 void GBA::interpretTHUMB() {
     uint16_t instruction = systemMemory->memoryArray<uint16_t>(arm7tdmi.cpuState.r[15]);
@@ -75,7 +75,7 @@ void GBA::interpretTHUMB() {
     #if defined(PRINT_INSTR)
         printf(" %X\n",instruction); // debug
     #endif
-    scheduler.cyclesPassedSinceLastFrame += arm7tdmi.cycleTicks;
+    scheduler.cyclesPassed += arm7tdmi.cycleTicks;
 }
 
 // todo: not really urgent, but change this to use regex

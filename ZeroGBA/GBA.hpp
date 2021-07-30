@@ -44,21 +44,17 @@ struct GBA {
     void run(char*);
 
     // Scheduler events
-    const std::function<uint32_t()> postFrame = [&]() {
-        scheduler.cyclesPassedSinceLastFrame = 0;
+    const std::function<uint64_t()> postFrame = [&]() {
         systemMemory->IORegisters[4] &= 0xFE; // turn off vblank
-        scheduler.addEventToFront([&]() {scheduler.resetEventList(); return 0;},Scheduler::Interrupt,0,false);
 
         // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
         keypad.pollInputs();
 
         lcd.draw();
 
-        lcd.millisecondsElapsedAtLastFrame = SDL_GetTicks();
-
         return 280896;
     };
-    const std::function<uint32_t()> startHBlank = [&]() {
+    const std::function<uint64_t()> startHBlank = [&]() {
         systemMemory->IORegisters[4] |= 0x2; // turn on hblank
         if(DISPSTAT_HBLANK_IRQ) {
             systemMemory->IORegisters[0x202] |= 0x2;// set hblank REG_IF
@@ -75,7 +71,7 @@ struct GBA {
         }
         return 1232;
     };
-    const std::function<uint32_t()> endHBlank = [&]() {
+    const std::function<uint64_t()> endHBlank = [&]() {
         systemMemory->IORegisters[4] &= 0xFD; // turn off hblank
         systemMemory->IORegisters[6] = (VCOUNT+1) % 228; // increment vcount
         VCOUNT == DISPSTAT_VCOUNT_SETTING ? systemMemory->IORegisters[4] |= 0x4 : systemMemory->IORegisters[4] &= 0xFB ; // set v-counter flag
@@ -89,7 +85,7 @@ struct GBA {
         }
         return 1232;
     };
-    const std::function<uint32_t()> startVBlank = [&]() {
+    const std::function<uint64_t()> startVBlank = [&]() {
         systemMemory->IORegisters[4] |= 0x1; // set vblank
         // Copy reference point registers to internal ones
         for(int8_t i = 0; i < 2; i++) {

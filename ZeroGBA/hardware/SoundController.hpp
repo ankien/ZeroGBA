@@ -30,8 +30,8 @@ struct SoundController {
 
     SoundController();
 
-    std::function<uint32_t()> tickFrameSequencer;
-    std::function<uint32_t()> getSample;
+    std::function<uint64_t()> tickFrameSequencer;
+    std::function<uint64_t()> getSample;
 
     // Channels 1-4
 
@@ -55,7 +55,7 @@ struct SoundController {
     uint8_t waveRam[2][32]{};
     uint16_t lfsr{};
     void removeWaveGenStep(uint8_t);
-    template<uint8_t> uint32_t calculateFrequencyTimer();
+    template<uint8_t> uint64_t calculateFrequencyTimer();
     void scheduleWaveGenStep(uint8_t);
     template<uint8_t> int16_t getAmplitude();
     void initEnvelope(uint8_t);

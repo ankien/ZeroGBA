@@ -14,10 +14,9 @@ struct LCD {
     
 
     uint16_t fps = 0;
-    // used to calculate fps and frame delta
+    // used to calculate fps
     uint32_t currMillseconds = 0;
     uint32_t millisecondsElapsedAtLastSecond = 0;
-    uint32_t millisecondsElapsedAtLastFrame = 0;
 
     GBAMemory* systemMemory;
 
