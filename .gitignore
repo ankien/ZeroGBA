@@ -6,6 +6,8 @@
 # User-specific files
 *.bin
 log.txt
+*.7z
+*.zip
 *.htm
 *.rsuser
 *.suo

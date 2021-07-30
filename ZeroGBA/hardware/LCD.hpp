@@ -70,7 +70,7 @@ struct LCD {
     };
 
     // for compositing a scanline
-    enum bgTypes {BG0,BG1,BG2,BG3,OBJ,BD,NONE};
+    enum bgTypes {BG0,BG1,BG2,BG3,OBJ,BD};
     
     LCD();
 

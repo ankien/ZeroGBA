@@ -449,13 +449,20 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
 
                     if(specialEffects) {
 
+                        if(spriteLayer[x].alpha)
+                            goto secondTargetSpriteCheck;
+
                         switch(colorSpecialEffect) {
                             case 0x0: // none
                                 goto opaqueSprite;
                             case 0x1: // alpha blending
-                                if((bldcntFirstTargets & (1 << OBJ) || spriteLayer[x].alpha)  && bldcntSecondTargets & (1 << topNonTransparentBg)) {
-                                    topColor = blend(eva, newColor, evb, topColor);
-                                    topNonTransparentBg = OBJ;
+                                if(bldcntFirstTargets & (1 << OBJ)) {
+                                    secondTargetSpriteCheck:
+                                    if(bldcntSecondTargets & (1 << topNonTransparentBg)) {
+                                        topColor = blend(eva, newColor, evb, topColor);
+                                        topNonTransparentBg = OBJ;
+                                    } else
+                                        goto opaqueSprite;
                                 } else
                                     goto opaqueSprite;
                                 break;

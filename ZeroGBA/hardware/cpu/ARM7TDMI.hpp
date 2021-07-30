@@ -11,7 +11,7 @@
 
 struct ARM7TDMI {
     // cycles per instruction
-    static constexpr int32_t cycleTicks = 1; // stubbing this for now, todo: implement correct cycle timings
+    static constexpr int32_t cycleTicks = 2; // stubbing this for now, 2 CPI for semi-accuracy and compatibility, todo: implement correct cycle timings
 
     // lookup tables, array size is the different number of instructions
     // todo: use templates to generate these tables, and their constexpr arguments at compile time

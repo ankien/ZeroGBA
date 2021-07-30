@@ -283,7 +283,7 @@ void SoundController::sweepStep() {
 
 void SoundController::timerOverflow(uint8_t timerId) {
     for(uint8_t fifoChannel = 0; fifoChannel < 2; fifoChannel++) {
-        const bool timerSelect = systemMemory->IORegisters[0x83] & (4 << (timerId*4));
+        bool timerSelect = systemMemory->IORegisters[0x83] & (4 << (fifoChannel*4));
         if(timerId == timerSelect) {
             if(currFifoSize[fifoChannel] > 0) {
                 fifoLatch[fifoChannel] = signExtend<int16_t,8>(fifos[fifoChannel][currFifoBytePos[fifoChannel]]) * 2; // 50% volume setting, DMA channel ranges -0x100-0xFE,
