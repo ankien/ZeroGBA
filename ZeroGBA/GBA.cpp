@@ -62,7 +62,7 @@ GBA::GBA() {
 void GBA::interpretARM() {
     uint32_t instruction = systemMemory->memoryArray<uint32_t>(arm7tdmi.cpuState.r[15]);
 
-    if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
+    if(arm7tdmi.checkCond((instruction & 0xF0000000) >> 28)) {
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
         (arm7tdmi.*(armLut[armIndex]))(instruction);
         #if defined(PRINT_INSTR)

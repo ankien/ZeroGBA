@@ -61,26 +61,26 @@ struct ARM7TDMI final {
     template<bool> void ARMswap(uint32_t);
 
     /// THUMB Instructions ///
-    void THUMBmoveShiftedRegister(uint16_t);
-    void THUMBaddSubtract(uint16_t);
-    void THUMBmoveCompareAddSubtract(uint16_t);
-    void THUMBaluOperations(uint16_t);
-    void THUMBhiRegOpsBranchEx(uint16_t);
+    template<uint8_t,uint8_t> void THUMBmoveShiftedRegister(uint16_t);
+    template<uint8_t,uint8_t> void THUMBaddSubtract(uint16_t);
+    template<uint8_t,uint8_t> void THUMBmoveCompareAddSubtract(uint16_t);
+    template<uint8_t> void THUMBaluOperations(uint16_t);
+    template<uint8_t,bool,bool> void THUMBhiRegOpsBranchEx(uint16_t);
 
-    void THUMBloadPCRelative(uint16_t);
-    void THUMBloadStoreRegOffset(uint16_t);
-    void THUMBloadStoreSignExtendedByteHalfword(uint16_t);
-    void THUMBloadStoreImmOffset(uint16_t);
-    void THUMBloadStoreHalfword(uint16_t);
-    void THUMBloadStoreSPRelative(uint16_t);
+    template<uint8_t> void THUMBloadPCRelative(uint16_t);
+    template<uint8_t,uint8_t> void THUMBloadStoreRegOffset(uint16_t);
+    template<uint8_t,uint8_t> void THUMBloadStoreSignExtendedByteHalfword(uint16_t);
+    template<uint8_t,uint32_t> void THUMBloadStoreImmOffset(uint16_t);
+    template<bool,uint32_t> void THUMBloadStoreHalfword(uint16_t);
+    template<bool,uint8_t> void THUMBloadStoreSPRelative(uint16_t);
 
-    void THUMBgetRelativeAddress(uint16_t);
-    void THUMBaddOffsetToSP(uint16_t);
+    template<bool,uint8_t> void THUMBgetRelativeAddress(uint16_t);
+    template<bool> void THUMBaddOffsetToSP(uint16_t);
 
-    void THUMBpushPopRegisters(uint16_t);
-    void THUMBmultipleLoadStore(uint16_t);
+    template<bool,bool> void THUMBpushPopRegisters(uint16_t);
+    template<bool,uint8_t> void THUMBmultipleLoadStore(uint16_t);
 
-    void THUMBconditionalBranch(uint16_t);
+    template<uint8_t> void THUMBconditionalBranch(uint16_t);
     void THUMBunconditionalBranch(uint16_t);
     void THUMBlongBranchWithLink(uint16_t);
     void THUMBsoftwareInterrupt(uint16_t);

@@ -89,43 +89,72 @@ static constexpr auto generateThumbLut() {
     staticFor<uint16_t, 0, 1024>([&](auto i) {
         if((i & 0b1111111100) == 0b1101111100)
             table[i] = &ARM7TDMI::THUMBsoftwareInterrupt;
-        else if((i & 0b1111111100) == 0b1011000000)
-            table[i] = &ARM7TDMI::THUMBaddOffsetToSP;
-        else if((i & 0b1111110000) == 0b0100000000)
-            table[i] = &ARM7TDMI::THUMBaluOperations;
-        else if((i & 0b1111110000) == 0b0100010000)
-            table[i] = &ARM7TDMI::THUMBhiRegOpsBranchEx;
-        else if((i & 0b1111011000) == 0b1011010000)
-            table[i] = &ARM7TDMI::THUMBpushPopRegisters;
-        else if((i & 0b1111000000) == 0b1111000000)
+        else if((i & 0b1111111100) == 0b1011000000) {
+            constexpr bool opcode = i & 0x2;
+            table[i] = &ARM7TDMI::THUMBaddOffsetToSP<opcode>;
+        } else if((i & 0b1111110000) == 0b0100000000) {
+            constexpr uint8_t opcode = i & 0xF;
+            table[i] = &ARM7TDMI::THUMBaluOperations<opcode>;
+        } else if((i & 0b1111110000) == 0b0100010000) {
+            constexpr uint8_t opcode = (i & 0xC) >> 2;
+            constexpr bool h1 = i & 2;
+            constexpr bool h2 = i & 1;
+            table[i] = &ARM7TDMI::THUMBhiRegOpsBranchEx<opcode,h1,h2>;
+        } else if((i & 0b1111011000) == 0b1011010000) {
+            constexpr bool opcode = i & 0x20;
+            constexpr bool pcLr = i & 4;
+            table[i] = &ARM7TDMI::THUMBpushPopRegisters<opcode,pcLr>;
+        } else if((i & 0b1111000000) == 0b1111000000)
             table[i] = &ARM7TDMI::THUMBlongBranchWithLink;
         else if((i & 0b1111100000) == 0b1110000000)
             table[i] = &ARM7TDMI::THUMBunconditionalBranch;
-        else if((i & 0b1111100000) == 0b0001100000)
-            table[i] = &ARM7TDMI::THUMBaddSubtract;
-        else if((i & 0b1111100000) == 0b0100100000)
-            table[i] = &ARM7TDMI::THUMBloadPCRelative;
-        else if((i & 0b1111000000) == 0b1100000000)
-            table[i] = &ARM7TDMI::THUMBmultipleLoadStore;
-        else if((i & 0b1111000000) == 0b1101000000)
-            table[i] = &ARM7TDMI::THUMBconditionalBranch;
-        else if((i & 0b1111000000) == 0b1000000000)
-            table[i] = &ARM7TDMI::THUMBloadStoreHalfword;
-        else if((i & 0b1111000000) == 0b1010000000)
-            table[i] = &ARM7TDMI::THUMBgetRelativeAddress;
-        else if((i & 0b1111000000) == 0b1001000000)
-            table[i] = &ARM7TDMI::THUMBloadStoreSPRelative;
-        else if((i & 0b1111001000) == 0b0101000000)
-            table[i] = &ARM7TDMI::THUMBloadStoreRegOffset;
-        else if((i & 0b1111001000) == 0b0101001000)
-            table[i] = &ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword;
-        else if((i & 0b1110000000) == 0b0010000000)
-            table[i] = &ARM7TDMI::THUMBmoveCompareAddSubtract;
-        else if((i & 0b1110000000) == 0b0000000000)
-            table[i] = &ARM7TDMI::THUMBmoveShiftedRegister;
-        else if((i & 0b1110000000) == 0b0110000000)
-            table[i] = &ARM7TDMI::THUMBloadStoreImmOffset;
-        else
+        else if((i & 0b1111100000) == 0b0001100000) {
+            constexpr uint8_t opcode = (i & 0x18) >> 3;
+            constexpr uint8_t rnNn = i & 0x7;
+            table[i] = &ARM7TDMI::THUMBaddSubtract<opcode,rnNn>;
+        } else if((i & 0b1111100000) == 0b0100100000) {
+            constexpr uint8_t rd = (i & 0x1C) >> 2;
+            table[i] = &ARM7TDMI::THUMBloadPCRelative<rd>;
+        } else if((i & 0b1111000000) == 0b1100000000) {
+            constexpr bool opcode = i & 0x20;
+            constexpr uint8_t rb = (i & 0x1C) >> 2;
+            table[i] = &ARM7TDMI::THUMBmultipleLoadStore<opcode,rb>;
+        } else if((i & 0b1111000000) == 0b1101000000) {
+            constexpr uint8_t opcode = (i & 0x3C) >> 2;
+            table[i] = &ARM7TDMI::THUMBconditionalBranch<opcode>;
+        } else if((i & 0b1111000000) == 0b1000000000) {
+            constexpr bool opcode = i & 0x20;
+            constexpr uint32_t nn = (i & 0x1F) << 1;
+            table[i] = &ARM7TDMI::THUMBloadStoreHalfword<opcode,nn>;
+        } else if((i & 0b1111000000) == 0b1010000000) {
+            constexpr bool opcode = i & 0x20;
+            constexpr uint8_t rd = (i & 0x1C) >> 2;
+            table[i] = &ARM7TDMI::THUMBgetRelativeAddress<opcode,rd>;
+        } else if((i & 0b1111000000) == 0b1001000000) {
+            constexpr bool opcode = i & 0x20;
+            constexpr uint8_t rd = (i & 0x1C) >> 2;
+            table[i] = &ARM7TDMI::THUMBloadStoreSPRelative<opcode,rd>;
+        } else if((i & 0b1111001000) == 0b0101000000) {
+            constexpr uint8_t opcode = (i & 0x30) >> 4;
+            constexpr uint8_t ro = i & 0x7;
+            table[i] = &ARM7TDMI::THUMBloadStoreRegOffset<opcode,ro>;
+        } else if((i & 0b1111001000) == 0b0101001000) {
+            constexpr uint8_t opcode = (i & 0x30) >> 4;
+            constexpr uint8_t ro = i & 0x7;
+            table[i] = &ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword<opcode,ro>;
+        } else if((i & 0b1110000000) == 0b0010000000) {
+            constexpr uint8_t opcode = (i & 0x60) >> 5;
+            constexpr uint8_t rd = (i & 0x1C) >> 2;
+            table[i] = &ARM7TDMI::THUMBmoveCompareAddSubtract<opcode,rd>;
+        } else if((i & 0b1110000000) == 0b0000000000) {
+            constexpr uint8_t opcode = (i & 0x60) >> 5;
+            constexpr uint8_t offset = i & 0x1F;
+            table[i] = &ARM7TDMI::THUMBmoveShiftedRegister<opcode,offset>;
+        } else if((i & 0b1110000000) == 0b0110000000) {
+            constexpr uint8_t opcode = (i & 0x60) >> 5;
+            constexpr uint32_t nn = i & 0x1F;
+            table[i] = &ARM7TDMI::THUMBloadStoreImmOffset<opcode,nn>;
+        } else
             table[i] = &ARM7TDMI::THUMBemptyInstruction;
         });
 

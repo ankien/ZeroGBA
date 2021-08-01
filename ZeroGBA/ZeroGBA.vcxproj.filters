@@ -37,9 +37,6 @@
     <ClCompile Include="GBA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hardware\cpu\ARM7TDMI.cpp">
-      <Filter>Hardware\CPU</Filter>
-    </ClCompile>
     <ClCompile Include="hardware\memory\GBAMemory.cpp">
       <Filter>Hardware\Memory</Filter>
     </ClCompile>

@@ -27,7 +27,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GBA.cpp" />
-    <ClCompile Include="hardware\cpu\ARM7TDMI.cpp" />
     <ClCompile Include="hardware\cpu\tableGen.cpp" />
     <ClCompile Include="hardware\Keypad.cpp" />
     <ClCompile Include="hardware\LCD.cpp" />

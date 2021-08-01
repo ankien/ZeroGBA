@@ -11,35 +11,35 @@ inline uint16_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
 
 inline bool ARM7TDMI::checkCond(uint32_t cond) {
     switch(cond) {
-        case 0x00000000:
+        case 0:
             return cpuState.zeroFlag;
-        case 0x10000000:
+        case 1:
             return !cpuState.zeroFlag;
-        case 0x20000000:
+        case 2:
             return cpuState.carryFlag;
-        case 0x30000000:
+        case 3:
             return !cpuState.carryFlag;
-        case 0x40000000:
+        case 4:
             return cpuState.signFlag;
-        case 0x50000000:
+        case 5:
             return !cpuState.signFlag;
-        case 0x60000000:
+        case 6:
             return cpuState.overflowFlag;
-        case 0x70000000:
+        case 7:
             return !cpuState.overflowFlag;
-        case 0x80000000:
+        case 8:
             return cpuState.carryFlag && (!cpuState.zeroFlag);
-        case 0x90000000:
+        case 9:
             return(!cpuState.carryFlag) || cpuState.zeroFlag;
-        case 0xA0000000:
+        case 0xA:
             return cpuState.signFlag == cpuState.overflowFlag;
-        case 0xB0000000:
+        case 0xB:
             return cpuState.signFlag != cpuState.overflowFlag;
-        case 0xC0000000:
+        case 0xC:
             return (!cpuState.zeroFlag) && (cpuState.signFlag == cpuState.overflowFlag);
-        case 0xD0000000:
+        case 0xD:
             return cpuState.zeroFlag || (cpuState.signFlag != cpuState.overflowFlag);
-        case 0xE0000000:
+        case 0xE:
             return 1;
     }
     return 0;
