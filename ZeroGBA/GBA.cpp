@@ -64,7 +64,7 @@ void GBA::interpretARM() {
 
     if(arm7tdmi.checkCond(instruction & 0xF0000000)) {
         uint16_t armIndex = arm7tdmi.fetchARMIndex(instruction);
-        (arm7tdmi.*(arm7tdmi.armTable[armIndex]))(instruction);
+        (arm7tdmi.*(armLut[armIndex]))(instruction);
         #if defined(PRINT_INSTR)
             printf(" %X\n",instruction); // debug
         #endif
@@ -75,8 +75,8 @@ void GBA::interpretARM() {
 void GBA::interpretTHUMB() {
     uint16_t instruction = systemMemory->memoryArray<uint16_t>(arm7tdmi.cpuState.r[15]);
 
-    uint8_t thumbIndex = arm7tdmi.fetchTHUMBIndex(instruction);
-    (arm7tdmi.*(arm7tdmi.thumbTable[thumbIndex]))(instruction);
+    uint16_t thumbIndex = arm7tdmi.fetchTHUMBIndex(instruction);
+    (arm7tdmi.*(thumbLut[thumbIndex]))(instruction);
     #if defined(PRINT_INSTR)
         printf(" %X\n",instruction); // debug
     #endif
@@ -108,9 +108,6 @@ void GBA::run(char* fileName) {
         if(!systemMemory->loadRom(fileNameString))
             return;
 
-        // GBA interpreter
-        arm7tdmi.fillARM();
-        arm7tdmi.fillTHUMB();
         #if defined(TRACE)
         static uint64_t traceAmount = 0;
         FILE* traceFile = fopen("log.txt", "wb");

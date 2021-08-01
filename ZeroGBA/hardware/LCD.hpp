@@ -7,7 +7,7 @@
 
 struct LCD {
     /// GBA variables ///
-    static const uint16_t 
+    inline static constexpr uint16_t 
         SCALE = 1,
         WIDTH = 240,
         HEIGHT = 160;

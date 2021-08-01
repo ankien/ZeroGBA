@@ -15,6 +15,9 @@
 
 //#define DEBUG_VARS
 
+extern std::array<void (ARM7TDMI::*)(uint32_t), 4096> armLut;
+extern std::array<void (ARM7TDMI::*)(uint16_t), 1024> thumbLut;
+
 struct GBA {
 
     /// Hardware ///

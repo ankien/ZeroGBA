@@ -49,6 +49,9 @@
     <ClCompile Include="hardware\Timers.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
+    <ClCompile Include="hardware\cpu\tableGen.cpp">
+      <Filter>Hardware\CPU</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hardware\Keypad.hpp">
@@ -87,6 +90,9 @@
     <ClInclude Include="hardware\Timers.hpp">
       <Filter>Hardware</Filter>
     </ClInclude>
+    <ClInclude Include="common\staticFor.hpp">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\GBA.frag">
@@ -111,6 +117,9 @@
       <Filter>Hardware\CPU</Filter>
     </None>
     <None Include="hardware\cpu\cpuGlobals.inl">
+      <Filter>Hardware\CPU</Filter>
+    </None>
+    <None Include="hardware\cpu\tableGen.inl">
       <Filter>Hardware\CPU</Filter>
     </None>
   </ItemGroup>

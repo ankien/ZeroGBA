@@ -1,93 +1,12 @@
 #pragma once
 
-inline void ARM7TDMI::fillARM() {
-    for(uint16_t i = 0; i < 4096; i++) {
-        // harder to distinguish opcodes at the bottom
-        // no coprocessor instructions on GBA
-        if((i & 0b111000000000) == 0b101000000000)
-            armTable[i] = &ARM7TDMI::ARMbranch;
-        else if((i & 0b111000000000) == 0b100000000000)
-            armTable[i] = &ARM7TDMI::ARMblockDataTransfer;
-        else if((i & 0b111111111111) == 0b000100100001)
-            armTable[i] = &ARM7TDMI::ARMbranchExchange;
-        else if((i & 0b111100000000) == 0b111100000000)
-            armTable[i] = &ARM7TDMI::ARMsoftwareInterrupt;
-        else if((i & 0b111000000001) == 0b011000000001)
-            armTable[i] = &ARM7TDMI::ARMundefinedInstruction; // undefined opcode
-        else if((i & 0b110000000000) == 0b010000000000)
-            armTable[i] = &ARM7TDMI::ARMsingleDataTransfer;
-        else if((i & 0b111110111111) == 0b000100001001)
-            armTable[i] = &ARM7TDMI::ARMswap;
-        else if((i & 0b111100001111) == 0b000000001001)
-            armTable[i] = &ARM7TDMI::ARMmultiplyAndMultiplyAccumulate;
-        else if((i & 0b111000011111) == 0b000000001011)
-            armTable[i] = &ARM7TDMI::ARMhdsDataSTRH;
-        else if((i & 0b111000011111) == 0b000000011011)
-            armTable[i] = &ARM7TDMI::ARMhdsDataLDRH;
-        else if((i & 0b111000011111) == 0b000000011101)
-            armTable[i] = &ARM7TDMI::ARMhdsDataLDRSB;
-        else if((i & 0b111000011111) == 0b000000011111)
-            armTable[i] = &ARM7TDMI::ARMhdsDataLDRSH;
-        else if((i & 0b110110010000) == 0b000100000000)
-            armTable[i] = &ARM7TDMI::ARMpsrTransfer;
-        else if((i & 0b110000000000) == 0b000000000000)
-            armTable[i] = &ARM7TDMI::ARMdataProcessing;
-        else
-            armTable[i] = &ARM7TDMI::ARMemptyInstruction; // undecoded opcode
-    }
-}
-inline void ARM7TDMI::fillTHUMB() {
-    for(uint16_t i = 0; i < 256; i++) {
-        if((i & 0b11111111) == 0b11011111)
-            thumbTable[i] = &ARM7TDMI::THUMBsoftwareInterrupt;
-        else if((i & 0b11111111) == 0b10110000)
-            thumbTable[i] = &ARM7TDMI::THUMBaddOffsetToSP;
-        else if((i & 0b11111100) == 0b01000000)
-            thumbTable[i] = &ARM7TDMI::THUMBaluOperations;
-        else if((i & 0b11111100) == 0b01000100)
-            thumbTable[i] = &ARM7TDMI::THUMBhiRegOpsBranchEx;
-        else if((i & 0b11110110) == 0b10110100)
-            thumbTable[i] = &ARM7TDMI::THUMBpushPopRegisters;
-        else if((i & 0b11110000) == 0b11110000)
-            thumbTable[i] = &ARM7TDMI::THUMBlongBranchWithLink;
-        else if((i & 0b11111000) == 0b11100000)
-            thumbTable[i] = &ARM7TDMI::THUMBunconditionalBranch;
-        else if((i & 0b11111000) == 0b00011000)
-            thumbTable[i] = &ARM7TDMI::THUMBaddSubtract;
-        else if((i & 0b11111000) == 0b01001000)
-            thumbTable[i] = &ARM7TDMI::THUMBloadPCRelative;
-        else if((i & 0b11110000) == 0b11000000)
-            thumbTable[i] = &ARM7TDMI::THUMBmultipleLoadStore;
-        else if((i & 0b11110000) == 0b11010000)
-            thumbTable[i] = &ARM7TDMI::THUMBconditionalBranch;
-        else if((i & 0b11110000) == 0b10000000)
-            thumbTable[i] = &ARM7TDMI::THUMBloadStoreHalfword;
-        else if((i & 0b11110000) == 0b10100000)
-            thumbTable[i] = &ARM7TDMI::THUMBgetRelativeAddress;
-        else if((i & 0b11110000) == 0b10010000)
-            thumbTable[i] = &ARM7TDMI::THUMBloadStoreSPRelative;
-        else if((i & 0b11110010) == 0b01010000)
-            thumbTable[i] = &ARM7TDMI::THUMBloadStoreRegOffset;
-        else if((i & 0b11110010) == 0b01010010)
-            thumbTable[i] = &ARM7TDMI::THUMBloadStoreSignExtendedByteHalfword;
-        else if((i & 0b11100000) == 0b00100000)
-            thumbTable[i] = &ARM7TDMI::THUMBmoveCompareAddSubtract;
-        else if((i & 0b11100000) == 0b00000000)
-            thumbTable[i] = &ARM7TDMI::THUMBmoveShiftedRegister;
-        else if((i & 0b11100000) == 0b01100000)
-            thumbTable[i] = &ARM7TDMI::THUMBloadStoreImmOffset;
-        else
-            thumbTable[i] = &ARM7TDMI::THUMBemptyInstruction;
-    }
-}
-
 // Bits 27-20 + 7-4
 inline uint16_t ARM7TDMI::fetchARMIndex(uint32_t instruction) {
     return ((instruction >> 16) & 0xFF0) | ((instruction >> 4) & 0xF);
 }
-// Bits 15-8
-inline uint8_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
-    return instruction >> 8;
+// Bits 15-6
+inline uint16_t ARM7TDMI::fetchTHUMBIndex(uint16_t instruction) {
+    return instruction >> 6;
 }
 
 inline bool ARM7TDMI::checkCond(uint32_t cond) {

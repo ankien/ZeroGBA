@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common\bits.hpp" />
+    <ClInclude Include="common\staticFor.hpp" />
     <ClInclude Include="GBA.hpp" />
     <ClInclude Include="hardware\cpu\ARM7TDMI.hpp" />
     <ClInclude Include="hardware\cpu\CPUState.hpp" />
@@ -27,6 +28,7 @@
   <ItemGroup>
     <ClCompile Include="GBA.cpp" />
     <ClCompile Include="hardware\cpu\ARM7TDMI.cpp" />
+    <ClCompile Include="hardware\cpu\tableGen.cpp" />
     <ClCompile Include="hardware\Keypad.cpp" />
     <ClCompile Include="hardware\LCD.cpp" />
     <ClCompile Include="hardware\memory\GBAMemory.cpp" />
@@ -40,6 +42,7 @@
     <None Include="hardware\cpu\cpuGlobals.inl" />
     <None Include="hardware\cpu\cpuHelpers.inl" />
     <None Include="hardware\cpu\cpuStateHelpers.inl" />
+    <None Include="hardware\cpu\tableGen.inl" />
     <None Include="hardware\memory\memoryHelpers.inl" />
     <None Include="shaders\GBA.frag" />
     <None Include="shaders\GBA.vert" />
@@ -58,7 +61,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -135,6 +138,7 @@
       <ExceptionHandling>false</ExceptionHandling>
       <OmitFramePointers>true</OmitFramePointers>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
