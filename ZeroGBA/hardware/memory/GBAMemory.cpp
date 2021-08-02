@@ -786,7 +786,7 @@ void GBAMemory::dmaTransfer(uint8_t channel, uint16_t dmaCntH) {
 
     // check for DMA interrupts
     if(dmaCntH & 0x4000) {
-        memoryArray<uint8_t>(0x4000202) |= 1 << channel;
+        memoryArray<uint8_t>(0x4000203) |= 1 << channel;
         interrupts->scheduleInterruptCheck();
     }
 }

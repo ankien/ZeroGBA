@@ -243,26 +243,25 @@ void LCD::renderSprites(int16_t vcount) {
             
             uint16_t tileRowOffset = texY / 8; // used to get the correct tid according to 1D or 2D mapping
             if(oneDimensionMapping) // 1D VRAM mapping
-                tileRowOffset *= spriteWidth / 8;
-            else // 2D VRAM mapping
                 if(eightBitColors)
-                    tileRowOffset *= 0x10;
+                    tileRowOffset *= spriteWidth / 4;
                 else
-                    tileRowOffset *= 0x20;
-            tileRowOffset += texX / 8;
+                    tileRowOffset *= spriteWidth / 8;
+            else // 2D VRAM mapping
+                tileRowOffset *= 0x20;
+            tileRowOffset += (texX / 8) * (1+eightBitColors);
 
             uint8_t paletteIndex = 0;
 
             if(bitmappedMode && tid < 512)
                 continue;
 
+            tid += tileRowOffset;
+            
             // Unlike BGs, TID for sprites are located in OAM
-            if(eightBitColors) {
-                tid /= 2;
-                tid += tileRowOffset;
-                paletteIndex = charBlockBase[tid * 0x40 + tileY * 8 + tileX];
-            } else {
-                tid += tileRowOffset;
+            if(eightBitColors)
+                paletteIndex = charBlockBase[tid * 0x20 + tileY * 8 + tileX];
+            else {
                 paletteIndex = charBlockBase[tid * 0x20 + tileY * 4 + tileX/2];
                 paletteIndex = (paletteIndex >> ((tileX & 1) * 4) & 0xF); // read 4-bit pIndexes from 8-bit array
                 if(paletteIndex != 0)

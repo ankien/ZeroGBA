@@ -7,7 +7,7 @@ SoundController::SoundController() {
         .format = AUDIO_S16, // max 10-bit output range [GBAtek - GBA Sound Control Registers]
         .channels = Channels,
         .samples = BufferSize/Channels,
-        .callback = nullptr, // ???, called whenever sample buffer is emptied
+        .callback = nullptr,
     };
 
     tickFrameSequencer = [&]() {

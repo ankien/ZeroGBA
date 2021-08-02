@@ -3,7 +3,6 @@
 
 #include "tableGen.inl"
 
-template<uint16_t indexes>
 static constexpr auto generateArmLut() {
     std::array<void (ARM7TDMI::*)(uint32_t), 4096> table{};
     // hash on bits 27-20 + 7-4
@@ -82,7 +81,6 @@ static constexpr auto generateArmLut() {
     return table;
 }
 
-template<uint16_t indexes>
 static constexpr auto generateThumbLut() {
     std::array<void (ARM7TDMI::*)(uint16_t), 1024> table{};
     // hash on bits 15-6, 10 bits are used for generating functions, but only 8 (15-8) are needed for decoding
@@ -161,5 +159,5 @@ static constexpr auto generateThumbLut() {
     return table;
 }
 
-auto armLut = generateArmLut<4096>();
-auto thumbLut = generateThumbLut<1024>();
+auto armLut = generateArmLut();
+auto thumbLut = generateThumbLut();
