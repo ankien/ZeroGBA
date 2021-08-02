@@ -267,16 +267,18 @@ uint32_t GBAMemory::writeable(uint32_t address, uint32_t unalignedAddress, T val
                 } if(ioAddress < 0x73 && ioAddress > 0x71 - offset)
                     soundController->lengthCounter[2] = 256 - (IORegisters[0x72] & 0x7F);
                 if(ioAddress < 0x76 && ioAddress > 0x74 - offset) {
-                    if(soundController->dacEnabled[2])
-                        soundController->enabled[2] = true;
+                    if(IORegisters[0x75] & 0x80) {
+                        if(soundController->dacEnabled[2])
+                            soundController->enabled[2] = true;
 
-                    if(soundController->lengthCounter[2] == 0)
-                        soundController->lengthCounter[2] = 64;
+                        if(soundController->lengthCounter[2] == 0)
+                            soundController->lengthCounter[2] = 64;
 
-                    soundController->removeWaveGenStep(Scheduler::SoundChannel3);
-                    soundController->scheduleWaveGenStep(3);
+                        soundController->removeWaveGenStep(Scheduler::SoundChannel3);
+                        soundController->scheduleWaveGenStep(3);
 
-                    soundController->waveRamPosition = 0;
+                        soundController->waveRamPosition = 0;
+                    }
                 }
 
                 return 0x0;

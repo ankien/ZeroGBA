@@ -38,8 +38,9 @@ void Timers::scheduleOverflow(uint8_t timerId, uint8_t prescaler) {
         }
 
         timerId = initialTimerId;
-        return (static_cast<uint16_t>(0 - *reinterpret_cast<uint16_t*>(&IORegisters[initialControlAddress - 2]))+1) * period[prescaler];
-    },Scheduler::Timer0+timerId,scheduler->cyclesPassed + (static_cast<uint16_t>(0 - internalTimer[timerId])+1) * period[prescaler],true);
+        uint16_t reload = *reinterpret_cast<uint16_t*>(&IORegisters[initialControlAddress - 2]);
+        return static_cast<uint16_t>(0 - (reload == 0 ? reload + 1 : reload)) * period[prescaler];
+    },Scheduler::Timer0+timerId,scheduler->cyclesPassed + static_cast<uint16_t>(0 - (internalTimer[timerId] == 0 ? internalTimer[timerId] + 1 : internalTimer[timerId])) * period[prescaler],true);
 }
 
 void Timers::updateTimer(uint8_t timerId, uint8_t tmcntHLo) {
