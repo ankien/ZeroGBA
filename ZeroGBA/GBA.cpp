@@ -37,7 +37,6 @@ GBA::GBA() {
 
     // LCD init
     lcd.systemMemory = systemMemory;
-    lcd.running = &keypad.running;
 
     // SoundController init
     soundController.noAudioSync = &keypad.noAudioSync;
@@ -159,9 +158,6 @@ void GBA::run(char* fileName) {
 
             scheduler.step();
         }
-
-        renderThreadCompositingLastScanline = false;
-        renderThread.join();
 
     } else
         std::cout << "Invalid ROM\n";

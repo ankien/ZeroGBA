@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <atomic>
 #include <SDL.h>
 #include <glew.h>
 #include <string>
@@ -18,7 +17,6 @@ struct LCD {
     // used to calculate fps
     uint32_t currMillseconds = 0;
     uint32_t millisecondsElapsedAtLastSecond = 0;
-    bool* running;
 
     GBAMemory* systemMemory;
 
@@ -37,7 +35,6 @@ struct LCD {
              window = 0;
 
     } spriteLayer[240];
-    uint8_t LCDIORegisters[0x56];
 
     // [Shape][Size][width or height], in pixels, not tiles!
     const uint8_t spriteOBJSize[4][4][2] = {
@@ -87,7 +84,7 @@ struct LCD {
     // with priority and alpha blending
     template<bool> uint16_t brightnessFade(uint8_t,uint16_t);
     uint16_t blend(uint8_t,uint16_t,uint8_t,uint16_t);
-    void composeScanline(std::atomic_bool*);
+    template<bool> void composeScanline(uint16_t*,uint8_t);
 
     void renderScanline();
 
