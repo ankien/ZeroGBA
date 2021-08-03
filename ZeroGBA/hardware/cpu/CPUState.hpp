@@ -23,7 +23,7 @@ struct CPUState {
     uint8_t mode; // 5 : see enum modes
     bool    state, // 1 : 0 = ARM, 1 = THUMB
             fiqDisable, // 1 : 0 = enable, 1 = disable
-            irqDisable; // 1 : 0 = enable, 1 = disable; todo: poll for interrupts when irqs are enabled
+            irqDisable; // 1 : 0 = enable, 1 = disable
     uint32_t reserved; // 19 : never used?
     bool stickyOverflow, // 1 : 1 = sticky overflow, ARMv5TE and up only
          overflowFlag, // V, 1 : 0 = no overflow, 1 = signed overflow (if the result register is a negative 2's complement, set bit) 
