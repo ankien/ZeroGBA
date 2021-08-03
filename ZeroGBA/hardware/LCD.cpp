@@ -109,7 +109,7 @@ void LCD::renderAffineBG(uint8_t bg) {
     // I don't check whether or not a non-2 or 3 bg uses this method, but I don't need to :-)
 
     int32_t internalX = systemMemory->internalRef[bg - 2].x;
-    int32_t internalY = systemMemory->internalRef[bg - 2].y-1;
+    int32_t internalY = systemMemory->internalRef[bg - 2].y;
 
     int16_t pa = *reinterpret_cast<int16_t*>(&systemMemory->IORegisters[0x10 * bg]);
     int16_t pc = *reinterpret_cast<int16_t*>(&systemMemory->IORegisters[(0x10 * bg) + 0x4]);;
@@ -125,15 +125,15 @@ void LCD::renderAffineBG(uint8_t bg) {
     uint16_t bgSize = tileNum * 8; // in pixels
 
     for(uint8_t i = 0; i < 240; i++) {
-        uint32_t pixX = internalX >> 8;
-        uint32_t pixY = internalY >> 8;
+        int32_t pixX = internalX >> 8;
+        int32_t pixY = internalY >> 8;
 
         internalX += pa;
         internalY += pc;
 
         if(displayOverflow) {
-            pixX %= bgSize;
-            pixY %= bgSize;
+            pixX = (pixX < 0 ? pixX : 0) + (pixX % bgSize);
+            pixY = (pixY < 0 ? pixY : 0) + (pixY % bgSize);
         } else if(pixX >= bgSize || pixY >= bgSize || pixX < 0 || pixY < 0)
             continue;
 
