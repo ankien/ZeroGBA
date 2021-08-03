@@ -146,7 +146,7 @@ inline uint32_t ARM7TDMI::addCarry(uint32_t op1, uint32_t op2, bool setFlags, bo
     if(setFlags) {
         cpuState.carryFlag = result < (static_cast<uint64_t>(op1) + oldCarry);
         op1 >>= 31; op2 >>= 31;
-        cpuState.overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1; // todo: check if overflow calc for carry opcodes are correct
+        cpuState.overflowFlag = (op1 ^ op2) ? 0 : (result >> 31) ^ op1;
     }
     return result;
 }

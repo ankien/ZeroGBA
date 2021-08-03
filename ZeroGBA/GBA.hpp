@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <thread>
+#include <atomic>
 #include <cstdio>
 #include <SDL.h>
 #include "hardware/cpu/ARM7TDMI.hpp"
@@ -29,6 +31,9 @@ struct GBA {
     LCD lcd{};
     SoundController soundController{}; // initialized after SDL in LCD
     Keypad keypad{};
+
+    std::thread renderThread;
+    std::atomic_bool renderThreadCompositingLastScanline {false};
     
     #ifdef DEBUG_VARS
     uint64_t instrCount = 0;
@@ -55,6 +60,10 @@ struct GBA {
         // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
         keypad.pollInputs();
 
+        while(renderThreadCompositingLastScanline)
+            if(keypad.running == false)
+                return 280896;
+
         lcd.draw();
 
         return 280896;
@@ -66,7 +75,12 @@ struct GBA {
             interrupts.scheduleInterruptCheck();
         }
         if(VCOUNT < 160) {
-            lcd.renderScanline(); // draw visible line
+            // wait for the last scanline to finish composing, then render and send LCD MMIO to rendering thread
+            while(renderThreadCompositingLastScanline)
+                if(keypad.running == false)
+                    return 1232;
+            lcd.renderScanline(); // render visible line
+            memcpy(&lcd.LCDIORegisters, &systemMemory->IORegisters, 0x56);
             // Increment internal reference point registers
             for(int8_t i = 0; i < 2; i++) {
                 systemMemory->internalRef[i].x += systemMemory->memoryArray<int16_t>(0x4000022 + i*0x10);
@@ -74,12 +88,22 @@ struct GBA {
             }
             systemMemory->delayedDma<0x2000>();
         }
+
         return 1232;
     };
     const std::function<uint64_t()> endHBlank = [&]() {
+        
+        if(VCOUNT < 160) {
+            if(!renderThread.joinable())
+                // init rendering thread
+                renderThread = std::thread(&LCD::composeScanline,&lcd,&renderThreadCompositingLastScanline);
+            renderThreadCompositingLastScanline = true;
+        }
+
         systemMemory->IORegisters[4] &= 0xFD; // turn off hblank
         systemMemory->IORegisters[6] = (VCOUNT+1) % 228; // increment vcount
         VCOUNT == DISPSTAT_VCOUNT_SETTING ? systemMemory->IORegisters[4] |= 0x4 : systemMemory->IORegisters[4] &= 0xFB ; // set v-counter flag
+
         if(DISPSTAT_VCOUNT_IRQ) {
             if(DISPSTAT_VCOUNTER_FLAG)
                 systemMemory->IORegisters[0x202] |= 0x4;
