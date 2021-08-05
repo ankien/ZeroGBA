@@ -75,9 +75,6 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
 
     uint16_t bgTileRow = vcount + bgvofs & height;
     uint16_t ty = bgTileRow / 8;
-    
-    if(vcount == 50)
-        printf("fug");
 
     #ifdef AVX2_RENDERER
     
@@ -119,10 +116,10 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
         n = _mm256_add_epi32(n,_mm256_and_si256(addMask1,seAdjust1));
 
         n = _mm256_add_epi32(n,seCalc2);
+        n = _mm256_and_si256(n,halfWordMask);
 
         // screenIndex = n
-        __m256i fug = _mm256_srli_epi32(n,1);
-        __m256i screenEntryVec = _mm256_i32gather_epi32(&systemMemory->vram[(((bgcnt & 0x1F00) >> 8) * 0x800)],fug,4); // load data from idx / 2
+        __m256i screenEntryVec = _mm256_i32gather_epi32(screenBlockBase,_mm256_srli_epi32(n,1),4); // load data from idx / 2
         
         screenEntryVec = _mm256_srlv_epi32(screenEntryVec,_mm256_slli_epi32(_mm256_and_si256(n,oneVec),4)); // shift hi 16-bit data right 16 bits
         screenEntryVec = _mm256_and_si256(screenEntryVec,halfWordMask);
@@ -131,8 +128,10 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
         __m256i tidVec = _mm256_and_si256(screenEntryVec,tidAndVec);
         __m256i flipXVec = _mm256_and_si256(screenEntryVec,flipXAndVec);
         __m256i flipYVec = _mm256_and_si256(screenEntryVec,flipYAndVec);
-        __m256i xVec = _mm256_xor_si256(_mm256_and_si256(bgTileColumnVec,sevenVec),_mm256_mullo_epi32(sevenVec,flipXVec));
-        __m256i yVec = _mm256_xor_si256(_mm256_and_si256(bgTileRowVec,sevenVec),_mm256_mullo_epi32(sevenVec,flipYVec));
+        __m256i xVec = _mm256_xor_si256(_mm256_and_si256(bgTileColumnVec,sevenVec),_mm256_srli_epi32(_mm256_mullo_epi32(sevenVec,flipXVec),10));
+        __m256i yVec = _mm256_xor_si256(_mm256_and_si256(bgTileRowVec,sevenVec),_mm256_srli_epi32(_mm256_mullo_epi32(sevenVec,flipYVec),11));
+        xVec = _mm256_and_si256(xVec,halfWordMask);
+        yVec = _mm256_and_si256(yVec,halfWordMask);
         
         const __m256i threeVec = _mm256_set1_epi32(3);
         const __m256i byteMask = _mm256_set1_epi32(0xFF);
@@ -141,8 +140,8 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
             const __m256i eightVec = _mm256_set1_epi32(8);
             __m256i pindexVec = _mm256_add_epi32(_mm256_add_epi32(_mm256_mullo_epi32(tidVec,tidOffsetVec),_mm256_mullo_epi32(yVec,eightVec)),xVec);
             __m256i finalPIndexVec = _mm256_i32gather_epi32(charBlockBase,_mm256_srli_epi32(pindexVec,2),4); // load data from idx / 4
-            finalPIndexVec = _mm256_srlv_epi32(finalPIndexVec,_mm256_and_si256(pindexVec,threeVec)); // shift data right by idx & 3
-            _mm256_storeu_si256(reinterpret_cast<__m256i*>(&currLayer[i*8]),finalPIndexVec);
+            finalPIndexVec = _mm256_srlv_epi32(finalPIndexVec,_mm256_slli_epi32(_mm256_and_si256(pindexVec,threeVec),3)); // shift data right by (idx & 3) *8
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(&currLayer[i*8]),_mm256_and_si256(finalPIndexVec,byteMask));
         } else {
             const __m256i tidOffsetVec = _mm256_set1_epi32(0x20);
             const __m256i fourVec = _mm256_set1_epi32(4);
@@ -152,12 +151,12 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
             const __m256i zeroVec = _mm256_set1_epi32(0);
             __m256i pBankVec = _mm256_srlv_epi32(_mm256_and_si256(screenEntryVec,pBankHashVec),twelveVec);
             __m256i pindexVec = _mm256_add_epi32(_mm256_add_epi32(_mm256_mullo_epi32(tidVec,tidOffsetVec),_mm256_mullo_epi32(yVec,fourVec)),_mm256_srli_epi32(xVec,1));
-            __m256i finalPIndexVec = _mm256_i32gather_epi32(&systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)],_mm256_srli_epi32(pindexVec,2),4); // load data from idx / 4
+            __m256i finalPIndexVec = _mm256_i32gather_epi32(charBlockBase,_mm256_srli_epi32(pindexVec,2),4); // load data from idx / 4
             finalPIndexVec = _mm256_srlv_epi32(finalPIndexVec,_mm256_slli_epi32(_mm256_and_si256(pindexVec,threeVec),3)); // shift data right by (idx & 3) * 8
             finalPIndexVec = _mm256_and_si256(finalPIndexVec,byteMask);
             finalPIndexVec = _mm256_and_si256(_mm256_srlv_epi32(finalPIndexVec,_mm256_slli_epi32(_mm256_and_si256(xVec,oneVec),2)),pindexHashVec); // read 4-bit indexes
             finalPIndexVec = _mm256_add_epi32(_mm256_slli_epi32(_mm256_and_si256(_mm256_cmpgt_epi32(finalPIndexVec,zeroVec),pBankVec),4),finalPIndexVec);
-            _mm256_storeu_si256(reinterpret_cast<__m256i*>(&currLayer[i*8]),finalPIndexVec);
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(&currLayer[i*8]),_mm256_and_si256(finalPIndexVec,byteMask));
         }
     }
     #else
