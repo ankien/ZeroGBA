@@ -40,11 +40,10 @@ LCD::LCD() {
     compileShaders();
 }
 
-// Credits to NanoBoyAdvance and Crab for figuring this shit out
 void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     if((systemMemory->IORegisters[1] & (1 << bg)) == 0)
         return;
-    uint8_t* currLayer = &bgLayer[bg][0];
+    uint32_t* currLayer = &bgLayer[bg][0];
 
     uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]);
     uint8_t* charBlockBase = &systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)]; // tile data
@@ -76,7 +75,92 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
 
     uint16_t bgTileRow = vcount + bgvofs & height;
     uint16_t ty = bgTileRow / 8;
+    
+    if(vcount == 50)
+        printf("fug");
 
+    #ifdef AVX2_RENDERER
+    
+    // i'm so sorry
+    const __m256i bghofsVec = _mm256_set1_epi32(bghofs);
+    const __m256i widthVec = _mm256_set1_epi32(width);
+    const __m256i tyVec = _mm256_set1_epi32(ty);
+    const __m256i thirtyTwoVec = _mm256_set1_epi32(32);
+    const __m256i oneVec = _mm256_set1_epi32(1);
+    const __m256i sevenVec = _mm256_set1_epi32(7);
+    const __m256i halfWordMask = _mm256_set1_epi32(0xFFFF);
+    const __m256i tidAndVec = _mm256_set1_epi32(0x3FF);
+    const __m256i flipXAndVec = _mm256_set1_epi32(0x400);
+    const __m256i flipYAndVec = _mm256_set1_epi32(0x800);
+    const __m256i seAdjust1 = _mm256_set1_epi32(0x03E0);
+    const __m256i initial = _mm256_set_epi32(7,6,5,4,3,2,1,0); // least significant == rightmost
+    const __m256i bgTileRowVec = _mm256_set1_epi32(bgTileRow);
+    
+    uint8_t seCalc2Num = 0;
+    if(ty >= 32 && bgcntSize == 0xC000)
+        seCalc2Num += 0x0400;
+    const __m256i seCalc2 = _mm256_set1_epi32(seCalc2Num);
+
+    // 30 * 240 is perfectly divisible by 256 (AVX)
+    for(uint8_t i = 0; i < 30; i++) {
+        // fill vector with 'i'
+        __m256i indexVec = _mm256_add_epi32(initial,_mm256_set1_epi32(i*8));
+
+        // calculate bgTileColumns and tx
+        __m256i bgTileColumnVec = _mm256_add_epi32(indexVec,bghofsVec);
+        bgTileColumnVec = _mm256_and_si256(bgTileColumnVec,widthVec);
+        __m256i txVec = _mm256_srli_epi32(bgTileColumnVec,3);
+
+        // screen entries
+        __m256i n = _mm256_mullo_epi32(tyVec,thirtyTwoVec);
+        n = _mm256_add_epi32(n,txVec);
+        __m256i addMask1 = _mm256_cmpgt_epi32(txVec,thirtyTwoVec);
+        addMask1 = _mm256_or_si256(addMask1,_mm256_cmpeq_epi32(txVec,thirtyTwoVec));
+        n = _mm256_add_epi32(n,_mm256_and_si256(addMask1,seAdjust1));
+
+        n = _mm256_add_epi32(n,seCalc2);
+
+        // screenIndex = n
+        __m256i fug = _mm256_srli_epi32(n,1);
+        __m256i screenEntryVec = _mm256_i32gather_epi32(&systemMemory->vram[(((bgcnt & 0x1F00) >> 8) * 0x800)],fug,4); // load data from idx / 2
+        
+        screenEntryVec = _mm256_srlv_epi32(screenEntryVec,_mm256_slli_epi32(_mm256_and_si256(n,oneVec),4)); // shift hi 16-bit data right 16 bits
+        screenEntryVec = _mm256_and_si256(screenEntryVec,halfWordMask);
+
+        // tid and tile coordinates in char block
+        __m256i tidVec = _mm256_and_si256(screenEntryVec,tidAndVec);
+        __m256i flipXVec = _mm256_and_si256(screenEntryVec,flipXAndVec);
+        __m256i flipYVec = _mm256_and_si256(screenEntryVec,flipYAndVec);
+        __m256i xVec = _mm256_xor_si256(_mm256_and_si256(bgTileColumnVec,sevenVec),_mm256_mullo_epi32(sevenVec,flipXVec));
+        __m256i yVec = _mm256_xor_si256(_mm256_and_si256(bgTileRowVec,sevenVec),_mm256_mullo_epi32(sevenVec,flipYVec));
+        
+        const __m256i threeVec = _mm256_set1_epi32(3);
+        const __m256i byteMask = _mm256_set1_epi32(0xFF);
+        if(eightBppEnabled) {
+            const __m256i tidOffsetVec = _mm256_set1_epi32(0x40);
+            const __m256i eightVec = _mm256_set1_epi32(8);
+            __m256i pindexVec = _mm256_add_epi32(_mm256_add_epi32(_mm256_mullo_epi32(tidVec,tidOffsetVec),_mm256_mullo_epi32(yVec,eightVec)),xVec);
+            __m256i finalPIndexVec = _mm256_i32gather_epi32(charBlockBase,_mm256_srli_epi32(pindexVec,2),4); // load data from idx / 4
+            finalPIndexVec = _mm256_srlv_epi32(finalPIndexVec,_mm256_and_si256(pindexVec,threeVec)); // shift data right by idx & 3
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(&currLayer[i*8]),finalPIndexVec);
+        } else {
+            const __m256i tidOffsetVec = _mm256_set1_epi32(0x20);
+            const __m256i fourVec = _mm256_set1_epi32(4);
+            const __m256i twelveVec = _mm256_set1_epi32(12);
+            const __m256i pBankHashVec = _mm256_set1_epi32(0xF000);
+            const __m256i pindexHashVec = _mm256_set1_epi32(0xF);
+            const __m256i zeroVec = _mm256_set1_epi32(0);
+            __m256i pBankVec = _mm256_srlv_epi32(_mm256_and_si256(screenEntryVec,pBankHashVec),twelveVec);
+            __m256i pindexVec = _mm256_add_epi32(_mm256_add_epi32(_mm256_mullo_epi32(tidVec,tidOffsetVec),_mm256_mullo_epi32(yVec,fourVec)),_mm256_srli_epi32(xVec,1));
+            __m256i finalPIndexVec = _mm256_i32gather_epi32(&systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)],_mm256_srli_epi32(pindexVec,2),4); // load data from idx / 4
+            finalPIndexVec = _mm256_srlv_epi32(finalPIndexVec,_mm256_slli_epi32(_mm256_and_si256(pindexVec,threeVec),3)); // shift data right by (idx & 3) * 8
+            finalPIndexVec = _mm256_and_si256(finalPIndexVec,byteMask);
+            finalPIndexVec = _mm256_and_si256(_mm256_srlv_epi32(finalPIndexVec,_mm256_slli_epi32(_mm256_and_si256(xVec,oneVec),2)),pindexHashVec); // read 4-bit indexes
+            finalPIndexVec = _mm256_add_epi32(_mm256_slli_epi32(_mm256_and_si256(_mm256_cmpgt_epi32(finalPIndexVec,zeroVec),pBankVec),4),finalPIndexVec);
+            _mm256_storeu_si256(reinterpret_cast<__m256i*>(&currLayer[i*8]),finalPIndexVec);
+        }
+    }
+    #else
     for(uint8_t i = 0; i < 240; i++) {
         uint16_t bgTileColumn = i + bghofs & width;
         uint16_t tx = bgTileColumn / 8;
@@ -101,6 +185,7 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
                 currLayer[i] = pBank * 16 + pIndex;
         }
     }
+    #endif
 }
 void LCD::renderAffineBG(uint8_t bg) {
     if((systemMemory->IORegisters[1] & (1 << bg)) == 0)
@@ -114,7 +199,7 @@ void LCD::renderAffineBG(uint8_t bg) {
     int16_t pa = *reinterpret_cast<int16_t*>(&systemMemory->IORegisters[0x10 * bg]);
     int16_t pc = *reinterpret_cast<int16_t*>(&systemMemory->IORegisters[(0x10 * bg) + 0x4]);;
     
-    uint8_t* currLayer = bgLayer[bg];
+    uint32_t* currLayer = bgLayer[bg];
     uint16_t bgcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x8 + (0x2*bg)]);
     uint8_t* charBlockBase = &systemMemory->vram[(((bgcnt & 0xC) >> 2) * 0x4000)];
     uint8_t* screenBlockBase = reinterpret_cast<uint8_t*>(&systemMemory->vram[(((bgcnt & 0x1F00) >> 8) * 0x800)]);
@@ -536,9 +621,8 @@ void LCD::renderScanline() {
         uint16_t lineStart = vcount * 240;
         uint16_t* scanLine = pixelBuffer + lineStart;
         
-        // clear buffers
-        for(uint8_t i = 0; i < 4; i++)
-            memset(bgLayer[i],0,240);
+        // clear buffers, 4 * 4 * 240
+        memset(bgLayer,0,3840);
 
         switch(DISPCNT_MODE) {
             case 0: // BG[0-3] text/tile BG mode, no affine
@@ -586,15 +670,9 @@ void LCD::renderScanline() {
             {
                 if(DISPCNT_BG2) {
                     uint16_t frameBufferStart = DISPCNT_DISPLAY_FRAME_SELECT ? 0xA000 : 0;
-                    if(vcount < 128) {
-                        for(uint8_t i = 0; i < 160; i++) {
-                            uint16_t* halfwordChunkVram = reinterpret_cast<uint16_t*>(&systemMemory->vram);
+                    if(vcount < 128)
+                        for(uint8_t i = 0; i < 160; i++)
                             bgLayer[2][i] = (vcount * 160 + i) + frameBufferStart;
-                        } for(uint8_t i = 160; i < 240; i++)
-                            bgLayer[2][i] = 0;
-                    } else
-                        for(uint8_t i = 0; i < 240; i++)
-                            scanLine[i] = 0;
                 }
                 RENDER_SPRITES_AND_COMPOSE(true)
             }
