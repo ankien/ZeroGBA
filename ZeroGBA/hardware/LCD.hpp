@@ -1,9 +1,12 @@
 #pragma once
+#include <x86intrin.h>
 #include <cstdint>
 #include <SDL.h>
 #include <glew.h>
 #include <string>
 #include "memory/GBAMemory.hpp"
+
+#define AVX2_RENDERER
 
 struct LCD {
     /// GBA variables ///
@@ -27,7 +30,7 @@ struct LCD {
     uint16_t* pixelBuffer;
 
     /// For the software renderer, stores palette indexes for scanline composition ///
-    uint8_t bgLayer[4][240];
+    uint32_t bgLayer[4][240];
     struct Sprite {
         uint8_t pindex = 0;
         uint8_t priority = 4; // not actual possible value

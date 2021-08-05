@@ -107,7 +107,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -133,7 +133,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>$(SolutionDir)ZeroGBA\dependencies\sdl\include;$(SolutionDir)ZeroGBA\dependencies\glew\include</AdditionalIncludeDirectories>
-      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <ExceptionHandling>false</ExceptionHandling>
       <OmitFramePointers>true</OmitFramePointers>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
