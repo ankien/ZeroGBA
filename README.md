@@ -1,7 +1,9 @@
 <h1>ZeroGBA</h1>
-Just a GBA emulator I decided to work on for fun.<br>
-The long-term goal is to boot most commercial games with stable 60 fps framerate.<br>
-<h2>Current Progress</h2>
+ZeroGBA is a GBA emulator I decided to work on for fun during Summer 2021 (the beginning of my last year in university).<br>
+Initially the goal was just to boot most commercial games with stable 60 fps framerate.<br>
+However, things moved quicker than I expected and I ended up making a fairly accurate and performant emulator.<br>
+<img src="/ZeroGBA/non-code/screenshots/doom.png" width="400">
+<h2>Some Demos</h2>
 <img src="/ZeroGBA/non-code/screenshots/m7Demo.gif" width="400">
 <img src="/ZeroGBA/non-code/screenshots/mmbn.gif" width="400">
 <img src="/ZeroGBA/non-code/screenshots/kirby.gif" width="400">
@@ -32,4 +34,4 @@ All other dependencies are included, so just open the project in Visual Studio a
 <h2>Tests Passed</h2>
 <a href="https://github.com/DenSinH/FuzzARM">FuzzARM</a>: ALL<br>
 <a href="https://github.com/destoer/armwrestler-gba-fixed">ARMWrestler</a>: ALL<br>
-<a href="https://github.com/jsmolka/gba-tests">gba-tests</a>: arm, thumb, memory, ppu, bios<br>
+<a href="https://github.com/jsmolka/gba-tests">gba-tests</a>: arm, thumb, memory, ppu, bios, save<br>
