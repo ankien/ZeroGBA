@@ -42,7 +42,7 @@ void Keypad::pollInputs() {
     while(SDL_PollEvent(&event)) {
         if(event.type == SDL_WINDOWEVENT)
             if(event.window.event == SDL_WINDOWEVENT_CLOSE)
-                running = false;
+                exit(0);
 
         if(event.type == SDL_KEYDOWN) {
             switch(event.key.keysym.scancode) {
@@ -89,7 +89,7 @@ void Keypad::pollInputs() {
                     altDown = true;
                     break;
                 case SDL_SCANCODE_ESCAPE:
-                    running = false;
+                    exit(0);
                     break;
                 case SDL_SCANCODE_TAB:
                     noAudioSync = true;

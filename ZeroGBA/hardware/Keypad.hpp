@@ -13,7 +13,6 @@ struct Keypad {
     // Event/control variables
     bool enterDown = false;
     bool altDown = false;
-    bool running = true;
     bool noAudioSync = false;
     SDL_Event event;
     SDL_Window* window;

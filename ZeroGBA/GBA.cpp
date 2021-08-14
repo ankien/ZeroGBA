@@ -116,7 +116,7 @@ void GBA::run(char* fileName) {
         //if(runtimeOptions.whatever)
         //    doShit();
 
-        while(keypad.running) {
+        while(true) {
 
             #ifdef DEBUG_VARS
             volatile uint32_t oldPC = arm7tdmi.cpuState.r[15];
