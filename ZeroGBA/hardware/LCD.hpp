@@ -78,7 +78,7 @@ struct LCD {
 
     // read tile data from VRAM (+ OAM for sprites)
     // and use the data as an index into PRAM
-    uint16_t screenEntryIndex(uint16_t,uint16_t,uint16_t);
+    uint16_t screenEntryIndexNum1(uint16_t,uint16_t);
     void renderTextBG(uint8_t,uint8_t);
     void renderAffineBG(uint8_t);
     template<bool> void renderSprites(int16_t);
@@ -87,7 +87,7 @@ struct LCD {
     // with priority and alpha blending
     template<bool> uint16_t brightnessFade(uint8_t,uint16_t);
     uint16_t blend(uint8_t,uint16_t,uint8_t,uint16_t);
-    template<bool> void composeScanline(uint16_t*,uint8_t);
+    template<bool> void composeScanline(uint16_t*,uint8_t,uint8_t,uint8_t);
 
     void renderScanline();
 
@@ -98,11 +98,9 @@ struct LCD {
     void compileShaders();
 };
 
-inline uint16_t LCD::screenEntryIndex(uint16_t tx,uint16_t ty,uint16_t bgcntSize) {
+inline uint16_t LCD::screenEntryIndexNum1(uint16_t tx,uint16_t ty) {
     uint16_t n = tx + ty*32;
     if(tx >= 32)
         n += 0x03E0;
-    if(ty >= 32 && bgcntSize == 0xC000)
-        n += 0x0400;
     return n;
 }

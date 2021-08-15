@@ -76,6 +76,10 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     uint16_t bgTileRow = vcount + bgvofs & height;
     uint16_t ty = bgTileRow / 8;
 
+    uint8_t seCalc2Num = 0;
+    if(ty >= 32 && bgcntSize == 0xC000)
+        seCalc2Num += 0x0400;
+
     #ifdef AVX2_RENDERER
     
     // i'm so sorry
@@ -93,9 +97,6 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     const __m256i initial = _mm256_set_epi32(7,6,5,4,3,2,1,0); // least significant == rightmost
     const __m256i bgTileRowVec = _mm256_set1_epi32(bgTileRow);
     
-    uint8_t seCalc2Num = 0;
-    if(ty >= 32 && bgcntSize == 0xC000)
-        seCalc2Num += 0x0400;
     const __m256i seCalc2 = _mm256_set1_epi32(seCalc2Num);
 
     // 30 * 240 is perfectly divisible by 256 (AVX)
@@ -164,7 +165,7 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
         uint16_t bgTileColumn = i + bghofs & width;
         uint16_t tx = bgTileColumn / 8;
         
-        uint16_t screenIndex = screenEntryIndex(tx,ty,bgcntSize);
+        uint16_t screenIndex = screenEntryIndexNum1(tx,ty) + seCalc2Num;
         uint16_t screenEntry = screenBlockBase[screenIndex];
 
         uint16_t tid = screenEntry & 0x3FF;
@@ -413,7 +414,7 @@ uint16_t LCD::blend(uint8_t eva, uint16_t colorA, uint8_t evb, uint16_t colorB) 
     return (bA << 10 | gA << 5 | rA);
 }
 template<bool bitmappedMode>
-void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
+void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMin, uint8_t bgMax) {
 
     // todo: optimize the faq out of this, presort the backgrounds before per-pixel compositing;
     // also break off compositing loop if all BGs are enabled, but only one is shown,
@@ -478,9 +479,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
         for(int8_t priority = 3; priority >= 0; priority--) {
 
             // bgs
-            for(int8_t bg = 3; bg >= 0; bg--) {
-                if(bitmappedMode)
-                    bg = 2;
+            for(int8_t bg = bgMax; bg >= bgMin; bg--) {
                 if(enableList & (1 << bg)) {
                     // if this bg lies on this priority
                     if((systemMemory->IORegisters[0x8 + (0x2 * bg)] & 0x3) == priority) {
@@ -526,6 +525,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
                     }
                 }
 
+                // ignore priority since there's only 1 bg and sprite layer for bitmapped modes
                 if(bitmappedMode)
                     goto compositeObj;
             }
@@ -607,9 +607,9 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount) {
     }
 }
 
-#define RENDER_SPRITES_AND_COMPOSE(bitmappedMode) if(DISPCNT_OBJ) \
+#define RENDER_SPRITES_AND_COMPOSE(bitmappedMode,bgMax,bgMin) if(DISPCNT_OBJ) \
                                                       renderSprites<bitmappedMode>(vcount); \
-                                                      composeScanline<bitmappedMode>(scanLine,vcount);
+                                                      composeScanline<bitmappedMode>(scanLine,vcount,bgMax,bgMin);
 void LCD::renderScanline() {
 
     // todo: implement rotation + scaling (affine) for bitmap modes
@@ -629,18 +629,18 @@ void LCD::renderScanline() {
                 renderTextBG(1,vcount);
                 renderTextBG(2,vcount);
                 renderTextBG(3,vcount);
-                RENDER_SPRITES_AND_COMPOSE(false)
+                RENDER_SPRITES_AND_COMPOSE(false,3,0)
                 break;
             case 1: // BG[0-2] text/tile BGs like mode 0, but only BG2 has affine
                 renderTextBG(0,vcount);
                 renderTextBG(1,vcount);
                 renderAffineBG(2);
-                RENDER_SPRITES_AND_COMPOSE(false)
+                RENDER_SPRITES_AND_COMPOSE(false,2,0)
                 break;
             case 2: // BG[2-3] tiled BGs w/ affine
                 renderAffineBG(2);
                 renderAffineBG(3);
-                RENDER_SPRITES_AND_COMPOSE(false)
+                RENDER_SPRITES_AND_COMPOSE(false,3,2)
                 break;
             case 3: // BG[2] bitmap BG mode w/o page flipping, affine
             {
@@ -650,7 +650,7 @@ void LCD::renderScanline() {
                         bgLayer[2][i] = lineStart + i;
                     }
                 }
-                RENDER_SPRITES_AND_COMPOSE(true)
+                RENDER_SPRITES_AND_COMPOSE(true,2,2)
                 break;
             }
             case 4: // BG[2] paletted bitmap BG mode, affine
@@ -662,7 +662,7 @@ void LCD::renderScanline() {
                         // In the case of the bitmapped backgrounds in modes 3 and 4, pixels are represented as the 16-bit color values themselves.
                         bgLayer[2][i] = systemMemory->vram[frameBufferStart + lineStart + i];
                 }
-                RENDER_SPRITES_AND_COMPOSE(true)
+                RENDER_SPRITES_AND_COMPOSE(true,2,2)
                 break;
             }
             case 5: // BG[2] bitmap BG mode with page flipping, affine
@@ -673,7 +673,7 @@ void LCD::renderScanline() {
                         for(uint8_t i = 0; i < 160; i++)
                             bgLayer[2][i] = (vcount * 160 + i) + frameBufferStart;
                 }
-                RENDER_SPRITES_AND_COMPOSE(true)
+                RENDER_SPRITES_AND_COMPOSE(true,2,2)
             }
         }
     }
