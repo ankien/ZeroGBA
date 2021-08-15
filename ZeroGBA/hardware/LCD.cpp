@@ -414,7 +414,7 @@ uint16_t LCD::blend(uint8_t eva, uint16_t colorA, uint8_t evb, uint16_t colorB) 
     return (bA << 10 | gA << 5 | rA);
 }
 template<bool bitmappedMode>
-void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMin, uint8_t bgMax) {
+void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uint8_t bgMin) {
 
     // todo: optimize the faq out of this, presort the backgrounds before per-pixel compositing;
     // also break off compositing loop if all BGs are enabled, but only one is shown,
