@@ -487,8 +487,6 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
     // composite a scanline from lowest priority window contents (OBJs and BGs) to highest, from highest prio window
     for(uint8_t x = 0; x < 240; x++) {
 
-        bool inWindow = true;
-
         if(win0Display && win0x1 <= x && x < win0x2 && win0YVisible) { // WIN0
             enableList = win0List;
             specialEffects = win0Effects;
@@ -503,7 +501,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
             specialEffects = outEffects;
         } else { // no windows
             // even with no windows, BGs are shown    
-            inWindow = false;
+            enableList = (dispcnt & 0x1F00) >> 8;
             specialEffects = true;
         }
 
@@ -516,7 +514,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
             int8_t i = bgCount - 1;
             for(;i >= 0;i--) {
                 uint8_t bg = bgList[i];
-                if(!inWindow || (enableList & (1 << bg))) {
+                if(enableList & (1 << bg)) {
                     if(bgLayer[bg][x] != 0) {
                         priority[0] = systemMemory->IORegisters[0x8 + (0x2 * bg)] & 0x3;
                         layer[0] = bg;
@@ -534,7 +532,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
                     // find the second top-most visible bg pixel
                     for(;i >= 0;i--) {
                         uint8_t bg = bgList[i];
-                        if(!inWindow || (enableList & (1 << bg))) {
+                        if(enableList & (1 << bg)) {
                             if(bgLayer[bg][x] != 0) {
                                 priority[1] = systemMemory->IORegisters[0x8 + (0x2 * bg)] & 0x3;
                                 layer[1] = bg;
@@ -548,8 +546,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
         }
 
         // Check if OBJ pixel takes priority over one of the two top-most visible bg pixels
-        if( (!inWindow || (enableList & 0b10000)) &&
-            spritesEnabled &&
+        if( (enableList & 0b10000) &&
             spriteLayer[x].pindex != 0 ) {
             if(spriteLayer[x].priority <= priority[0]) {
                 layer[1] = layer[0];
@@ -576,7 +573,7 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
         }
 
         // blend that shit baby (if we doin it)
-        if(!inWindow || specialEffects || objBlends) {
+        if(specialEffects || objBlends) {
             bool has1stTarget = bldcntFirstTargets & (1 << layer[0]); // must be on top for blending
             bool has2ndTarget = bldcntSecondTargets & (1 << layer[1]); // must be on bottom
             if(objBlends && has2ndTarget)
