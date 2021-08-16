@@ -86,8 +86,9 @@ struct LCD {
     // Take the BG and sprite layers and output them into pixelBuffer 
     // with priority and alpha blending
     template<bool> uint16_t brightnessFade(uint8_t,uint16_t);
-    uint16_t blend(uint8_t,uint16_t,uint8_t,uint16_t);
-    template<bool> void composeScanline(uint16_t*,uint8_t,uint8_t,uint8_t);
+    uint16_t blendColor(uint8_t,uint16_t,uint8_t,uint16_t);
+    uint16_t blend(uint16_t,uint16_t,uint8_t);
+    void composeScanline(uint16_t*,uint8_t,uint8_t,uint8_t);
 
     void renderScanline();
 

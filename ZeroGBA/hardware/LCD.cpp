@@ -76,7 +76,7 @@ void LCD::renderTextBG(uint8_t bg,uint8_t vcount) {
     uint16_t bgTileRow = vcount + bgvofs & height;
     uint16_t ty = bgTileRow / 8;
 
-    uint8_t seCalc2Num = 0;
+    uint16_t seCalc2Num = 0;
     if(ty >= 32 && bgcntSize == 0xC000)
         seCalc2Num += 0x0400;
 
@@ -237,13 +237,14 @@ void LCD::renderAffineBG(uint8_t bg) {
 }
 template<bool bitmappedMode>
 void LCD::renderSprites(int16_t vcount) {
+
+    std::fill_n(spriteLayer,240,Sprite{});
+    
     uint16_t dispCnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0]);
     if((dispCnt & 0x1000) == 0)
         return;
 
     uint8_t* charBlockBase = &systemMemory->vram[0x10000];
-
-    std::fill_n(spriteLayer,240,Sprite{});
 
     for(uint16_t spriteByteOffset = 0; spriteByteOffset < 1024; spriteByteOffset+=8) {
         uint16_t attribute0 = *reinterpret_cast<uint16_t*>(&systemMemory->oam[spriteByteOffset]);
@@ -397,7 +398,7 @@ uint16_t LCD::brightnessFade(uint8_t evy, uint16_t color) {
 
     return (b << 10 | g << 5 | r);
 }
-uint16_t LCD::blend(uint8_t eva, uint16_t colorA, uint8_t evb, uint16_t colorB) {
+uint16_t LCD::blendColor(uint8_t eva, uint16_t colorA, uint8_t evb, uint16_t colorB) {
     eva = eva > 16 ? 16 : eva;
     evb = evb > 16 ? 16 : evb;
     uint8_t rA = colorA & 0x1F;
@@ -413,12 +414,30 @@ uint16_t LCD::blend(uint8_t eva, uint16_t colorA, uint8_t evb, uint16_t colorB) 
     
     return (bA << 10 | gA << 5 | rA);
 }
-template<bool bitmappedMode>
+uint16_t LCD::blend(uint16_t colorA, uint16_t colorB, uint8_t colorSpecialEffect) {
+    switch(colorSpecialEffect) {
+        case 0:
+            return colorA;
+        case 1:
+        {
+            uint8_t eva = systemMemory->IORegisters[0x52] & 0x1F;
+            uint8_t evb = systemMemory->IORegisters[0x53] & 0x1F;
+            return blendColor(eva,colorA,evb,colorB);
+        }
+        case 2:
+        {
+            uint8_t evy = systemMemory->IORegisters[0x54] & 0x1F;
+            return brightnessFade<true>(evy,colorA);
+        }
+        case 3:
+        {
+            uint8_t evy = systemMemory->IORegisters[0x54] & 0x1F;
+            return brightnessFade<false>(evy,colorA);
+        }
+    }
+}
 void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uint8_t bgMin) {
 
-    // todo: optimize the faq out of this, presort the backgrounds before per-pixel compositing;
-    // also break off compositing loop if all BGs are enabled, but only one is shown,
-    // take alpha blending into consideration (if you blend the highest layer, order up another BG, only two layer blend at most)
     uint16_t winin = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters[0x48]);
     uint8_t win0List = winin & 0x1F;
     uint8_t win1List = (winin & 0x1F00) >> 8;
@@ -427,15 +446,15 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
     uint8_t objList = (winout & 0x1F00) >> 8;
     uint16_t dispcnt = *reinterpret_cast<uint16_t*>(&systemMemory->IORegisters);
 
-    uint8_t bldcntFirstTargets = *reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x50]) & 0x3F;
-    uint8_t bldcntSecondTargets = *reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x51]) & 0x3F;
-    uint8_t colorSpecialEffect = (*reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x50]) & 0xC0) >> 6;
-    uint8_t eva = *reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x52]) & 0x1F;
-    uint8_t evb = *reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x53]) & 0x1F;
-    uint8_t evy = *reinterpret_cast<uint8_t*>(&systemMemory->IORegisters[0x54]) & 0x1F;
+    uint8_t bldcntFirstTargets = systemMemory->IORegisters[0x50] & 0x3F;
+    uint8_t bldcntSecondTargets = systemMemory->IORegisters[0x51] & 0x3F;
+    uint8_t colorSpecialEffect = (systemMemory->IORegisters[0x50] & 0xC0) >> 6;
 
+    uint16_t* halfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram);
+    uint16_t* spriteHalfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram[0x200]);
+    uint16_t bdColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
 
-    bool win0Display, win1Display, objDisplay, win1YVisible, win0YVisible, win0Effects, win1Effects, outEffects, objEffects, specialEffects;
+    bool win0Display, win1Display, objDisplay, win1YVisible, win0YVisible, win0Effects, win1Effects, outEffects, objEffects, specialEffects, spritesEnabled;
     win0Display = dispcnt & 0x2000;
     win1Display = dispcnt & 0x4000;
     objDisplay = dispcnt & 0x8000;
@@ -445,17 +464,30 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
     win1Effects = winin & 0x2000;
     outEffects = winout & 0x20;
     objEffects = winout & 0x2000;
+    spritesEnabled = dispcnt & 0x1000;
     uint8_t enableList = 0, win0x1, win0x2, win1x1, win1x2;
     win0x1 = systemMemory->IORegisters[0x41];
     win0x2 = systemMemory->IORegisters[0x40];
     win1x1 = systemMemory->IORegisters[0x43];
     win1x2 = systemMemory->IORegisters[0x42];
 
+    // presort the enabled BGs by priority from lowest to highest
+    uint8_t bgList[4];
+    int8_t bgCount = 0;
+    for(int8_t priority = 3; priority >= 0; priority--)
+        for(int8_t bg = bgMax; bg >= bgMin; bg--)
+            if((systemMemory->IORegisters[1] & (1 << bg)) && ((systemMemory->IORegisters[0x8 + (0x2 * bg)] & 0x3) == priority))
+                bgList[bgCount++] = bg;
+
+    // variables for top-most visible bg-related things, hi-prio = 0, lower-prio = 1
+    uint16_t color[2];
+    uint8_t priority[2];
+    uint8_t layer[2];
+
     // composite a scanline from lowest priority window contents (OBJs and BGs) to highest, from highest prio window
     for(uint8_t x = 0; x < 240; x++) {
-        
-        uint16_t topColor = *reinterpret_cast<uint16_t*>(&systemMemory->pram[0]);
-        uint8_t topNonTransparentBg = BD;
+
+        bool inWindow = true;
 
         if(win0Display && win0x1 <= x && x < win0x2 && win0YVisible) { // WIN0
             enableList = win0List;
@@ -471,145 +503,95 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
             specialEffects = outEffects;
         } else { // no windows
             // even with no windows, BGs are shown    
-            enableList = (dispcnt & 0x1F00) >> 8;
+            inWindow = false;
             specialEffects = true;
         }
 
-        // iterate through bgs and sprite of this window in lowest to highest priority
-        for(int8_t priority = 3; priority >= 0; priority--) {
+        bool objBlends = false;
+        priority[0] = 4;
+        layer[0] = BD;
 
-            // bgs
-            for(int8_t bg = bgMax; bg >= bgMin; bg--) {
-                if(enableList & (1 << bg)) {
-                    // if this bg lies on this priority
-                    if((systemMemory->IORegisters[0x8 + (0x2 * bg)] & 0x3) == priority) {
-                        if(bgLayer[bg][x] == 0 && bitmappedMode)
-                            goto compositeObj;
-                        if(bgLayer[bg][x] == 0)
-                            continue;
+        // find the top-most visible bg pixel
+        if(bgCount != 0) {
+            int8_t i = bgCount - 1;
+            for(;i >= 0;i--) {
+                uint8_t bg = bgList[i];
+                if(!inWindow || (enableList & (1 << bg))) {
+                    if(bgLayer[bg][x] != 0) {
+                        priority[0] = systemMemory->IORegisters[0x8 + (0x2 * bg)] & 0x3;
+                        layer[0] = bg;
+                        i--;
+                        break;
+                    }
+                }
+            }
 
-                        uint16_t* halfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram);
-                        uint16_t newColor = halfWordPram[bgLayer[bg][x]];
-
-                        if(specialEffects) { // if blending enabled
-                            switch(colorSpecialEffect) {
-                                case 0x0: // none
-                                    goto opaqueBG;
-                                case 0x1: // alpha blending
-                                    if(bldcntFirstTargets & (1 << bg) && bldcntSecondTargets & (1 << topNonTransparentBg)) {
-                                        topColor = blend(eva, newColor, evb, topColor);
-                                        topNonTransparentBg = bg;
-                                    } else
-                                        goto opaqueBG;
-                                    break;
-                                case 0x2: // brightness increase
-                                    if(bldcntFirstTargets & (1 << bg)) {
-                                        topColor = brightnessFade<true>(evy, newColor);
-                                        topNonTransparentBg = bg;
-                                    } else
-                                        goto opaqueBG;
-                                    break;
-                                case 0x3: // brightness decrease
-                                    if(bldcntFirstTargets & (1 << bg)) {
-                                        topColor = brightnessFade<false>(evy, newColor);
-                                        topNonTransparentBg = bg;
-                                    } else
-                                        goto opaqueBG;
-                                    break;
+            // if it blends
+            if(specialEffects) {
+                if(colorSpecialEffect != 0) {
+                    priority[1] = 4;
+                    layer[1] = BD;
+                    // find the second top-most visible bg pixel
+                    for(;i >= 0;i--) {
+                        uint8_t bg = bgList[i];
+                        if(!inWindow || (enableList & (1 << bg))) {
+                            if(bgLayer[bg][x] != 0) {
+                                priority[1] = systemMemory->IORegisters[0x8 + (0x2 * bg)] & 0x3;
+                                layer[1] = bg;
+                                break;
                             }
-                        } else {
-                        opaqueBG:
-                            topColor = newColor;
-                            topNonTransparentBg = bg;
                         }
                     }
                 }
-
-                // ignore priority since there's only 1 bg and sprite layer for bitmapped modes
-                if(bitmappedMode)
-                    goto compositeObj;
             }
 
+        }
 
-            compositeObj:
-            // OBJs
-            if(enableList & 0b10000) {
-                if(spriteLayer[x].priority == priority && spriteLayer[x].pindex != 0) {
-                    uint16_t* halfWordPram = reinterpret_cast<uint16_t*>(&systemMemory->pram[0x200]);
-                    uint16_t newColor = halfWordPram[spriteLayer[x].pindex];
-
-                    if(specialEffects) {
-
-                        if(spriteLayer[x].alpha)
-                            goto secondTargetSpriteCheck;
-
-                        switch(colorSpecialEffect) {
-                            case 0x0: // none
-                                goto opaqueSprite;
-                            case 0x1: // alpha blending
-                                if(bldcntFirstTargets & (1 << OBJ)) {
-                                    secondTargetSpriteCheck:
-                                    if(bldcntSecondTargets & (1 << topNonTransparentBg)) {
-                                        topColor = blend(eva, newColor, evb, topColor);
-                                        topNonTransparentBg = OBJ;
-                                    } else
-                                        goto opaqueSprite;
-                                } else
-                                    goto opaqueSprite;
-                                break;
-                            case 0x2: // brightness increase
-                                if(bldcntFirstTargets & (1 << OBJ)) {
-                                    topColor = brightnessFade<true>(evy, newColor);
-                                    topNonTransparentBg = OBJ;
-                                } else
-                                    goto opaqueSprite;
-                                break;
-                            case 0x3: // brightness decrease
-                                if(bldcntFirstTargets & (1 << OBJ)) {
-                                    topColor = brightnessFade<false>(evy, newColor);
-                                    topNonTransparentBg = OBJ;
-                                } else
-                                    goto opaqueSprite;
-                                break;
-                        }
-                    } else {
-                        opaqueSprite:
-                        topColor = newColor;
-                        topNonTransparentBg = OBJ;
-                    }
-                }
+        // Check if OBJ pixel takes priority over one of the two top-most visible bg pixels
+        if( (!inWindow || (enableList & 0b10000)) &&
+            spritesEnabled &&
+            spriteLayer[x].pindex != 0 ) {
+            if(spriteLayer[x].priority <= priority[0]) {
+                layer[1] = layer[0];
+                layer[0] = OBJ;
+                objBlends = spriteLayer[x].alpha;
+            } else if(spriteLayer[x].priority <= priority[1]) {
+                layer[1] = OBJ;
             }
         }
 
-        // backdrop
-        if(topNonTransparentBg == BD) {
-            if(specialEffects) { // if blending enabled
-                switch(colorSpecialEffect) {
-                    // todo: check if this behavior is right
-                    case 0x0: // none
-                    case 0x1: // alpha blending
-                        break;
-                    case 0x2: // brightness increase
-                        if(bldcntFirstTargets & 0x20) {
-                            topColor = brightnessFade<true>(evy, topColor);
-                        }
-                        break;
-                    case 0x3: // brightness decrease
-                        if(bldcntFirstTargets & 0x20) {
-                            topColor = brightnessFade<false>(evy, topColor);
-                        }
-                        break;
-                }
+        // find color from layer pindexes
+        for(int8_t i : {0,1}) {
+            switch(layer[i]) {
+                case BG0 ... BG3:
+                    color[i] = halfWordPram[bgLayer[layer[i]][x]];
+                    break;
+                case OBJ:
+                    color[i] = spriteHalfWordPram[spriteLayer[x].pindex];
+                    break;
+                case BD:
+                    color[i] = bdColor;
+                    break;
             }
         }
 
-        scanline[x] = topColor;
+        // blend that shit baby (if we doin it)
+        if(!inWindow || specialEffects || objBlends) {
+            bool has1stTarget = bldcntFirstTargets & (1 << layer[0]); // must be on top for blending
+            bool has2ndTarget = bldcntSecondTargets & (1 << layer[1]); // must be on bottom
+            if(objBlends && has2ndTarget)
+                color[0] = blend(color[0],color[1],1);
+            else if(colorSpecialEffect != 0 && has1stTarget && (has2ndTarget || colorSpecialEffect != 1))
+                color[0] = blend(color[0],color[1],colorSpecialEffect);
+        }
+
+        scanline[x] = color[0];
     }
 }
 
 #define RENDER_SPRITES_AND_COMPOSE(bitmappedMode,bgMax,bgMin) if(DISPCNT_OBJ) \
                                                       renderSprites<bitmappedMode>(vcount); \
-                                                      composeScanline<bitmappedMode>(scanLine,vcount,bgMax,bgMin);
+                                                      composeScanline(scanLine,vcount,bgMax,bgMin);
 void LCD::renderScanline() {
 
     // todo: implement rotation + scaling (affine) for bitmap modes
