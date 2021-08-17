@@ -23,6 +23,7 @@
     <ClInclude Include="hardware\MMIO.h" />
     <ClInclude Include="hardware\SoundController.hpp" />
     <ClInclude Include="hardware\Timers.hpp" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Scheduler.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -47,7 +48,10 @@
     <None Include="shaders\GBA.vert" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="logo.bmp" />
+    <ResourceCompile Include="ZeroGBA.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="logo.ico" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

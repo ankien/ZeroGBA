@@ -19,10 +19,6 @@ LCD::LCD() {
         SDL_WINDOW_OPENGL
     );
 
-    SDL_Surface* logo = SDL_LoadBMP("logo.bmp");
-    SDL_SetWindowIcon(window,logo);
-    SDL_FreeSurface(logo);
-
     SDL_GL_CreateContext(window);
     SDL_GL_SetSwapInterval(0);
     glewInit();
