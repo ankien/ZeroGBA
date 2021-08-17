@@ -27,12 +27,13 @@ However, things moved quicker than I expected and I ended up making a fairly acc
   <h2>Usage</h2>
   <i>Since there are no user builds yet, this is merely how it's planned to work.</i><br><br>
   <code>ZeroGBA.exe [-options] [your rom.gba]</code><br>
-  This emulator is only tested to be compatible with Windows.<br>
+  This emulator is only tested to be compatible with Windows. ZeroGBA is a 64-bit program, so your CPU will need to be compatible.<br>
   You will need to either dump your own BIOS or download a <a href="https://github.com/Nebuleon/ReGBA/blob/master/bios/gba_bios.bin">replacement</a>.<br>
   Place it in the same directory as the executable.<br>
 <h3>Compiling</h3>
-  You will need a GBA BIOS, place it in <code>ZeroGBA\ZeroGBA</code>.<br>
-  All other dependencies are included, so just open the project in Visual Studio and click the funny green button.  :)<br>
+  You will need Visual Studio with C++ Clang components installed.<br>
+  You will also need a GBA BIOS, place it in <code>ZeroGBA\ZeroGBA</code>.<br>
+  All other dependencies are included, so just open the project in Visual Studio and click the funny green button.  :-)<br>
 <h2>Tests Passed</h2>
   <a href="https://github.com/DenSinH/FuzzARM">FuzzARM</a>: ALL<br>
   <a href="https://github.com/destoer/armwrestler-gba-fixed">ARMWrestler</a>: ALL<br>
