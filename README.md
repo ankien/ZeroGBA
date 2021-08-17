@@ -25,11 +25,10 @@ However, things moved quicker than I expected and I ended up making a fairly acc
   <p><b>Toggle Fullscreen: </b>Alt+Enter</p>
   <p><b>Trace Log: </b>T (Toggle, when enabled in GBAMemory.hpp)</p><br>
   <h2>Usage</h2>
-  <i>Since there are no user builds yet, this is merely how it's planned to work.</i><br><br>
-  <code>ZeroGBA.exe [-options] [your rom.gba]</code><br>
+  <i>Download the latest version from <a href="https://github.com/ankien/ZeroGBA/releases">here</a>.</i><br>
+  You may drag your ROM onto the executable or enter the following in the command line:<br>
+  <code>ZeroGBA.exe [your ROM.gba]</code><br><br>
   This emulator is only tested to be compatible with Windows. ZeroGBA is a 64-bit program, so your CPU will need to be compatible.<br>
-  You will need to either dump your own BIOS or download a <a href="https://github.com/Nebuleon/ReGBA/blob/master/bios/gba_bios.bin">replacement</a>.<br>
-  Place it in the same directory as the executable.<br>
 <h3>Compiling</h3>
   You will need Visual Studio with C++ Clang components installed.<br>
   You will also need a GBA BIOS, place it in <code>ZeroGBA\ZeroGBA</code>.<br>
