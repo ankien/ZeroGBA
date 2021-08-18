@@ -4,11 +4,10 @@ Initially the goal was just to boot most commercial games with stable 60 fps fra
 However, things moved quicker than I expected and I ended up making a fairly accurate and performant emulator.<br><br>
 <img src="/ZeroGBA/non-code/screenshots/doom.png" width="400">
 <h2>Some Demos</h2>
-  <p float="left">
-    <img src="/ZeroGBA/non-code/screenshots/m7Demo.gif" width="400">
+  <p align="center">
     <img src="/ZeroGBA/non-code/screenshots/mmbn.gif" width="400">
     <img src="/ZeroGBA/non-code/screenshots/kirby.gif" width="400">
-    <img src="/ZeroGBA/non-code/screenshots/armwrestler pass.gif" width="400">
+    <img src="/ZeroGBA/non-code/screenshots/monkeyball.gif" width="400">
   </p>
 <h2>System Controls</h2>
   Below "Xbox 360" controls describe position, they should work for other controllers too.<br><br>
@@ -28,7 +27,7 @@ However, things moved quicker than I expected and I ended up making a fairly acc
   <i>Download the latest version from <a href="https://github.com/ankien/ZeroGBA/releases">here</a>.</i><br>
   You may drag your ROM onto the executable or enter the following in the command line:<br>
   <code>ZeroGBA.exe [your ROM.gba]</code><br><br>
-  This emulator is only tested to be compatible with Windows. ZeroGBA is a 64-bit program, so your CPU will need to be compatible.<br>
+  This emulator is only tested to be compatible with Windows, though it only uses cross-platform libraries so compiling and running on other systems should be trivial. ZeroGBA is a 64-bit program, so your CPU will need to be compatible.<br>
 <h3>Compiling</h3>
   You will need Visual Studio with C++ Clang components installed.<br>
   You will also need a GBA BIOS, place it in <code>ZeroGBA\ZeroGBA</code>.<br>
