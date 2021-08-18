@@ -26,7 +26,7 @@ However, things moved quicker than I expected and I ended up making a fairly acc
   <h2>Usage</h2>
   <i>Download the latest version from <a href="https://github.com/ankien/ZeroGBA/releases">here</a>.</i><br>
   You may drag your ROM onto the executable or enter the following in the command line:<br>
-  <code>ZeroGBA.exe [your ROM.gba]</code><br><br>
+  <code>ZeroGBA.exe "your ROM.gba"</code><br><br>
   This emulator is only tested to be compatible with Windows, though it only uses cross-platform libraries so compiling and running on other systems should be trivial. ZeroGBA is a 64-bit program, so your CPU will need to be compatible.<br>
 <h3>Compiling</h3>
   You will need Visual Studio with C++ Clang components installed.<br>
