@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <functional>
 #include <cstdio>
-#include <SDL.h>
 #include "hardware/cpu/ARM7TDMI.hpp"
 #include "hardware/Interrupts.hpp"
 #include "hardware/memory/GBAMemory.hpp"

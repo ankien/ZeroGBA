@@ -123,7 +123,7 @@ bool GBAMemory::loadRom(std::string& rom) {
     std::ifstream romStream(rom.c_str(), std::ifstream::in | std::ifstream::binary);
     uint32_t romSizeInBytes = std::filesystem::file_size(rom);
     if(romSizeInBytes > 0x02000000) {
-        printf("ROM size too large!\n");
+        puts("ROM size too large!");
         return 0;
     }
     largerThan16KB = romSizeInBytes > 0x1000000 ? true : false ;
@@ -133,7 +133,7 @@ bool GBAMemory::loadRom(std::string& rom) {
     rom.erase(rom.find_last_of("."),std::string::npos);
     gPakSaveMem = reinterpret_cast<uint8_t*>(createSaveMap(rom));
     if(gPakSaveMem == nullptr && romSaveType != EEPROM_V) {
-        printf("Error in detecting/creating save.\n");
+        puts("Error in detecting/creating save.");
         return 0;
     }
 
