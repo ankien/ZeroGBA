@@ -33,9 +33,9 @@ struct Scheduler {
     void addEventToFront(std::function<uint64_t()>,uint8_t,uint64_t, bool);
     void addEventToBack(std::function<uint64_t()>,uint8_t,uint64_t, bool);
 
-    // takes the return value of an event fuction and reschedules it
+    // takes the return value of an event function and reschedules it
     // only use for events that should be rescheduled!
-    void rescheduleEvent(const std::list<Event>::iterator&,uint64_t); // executes then pops or reschedules the front event
+    void rescheduleEvent(const std::list<Event>::iterator&,uint64_t);
     void step();
 };
 
