@@ -596,7 +596,11 @@ void LCD::renderScanline() {
         uint16_t* scanLine = pixelBuffer + lineStart;
         
         // clear buffers, 4 * 4 * 240
-        memset(bgLayer,0,3840);
+        if(systemMemory->IORegisters[0] & 0x80) {
+            std::fill_n(scanLine,240,0x7FFF);
+            return;
+        } else
+            memset(bgLayer,0,3840);
 
         switch(DISPCNT_MODE) {
             case 0: // BG[0-3] text/tile BG mode, no affine
