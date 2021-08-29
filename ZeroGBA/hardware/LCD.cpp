@@ -346,7 +346,7 @@ void LCD::renderSprites(int16_t vcount) {
             if(bitmappedMode && tid < 512)
                 continue;
 
-            tid += tileRowOffset;
+            tid = (tid + tileRowOffset) & 0x3FF;
             
             // Unlike BGs, TID for sprites are located in OAM
             if(eightBitColors)
