@@ -54,7 +54,6 @@ inline void CPUState::switchMode(uint8_t newMode) {
                 abtReg[i-13] = r[i];
             break;
         case IRQ:
-            *stateRelativeToBios = 2;
             for(uint8_t i = 8; i < 13; i++)
                 sysUserReg[i-8] = r[i];
             for(uint8_t i = 13; i < 15; i++)
@@ -229,7 +228,6 @@ inline void CPUState::handleException(uint8_t exception, int8_t nn, uint8_t newM
                     r[15] = 0x14;
                     break;
                 case SoftwareInterrupt:
-                    *stateRelativeToBios = 3;
                     r[15] = 0x8;
                     break;
             }
