@@ -582,9 +582,9 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
     }
 }
 
-#define RENDER_SPRITES_AND_COMPOSE(bitmappedMode,bgMax,bgMin) if(DISPCNT_OBJ) \
-                                                      renderSprites<bitmappedMode>(vcount); \
-                                                      composeScanline(scanLine,vcount,bgMax,bgMin);
+#define RENDER_SPRITES_AND_COMPOSE(bitmappedMode,bgMax,bgMin) \
+                        renderSprites<bitmappedMode>(vcount); \
+                composeScanline(scanLine,vcount,bgMax,bgMin);
 void LCD::renderScanline() {
 
     // todo: implement rotation + scaling (affine) for bitmap modes
