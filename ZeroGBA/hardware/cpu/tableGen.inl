@@ -60,12 +60,15 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
     #if defined(PRINT_INSTR)
         printf("at pc=%X Data Proc=",cpuState.r[15]);
     #endif
-    uint32_t rn = (instruction & 0xF0000) >> 16;
+    uint8_t rnReg;
+    uint32_t rn = rnReg = (instruction & 0xF0000) >> 16;
     uint8_t rd = (instruction & 0xF000) >> 12;
     uint32_t op2;
     bool oldCarry = cpuState.carryFlag;
     bool voidRd = 0;
     bool pcIsRn = rn == 15;
+
+    uint8_t rm;
 
     // shifting
     switch(immediate) {
@@ -73,7 +76,7 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         case 0: // register is second operand
         {
             uint8_t shiftType = (instruction & 0x60) >> 5;
-            uint8_t rm = instruction & 0xF;
+            rm = instruction & 0xF;
             // if rm or rn == 15, and r == 1, cpuState.r[15]+=12, else cpuState.r[15]+=8
             switch(shiftByReg) {
                 case 0: // register operand w/ immediate shift
@@ -188,10 +191,10 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         setZeroAndSign(result);
     
     if((condCode) && (rd == 15)) {
-        if(cpuState.mode == IRQ && (instruction & 0x1EF0000) == 0x4E0000 && cpuState.r[15] <= 0x3FFF) {
+        if(cpuState.mode == IRQ && opcode == 0x2 && !immediate && rnReg == 14 && op2 == 4) {
             systemMemory->biosLastPrefetchedWord = systemMemory->memoryArray<uint32_t>(cpuState.r[15] + 8);
             systemMemory->stateRelativeToBios = systemMemory->AfterIRQ;
-        } else if(cpuState.mode == Supervisor && (instruction & 0x3E0000F) == 0x1A0000E && cpuState.r[15] <= 0x3FFF) {
+        } else if(cpuState.mode == Supervisor && opcode == 0xD && !immediate && rm == 14) {
             systemMemory->biosLastPrefetchedWord = systemMemory->memoryArray<uint32_t>(cpuState.r[15] + 8);
             systemMemory->stateRelativeToBios = systemMemory->AfterSWI;
         }
