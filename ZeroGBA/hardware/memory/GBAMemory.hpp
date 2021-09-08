@@ -42,6 +42,7 @@ struct GBAMemory {
     enum unusedMemTypes { NotUnused, Bios, GenericUnused };
     enum lastFetchedFromBios { AfterStartupOrReset, DuringIRQ, AfterIRQ, AfterSWI };
     uint8_t stateRelativeToBios = AfterStartupOrReset;
+    uint32_t biosLastPrefetchedWord;
     uint8_t getUnusedMemType(uint32_t);
     uint32_t readUnusedMem(bool,uint8_t); // for memory reads that aren't mirrored, AKA open bus read
     // todo: handle KEYCNT writes and its interrupts

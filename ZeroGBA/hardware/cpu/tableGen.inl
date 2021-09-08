@@ -188,10 +188,13 @@ void ARM7TDMI::ARMdataProcessing(uint32_t instruction) {
         setZeroAndSign(result);
     
     if((condCode) && (rd == 15)) {
-        if(cpuState.mode == IRQ && cpuState.r[15] >> 24 == 0x00)
+        if(cpuState.mode == IRQ && (instruction & 0x1EF0000) == 0x4E0000 && cpuState.r[15] <= 0x3FFF) {
+            systemMemory->biosLastPrefetchedWord = systemMemory->memoryArray<uint32_t>(cpuState.r[15] + 8);
             systemMemory->stateRelativeToBios = systemMemory->AfterIRQ;
-        else if(cpuState.mode == Supervisor && cpuState.r[15] >> 24 == 0x00)
+        } else if(cpuState.mode == Supervisor && (instruction & 0x3E0000F) == 0x1A0000E && cpuState.r[15] <= 0x3FFF) {
+            systemMemory->biosLastPrefetchedWord = systemMemory->memoryArray<uint32_t>(cpuState.r[15] + 8);
             systemMemory->stateRelativeToBios = systemMemory->AfterSWI;
+        }
         uint32_t spsrVal = cpuState.getBankedReg(cpuState.mode,'S');
         cpuState.switchMode(spsrVal & 0x1F);
         cpuState.setCPSR(spsrVal);

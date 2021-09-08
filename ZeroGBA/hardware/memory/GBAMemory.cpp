@@ -31,13 +31,13 @@ uint32_t GBAMemory::readUnusedMem(bool thumb,uint8_t memType) {
                 return *reinterpret_cast<uint32_t*>(&bios[0xDC + 8]);
                 break;
             case DuringIRQ:
-                return *reinterpret_cast<uint32_t*>(&bios[0x134 + 8]);
+                return *reinterpret_cast<uint32_t*>(&bios[0x134 + 8]); // todo: handle open bus after startup and during IRQ more accurately
                 break;
             case AfterIRQ:
-                return *reinterpret_cast<uint32_t*>(&bios[0x13C + 8]);
+                return biosLastPrefetchedWord;
                 break;
             case AfterSWI:
-                return *reinterpret_cast<uint32_t*>(&bios[0x188 + 8]);
+                return biosLastPrefetchedWord;
         }
     else {
         if(!thumb)
