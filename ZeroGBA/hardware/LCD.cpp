@@ -581,6 +581,9 @@ void LCD::composeScanline(uint16_t* scanline, uint8_t vcount, uint8_t bgMax, uin
         scanline[x] = color[0];
     }
 }
+void LCD::composeScanlineOffThread() {
+    
+}
 
 #define RENDER_SPRITES_AND_COMPOSE(bitmappedMode,bgMax,bgMin) \
                         renderSprites<bitmappedMode>(vcount); \

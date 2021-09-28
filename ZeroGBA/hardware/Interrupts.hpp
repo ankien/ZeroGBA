@@ -9,6 +9,7 @@ struct Interrupts {
     CPUState* cpuState;
     Scheduler* scheduler;
     uint8_t* IORegisters;
+    bool halting = false;
 
     /// Scheduler Stuff ///
     void scheduleInterruptCheck();
@@ -45,7 +46,8 @@ inline void Interrupts::scheduleHaltCheck() {
 }
 
 inline void Interrupts::haltCheck() {
-    // while (IE & IF) == 0, step through the other events 
+    // while (IE & IF) == 0, step through the other events
+    halting = true;
     while(((*reinterpret_cast<uint16_t*>(&IORegisters[0x200]) & 0x3FFF) &
            (*reinterpret_cast<uint16_t*>(&IORegisters[0x202]) & 0x3FFF)) == 0) {
 
@@ -56,5 +58,6 @@ inline void Interrupts::haltCheck() {
 
         scheduler->step();
     }
+    halting = false;
     scheduler->step();
 }
