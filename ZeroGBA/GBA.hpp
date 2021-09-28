@@ -3,8 +3,6 @@
 #include <filesystem>
 #include <functional>
 #include <cstdio>
-#include <thread>
-#include <mutex>
 #include "hardware/cpu/ARM7TDMI.hpp"
 #include "hardware/Interrupts.hpp"
 #include "hardware/memory/GBAMemory.hpp"
@@ -30,8 +28,6 @@ struct GBA {
     LCD lcd{};
     SoundController soundController{}; // initialized after SDL in LCD
     Keypad keypad{};
-
-    std::thread renderThread(&GBA::LCD::compositeOffThread);
     
     #ifdef DEBUG_VARS
     uint64_t instrCount = 0;
@@ -58,9 +54,6 @@ struct GBA {
         // todo: implement JIT polling and run ahead - https://byuu.net/input/latency/
         keypad.pollInputs();
 
-        // while render queue isn't empty, block main thread
-        while();
-
         lcd.draw();
 
         return 280896;
@@ -72,11 +65,7 @@ struct GBA {
             interrupts.scheduleInterruptCheck();
         }
         if(VCOUNT < 160) {
-            if(interrupts.halting)
-                lcd.renderScanline(); // draw visible line on-thread while halting
-            else {
-                
-            }
+            lcd.renderScanline(); // draw visible line
             // Increment internal reference point registers
             for(int8_t i = 0; i < 2; i++) {
                 systemMemory->internalRef[i].x += systemMemory->memoryArray<int16_t>(0x4000022 + i*0x10);
