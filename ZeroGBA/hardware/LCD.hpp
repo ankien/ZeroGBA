@@ -1,6 +1,9 @@
 #pragma once
 #include <x86intrin.h>
 #include <cstdint>
+#include <mutex>
+#include <array>
+#include <queue>
 #include <SDL.h>
 #include <glew.h>
 #include <string>
@@ -72,6 +75,7 @@ struct LCD {
     };
 
     // for compositing a scanline
+    std::queue<std::array<uint8_t,0x56>> lcdIORegQueue; // contains copies of LCD IO regs for each scanline, only copy IO regs until 0x56
     enum bgTypes {BG0,BG1,BG2,BG3,OBJ,BD};
     
     LCD();
@@ -89,6 +93,7 @@ struct LCD {
     uint16_t blendColor(uint8_t,uint16_t,uint8_t,uint16_t);
     uint16_t blend(uint16_t,uint16_t,uint8_t);
     void composeScanline(uint16_t*,uint8_t,uint8_t,uint8_t);
+    void composeScanlineOffThread();
 
     void renderScanline();
 
