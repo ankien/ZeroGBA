@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <filesystem>
+#include <algorithm>
 #include <functional>
 #include <cstdio>
 #include "hardware/cpu/ARM7TDMI.hpp"
