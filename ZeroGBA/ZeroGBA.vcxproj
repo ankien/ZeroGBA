@@ -142,6 +142,10 @@
       <OmitFramePointers>true</OmitFramePointers>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FloatingPointExceptions>false</FloatingPointExceptions>
+      <AdditionalOptions>-fbracket-depth=4096 %(AdditionalOptions)</AdditionalOptions>
+      <StringPooling>true</StringPooling>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <GuardEHContMetadata>false</GuardEHContMetadata>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
