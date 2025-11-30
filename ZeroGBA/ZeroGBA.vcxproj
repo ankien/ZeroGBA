@@ -155,6 +155,8 @@
       <AdditionalLibraryDirectories>$(SolutionDir)ZeroGBA\dependencies\sdl\lib;$(SolutionDir)ZeroGBA\dependencies\glew\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib; glu32.lib; SDL2.lib; glew32.lib;</AdditionalDependencies>
       <TargetMachine>MachineX64</TargetMachine>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
